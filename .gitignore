@@ -1,0 +1,51 @@
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build outputs
+dist/
+build/
+
+# Database
+*.db
+*.sqlite
+
+# Documentation
+docs/
+*.md
+
+# Temporary files
+tmp/
+temp/
+
+# Package files
+*.tgz
+*.zip
+
+# Backend specific
+backend/node_modules/
+backend/dist/
+backend/logs/
+backend/*.log
+
+# Frontend specific
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/logs/
+frontend/*.log
