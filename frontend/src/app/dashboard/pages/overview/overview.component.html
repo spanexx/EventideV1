@@ -1,0 +1,72 @@
+<div class="overview-container">
+  <div class="page-header">
+    <h2>Dashboard Overview</h2>
+    <p>Key metrics and recent activity for your business</p>
+  </div>
+  
+  <div *ngIf="loading$ | async" class="loading">Loading dashboard data...</div>
+  
+  <div *ngIf="!(loading$ | async)" class="stats-grid iphone-card">
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="material-icons">event</i>
+      </div>
+      <div class="stat-content">
+        <h3>Total Bookings</h3>
+        <p class="stat-value">{{ (stats$ | async)?.totalBookings || 0 }}</p>
+        <p class="stat-change">{{ (stats$ | async)?.bookingChange || '' }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="material-icons">attach_money</i>
+      </div>
+      <div class="stat-content">
+        <h3>Revenue</h3>
+        <p class="stat-value">${{ (stats$ | async)?.revenue || 0 }}</p>
+        <p class="stat-change">{{ (stats$ | async)?.revenueChange || '' }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="material-icons">schedule</i>
+      </div>
+      <div class="stat-content">
+        <h3>Upcoming</h3>
+        <p class="stat-value">{{ (stats$ | async)?.upcomingBookings || 0 }}</p>
+        <p class="stat-change">{{ (stats$ | async)?.upcomingChange || '' }}</p>
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-icon">
+        <i class="material-icons">trending_up</i>
+      </div>
+      <div class="stat-content">
+        <h3>Occupancy</h3>
+        <p class="stat-value">{{ (stats$ | async)?.occupancy || 0 }}%</p>
+        <p class="stat-change">{{ (stats$ | async)?.occupancyChange || '' }}</p>
+      </div>
+    </div>
+  </div>
+  
+  <div class="recent-activity">
+    <h3>Recent Activity</h3>
+    <div class="activity-list iphone-card">
+      <div class="activity-item">
+        <p><strong>John Doe</strong> booked a 30-minute session</p>
+        <span class="time">2 hours ago</span>
+      </div>
+      <div class="activity-item">
+        <p><strong>Jane Smith</strong> cancelled their appointment</p>
+        <span class="time">5 hours ago</span>
+      </div>
+      <div class="activity-item">
+        <p>You updated your availability for next week</p>
+        <span class="time">1 day ago</span>
+      </div>
+    </div>
+  </div>
+</div>

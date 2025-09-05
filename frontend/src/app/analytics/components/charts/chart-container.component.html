@@ -1,0 +1,9 @@
+<mat-card class="chart-container">
+  <div class="chart-header">
+    <h3>{{ title }}</h3>
+    <ng-content select="[chart-actions]"></ng-content>
+  </div>
+  <div class="chart-content">
+    <ng-content></ng-content>
+  </div>
+</mat-card>

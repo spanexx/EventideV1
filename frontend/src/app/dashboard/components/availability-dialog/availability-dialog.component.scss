@@ -1,0 +1,14 @@
+form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.mat-mdc-dialog-content {
+  padding-top: var(--spacing-lg);
+}
+
+.mat-mdc-dialog-actions {
+  padding: var(--spacing-lg);
+  justify-content: flex-end;
+}

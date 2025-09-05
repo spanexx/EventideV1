@@ -1,0 +1,21 @@
+.dashboard-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  transition: all 0.3s ease;
+}
+
+.sidebar-closed {
+  // Styles for when sidebar is closed
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .dashboard-layout {
+    flex-direction: column;
+  }
+  
+  .sidebar-closed {
+    // Mobile-specific styles
+  }
+}

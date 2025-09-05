@@ -1,0 +1,225 @@
+@use '../../../../styles.scss';
+
+.availability-container {
+  padding: var(--spacing-xl);
+  height: calc(100vh - 64px - (2 * var(--spacing-xl)));
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.page-header {
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
+  
+  .page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .page-description {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-lg);
+  }
+}
+
+.availability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+
+  h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0;
+  }
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--primary) 90%, black);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  .material-icons {
+    font-size: 20px;
+  }
+}
+
+.loading {
+  text-align: center;
+  padding: var(--spacing-3xl);
+  color: var(--muted-foreground);
+  font-size: var(--font-size-lg);
+}
+
+.calendar-container {
+  flex: 1;
+  overflow: auto;
+  background: var(--card);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.availability-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-lg);
+  justify-content: flex-end;
+}
+
+// FullCalendar overrides
+:host ::ng-deep {
+  .fc {
+    .fc-toolbar-title {
+      font-size: var(--font-size-xl) !important;
+      font-weight: var(--font-weight-semibold);
+      color: var(--foreground);
+    }
+
+    .fc-button {
+      background: var(--primary) !important;
+      color: var(--primary-foreground) !important;
+      border: none !important;
+      box-shadow: none !important;
+      text-transform: capitalize !important;
+      padding: var(--spacing-sm) var(--spacing-md) !important;
+      border-radius: var(--radius-md) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+
+      &:hover {
+        background: color-mix(in srgb, var(--primary) 90%, black) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: var(--shadow-md) !important;
+      }
+      
+      &:active {
+        transform: translateY(0) !important;
+      }
+    }
+
+    .fc-daygrid-day-frame {
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+      }
+    }
+
+    .fc-day-today {
+      background: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+    }
+
+    .fc-event {
+      border-radius: var(--radius-sm) !important;
+      padding: 4px 6px !important;
+      font-size: var(--font-size-xs) !important;
+      font-weight: var(--font-weight-medium);
+      transition: all 0.2s ease;
+      
+      &:hover {
+        transform: scale(1.05);
+      }
+    }
+
+    .fc-event.event-available {
+      background-color: var(--color-success) !important;
+      border-color: var(--color-success) !important;
+      color: var(--primary-foreground) !important;
+    }
+
+    .fc-event.event-booked {
+      background-color: var(--color-error) !important;
+      border-color: var(--color-error) !important;
+      color: var(--primary-foreground) !important;
+    }
+  }
+}
+
+/* iPhone-like enhancements */
+.iphone-card {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  
+  .calendar-container {
+    border-radius: 16px;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .availability-container {
+    padding: var(--spacing-lg);
+    height: calc(100vh - 64px - (2 * var(--spacing-lg)));
+  }
+  
+  .page-header {
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+    
+    .page-description {
+      font-size: var(--font-size-base);
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .availability-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .refresh-btn {
+    align-self: flex-end;
+  }
+  
+  :host ::ng-deep .fc .fc-toolbar.fc-header-toolbar {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .availability-actions {
+    flex-direction: column;
+  }
+  
+  :host ::ng-deep .fc .fc-button {
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-size: var(--font-size-sm) !important;
+  }
+}

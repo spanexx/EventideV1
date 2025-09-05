@@ -1,0 +1,136 @@
+@use '../../../../styles.scss';
+
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-2xl);
+}
+
+.page-header {
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
+  
+  .page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .page-description {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-lg);
+  }
+}
+
+.grid {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+}
+
+.card-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  
+  .card-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0 0 var(--spacing-xs) 0;
+  }
+  
+  .card-description {
+    font-size: var(--font-size-base);
+    color: var(--muted-foreground);
+    margin: 0;
+  }
+}
+
+.card-content {
+  padding: var(--spacing-lg);
+}
+
+.card-footer {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+}
+
+mat-slide-toggle {
+  font-size: var(--font-size-base);
+}
+
+/* iPhone-like enhancements */
+.iphone-card {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  
+  .card {
+    border-radius: 16px;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .page-container {
+    padding: var(--spacing-xl);
+  }
+  
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-lg);
+  }
+  
+  .page-header {
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+    
+    .page-description {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .card-header {
+    padding: var(--spacing-md);
+    
+    .card-title {
+      font-size: var(--font-size-lg);
+    }
+  }
+  
+  .card-content,
+  .card-footer {
+    padding: var(--spacing-md);
+  }
+}

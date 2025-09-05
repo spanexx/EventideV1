@@ -49,3 +49,8 @@ frontend/dist/
 frontend/build/
 frontend/logs/
 frontend/*.log
+
+
+prompt.prepare
+# Task Management MCP Database
+tskdb_stdio*

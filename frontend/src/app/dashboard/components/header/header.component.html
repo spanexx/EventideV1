@@ -1,0 +1,23 @@
+<header class="dashboard-header">
+  <div class="header-content">
+    <div class="header-left">
+      <button class="sidebar-toggle-btn" (click)="onToggleSidebar()">
+        <i class="material-icons">menu</i>
+      </button>
+      <h1>Eventide Dashboard</h1>
+    </div>
+    <!-- Temporarily removed ngIf for debugging -->
+    <div class="user-menu">
+      <div class="user-info">
+        <div class="user-avatar">
+          <i class="material-icons">person</i>
+        </div>
+        <span class="user-name">{{ (user$ | async)?.email }}</span>
+      </div>
+      <button class="logout-btn" (click)="logout()">
+        <i class="material-icons">exit_to_app</i>
+        <span>Logout</span>
+      </button>
+    </div>
+  </div>
+</header>

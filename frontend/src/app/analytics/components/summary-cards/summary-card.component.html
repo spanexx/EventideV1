@@ -1,0 +1,21 @@
+<mat-card class="summary-card" [class.error]="hasError">
+  <mat-card-content>
+    <div class="card-header">
+      <mat-icon *ngIf="icon">{{ icon }}</mat-icon>
+      <span class="title">{{ title }}</span>
+    </div>
+    <div class="value" *ngIf="!loading && !hasError">{{ value }}</div>
+    <div class="value loading-value" *ngIf="loading">
+      <mat-spinner diameter="20"></mat-spinner>
+    </div>
+    <div class="error-value" *ngIf="hasError">
+      <mat-icon>error</mat-icon>
+      <span>Error loading data</span>
+    </div>
+    <div class="change" [class.positive]="change > 0" [class.negative]="change < 0" *ngIf="!hasError && change !== null">
+      <mat-icon *ngIf="change > 0">trending_up</mat-icon>
+      <mat-icon *ngIf="change < 0">trending_down</mat-icon>
+      <span>{{ change > 0 ? '+' : '' }}{{ change }}%</span>
+    </div>
+  </mat-card-content>
+</mat-card>

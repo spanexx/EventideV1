@@ -1,0 +1,53 @@
+<div class="page-container">
+  <div class="page-header">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-description">Manage your account and notification preferences.</p>
+  </div>
+
+  <div class="grid grid-2 iphone-card">
+    <!-- Profile Settings Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Profile</h2>
+        <p class="card-description">Update your personal information.</p>
+      </div>
+      <div class="card-content">
+        <form class="settings-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Full Name</mat-label>
+            <input matInput placeholder="John Doe">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Email Address</mat-label>
+            <input matInput type="email" placeholder="john.doe@example.com">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Phone Number</mat-label>
+            <input matInput type="tel" placeholder="+1 (555) 123-4567">
+          </mat-form-field>
+        </form>
+      </div>
+      <div class="card-footer">
+        <button mat-flat-button color="primary">Save Changes</button>
+      </div>
+    </div>
+
+    <!-- Notification Settings Card -->
+    <div class="card">
+      <div class="card-header">
+        <h2 class="card-title">Notifications</h2>
+        <p class="card-description">Choose how you want to be notified.</p>
+      </div>
+      <div class="card-content">
+        <form class="settings-form">
+          <mat-slide-toggle color="primary" [checked]="true">Email Notifications</mat-slide-toggle>
+          <mat-slide-toggle color="primary" [checked]="false">Push Notifications</mat-slide-toggle>
+          <mat-slide-toggle color="primary" [checked]="true">Monthly Newsletter</mat-slide-toggle>
+        </form>
+      </div>
+      <div class="card-footer">
+        <button mat-flat-button color="primary">Save Preferences</button>
+      </div>
+    </div>
+  </div>
+</div>

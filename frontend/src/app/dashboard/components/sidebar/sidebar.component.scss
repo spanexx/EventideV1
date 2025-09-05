@@ -1,0 +1,180 @@
+@use '../../../../styles.scss';
+
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--sidebar);
+  border-right: 1px solid var(--sidebar-border);
+  padding: var(--spacing-md) 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: all 0.3s ease;
+  width: 280px;
+  
+  // iPhone X-style safe area insets
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.nav-menu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-xl);
+  text-decoration: none;
+  color: var(--sidebar-foreground);
+  transition: all 0.2s ease;
+  border-radius: 0;
+  font-weight: var(--font-weight-medium);
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  
+  // iPhone-like rounded corners on left side
+  border-top-right-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  
+  &:hover {
+    background: color-mix(in srgb, var(--sidebar-accent) 10%, transparent);
+    color: var(--sidebar-accent);
+  }
+  
+  &.active {
+    background: var(--sidebar-primary);
+    color: var(--sidebar-primary-foreground);
+    
+    .material-icons {
+      color: var(--sidebar-primary-foreground);
+    }
+    
+    // iOS-style indicator
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--sidebar-primary-foreground);
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
+  }
+}
+
+.material-icons {
+  margin-right: var(--spacing-lg);
+  color: var(--muted-foreground);
+  transition: color 0.2s ease;
+  font-size: 24px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.nav-text {
+  font-size: var(--font-size-base);
+  transition: opacity 0.2s ease, width 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Collapsed state for small screens */
+.sidebar-collapsed {
+  :host {
+    width: 80px;
+  }
+  
+  .nav-link {
+    padding: var(--spacing-lg) var(--spacing-md);
+    justify-content: center;
+    
+    .material-icons {
+      margin-right: 0;
+    }
+    
+    .nav-text {
+      opacity: 0;
+      width: 0;
+      margin-left: 0;
+    }
+    
+    &.active::before {
+      left: 0;
+      top: 20%;
+      bottom: 20%;
+      width: 3px;
+    }
+  }
+}
+
+/* iPhone-like floating sidebar for mobile */
+@media (max-width: 1024px) {
+  :host {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 1000;
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+    width: 280px;
+    max-width: 90vw;
+    
+    // Slide-in animation
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  // Hidden state
+  .sidebar-hidden {
+    :host {
+      transform: translateX(-100%);
+    }
+  }
+  
+  // Overlay when sidebar is open on mobile
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 999;
+    backdrop-filter: blur(2px);
+  }
+}
+
+/* Ultra-compact mode for very small screens */
+@media (max-width: 480px) {
+  :host {
+    width: 70px;
+  }
+  
+  .nav-link {
+    padding: var(--spacing-lg) var(--spacing-sm);
+    
+    .material-icons {
+      margin-right: 0;
+    }
+    
+    .nav-text {
+      opacity: 0;
+      width: 0;
+      margin-left: 0;
+    }
+  }
+}

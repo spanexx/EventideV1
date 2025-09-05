@@ -1,0 +1,27 @@
+<mat-sidenav-container class="sidebar-container" role="navigation">
+  <mat-sidenav 
+    #sidenav 
+    [opened]="isOpen" 
+    mode="side" 
+    class="sidebar-sidenav"
+    aria-label="Main navigation">
+    <mat-nav-list>
+      <a mat-list-item routerLink="/dashboard-guest/overview" routerLinkActive="active" aria-label="Dashboard overview">
+        <mat-icon>dashboard</mat-icon>
+        <span>Overview</span>
+      </a>
+      <a mat-list-item routerLink="/dashboard-guest/bookings" routerLinkActive="active" aria-label="My bookings">
+        <mat-icon>event</mat-icon>
+        <span>My Bookings</span>
+      </a>
+      <a mat-list-item routerLink="/dashboard-guest/profile" routerLinkActive="active" aria-label="Profile settings">
+        <mat-icon>person</mat-icon>
+        <span>Profile</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+  
+  <mat-sidenav-content>
+    <!-- Content will be placed here by router-outlet in parent component -->
+  </mat-sidenav-content>
+</mat-sidenav-container>

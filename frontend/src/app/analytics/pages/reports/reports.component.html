@@ -1,0 +1,61 @@
+<div class="reports-page">
+  <h1>Reports</h1>
+  
+  <div class="report-options">
+    <mat-form-field>
+      <mat-label>Report Type</mat-label>
+      <mat-select [(ngModel)]="reportType">
+        <mat-option value="pdf">PDF</mat-option>
+        <mat-option value="csv">CSV</mat-option>
+      </mat-select>
+    </mat-form-field>
+    
+    <mat-form-field>
+      <mat-label>Date Range</mat-label>
+      <mat-date-range-input [rangePicker]="rangePicker">
+        <input matStartDate placeholder="Start date" [(ngModel)]="startDate">
+        <input matEndDate placeholder="End date" [(ngModel)]="endDate">
+      </mat-date-range-input>
+      <mat-datepicker-toggle matSuffix [for]="rangePicker"></mat-datepicker-toggle>
+      <mat-date-range-picker #rangePicker></mat-date-range-picker>
+    </mat-form-field>
+    
+    <button 
+      mat-raised-button 
+      color="primary" 
+      (click)="generateReport()" 
+      [disabled]="loading$ | async">
+      <span *ngIf="!(loading$ | async)">Generate Report</span>
+      <span *ngIf="loading$ | async">Generating...</span>
+    </button>
+  </div>
+  
+  <div *ngIf="loading$ | async" class="loading">
+    <mat-spinner diameter="30"></mat-spinner>
+    <span>Generating report...</span>
+  </div>
+  
+  <div *ngIf="error$ | async as error" class="error-message">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+    <button mat-button (click)="retryGenerate()">Retry</button>
+  </div>
+  
+  <div *ngIf="report$ | async as report" class="report-download">
+    <mat-card>
+      <mat-card-content>
+        <h3>Your Report is Ready</h3>
+        <p>Click the button below to download your {{ report.type }} report.</p>
+        <button mat-raised-button color="primary" (click)="downloadReport()">
+          <mat-icon>download</mat-icon>
+          Download Report
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+  
+  <div *ngIf="!(loading$ | async) && !(error$ | async) && !(report$ | async)" class="no-report">
+    <mat-icon>description</mat-icon>
+    <p>Generate a report to get started.</p>
+  </div>
+</div>

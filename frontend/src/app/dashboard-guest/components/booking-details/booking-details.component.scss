@@ -1,0 +1,76 @@
+.booking-details-container {
+  padding: 20px;
+}
+
+.booking-details-card {
+  margin-top: 20px;
+}
+
+.detail-row {
+  display: flex;
+  margin-bottom: 15px;
+}
+
+.label {
+  font-weight: bold;
+  width: 120px;
+}
+
+.value {
+  flex: 1;
+}
+
+.status-confirmed {
+  color: green;
+}
+
+.status-pending {
+  color: orange;
+}
+
+.status-cancelled {
+  color: red;
+}
+
+.status-completed {
+  color: blue;
+}
+
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.error-message {
+  color: #f44336;
+  margin-bottom: 15px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .booking-details-container {
+    padding: 10px;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+  }
+  
+  .label {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-details-card {
+    margin-top: 10px;
+  }
+  
+  .detail-row {
+    margin-bottom: 10px;
+  }
+}

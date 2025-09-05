@@ -1,0 +1,14 @@
+<nav class="dashboard-sidebar">
+  <ul class="nav-menu">
+    <li *ngFor="let item of menuItems" class="nav-item" [title]="item.name">
+      <a 
+        [routerLink]="item.path" 
+        routerLinkActive="active"
+        class="nav-link"
+        [attr.data-tooltip]="item.name">
+        <i class="material-icons">{{ item.icon }}</i>
+        <span class="nav-text">{{ item.name }}</span>
+      </a>
+    </li>
+  </ul>
+</nav>

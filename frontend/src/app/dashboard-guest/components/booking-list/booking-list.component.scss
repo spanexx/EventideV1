@@ -1,0 +1,58 @@
+.booking-list-container {
+  padding: 20px;
+}
+
+.tab-content {
+  padding: 20px 0;
+}
+
+.booking-card {
+  margin-bottom: 15px;
+}
+
+.booking-card mat-card-header {
+  margin-bottom: 10px;
+}
+
+.booking-card mat-card-content p {
+  margin: 5px 0;
+}
+
+.loading-container, .error-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.error-message {
+  color: #f44336;
+  margin-bottom: 15px;
+}
+
+// Responsive design
+@media (max-width: 768px) {
+  .booking-list-container {
+    padding: 10px;
+  }
+  
+  .tab-content {
+    padding: 10px 0;
+  }
+  
+  .booking-card mat-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .booking-card mat-card-actions {
+    flex-direction: column;
+  }
+  
+  .booking-card mat-card-actions button {
+    margin-bottom: 10px;
+  }
+}

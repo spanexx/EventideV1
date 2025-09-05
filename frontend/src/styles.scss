@@ -1,1 +1,840 @@
+/*
+	Global design tokens imported from Tasks/memory/communication.chat
+	These CSS variables provide the app's color, spacing and typography tokens.
+	Use in component styles like: color: var(--color-foreground);
+*/
+@use 'angular-calendar/scss/angular-calendar.scss' as calendar;
+
+:root {
+	/* iPhone-like color palette */
+	--background: #f5f5f7; /* Light background */
+	--foreground: #1d1d1f; /* Dark text */
+	--card: #ffffff; /* Card background */
+	--card-foreground: #1d1d1f; /* Card text */
+	--popover: #ffffff; /* Popover background */
+	--popover-foreground: #1d1d1f; /* Popover text */
+	--primary: #007AFF; /* iOS blue */
+	--primary-foreground: #ffffff; /* White text on primary */
+	--secondary: #34c759; /* iOS green */
+	--secondary-foreground: #ffffff; /* White text on secondary */
+	--muted: #8e8e93; /* iOS gray */
+	--muted-foreground: #8e8e93; /* Muted text */
+	--accent: #ff9500; /* iOS orange */
+	--accent-foreground: #ffffff; /* White text on accent */
+	--destructive: #ff3b30; /* iOS red */
+	--destructive-foreground: #ffffff; /* White text on destructive */
+	--border: #d1d1d6; /* Border color */
+	--input: #d1d1d6; /* Input border */
+	--ring: #007AFF; /* Focus ring */
+	--chart-1: #007AFF; /* iOS blue */
+	--chart-2: #34c759; /* iOS green */
+	--chart-3: #ff9500; /* iOS orange */
+	--chart-4: #ff3b30; /* iOS red */
+	--chart-5: #5856d6; /* iOS purple */
+	--sidebar: #f7f7f7; /* Sidebar background */
+	--sidebar-foreground: #1d1d1f; /* Sidebar text */
+	--sidebar-primary: #007AFF; /* Sidebar primary */
+	--sidebar-primary-foreground: #ffffff; /* Sidebar primary text */
+	--sidebar-accent: #34c759; /* Sidebar accent */
+	--sidebar-accent-foreground: #ffffff; /* Sidebar accent text */
+	--sidebar-border: #d1d1d6; /* Sidebar border */
+	--sidebar-ring: #007AFF; /* Sidebar focus ring */
+	
+	/* Typography - Using SF Pro Display (iOS font) */
+	--font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+	--font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	
+	/* Typography Scale */
+	--font-size-xs: 0.75rem;
+	--font-size-sm: 0.875rem;
+	--font-size-base: 1rem;
+	--font-size-lg: 1.125rem;
+	--font-size-xl: 1.25rem;
+	--font-size-2xl: 1.5rem;
+	--font-size-3xl: 1.875rem;
+	--font-size-4xl: 2.25rem;
+	
+	/* Line Heights */
+	--line-height-tight: 1.25;
+	--line-height-snug: 1.375;
+	--line-height-normal: 1.5;
+	--line-height-relaxed: 1.625;
+	
+	/* Font Weights */
+	--font-weight-light: 300;
+	--font-weight-normal: 400;
+	--font-weight-medium: 500;
+	--font-weight-semibold: 600;
+	--font-weight-bold: 700;
+	
+	/* Letter Spacing */
+	--letter-spacing-tight: -0.025em;
+	--letter-spacing-normal: 0em;
+	--letter-spacing-wide: 0.025em;
+	
+	/* Spacing System */
+	--spacing-xs: 0.25rem;   /* 4px */
+	--spacing-sm: 0.5rem;    /* 8px */
+	--spacing-md: 1rem;      /* 16px */
+	--spacing-lg: 1.5rem;    /* 24px */
+	--spacing-xl: 2rem;      /* 32px */
+	--spacing-2xl: 3rem;     /* 48px */
+	--spacing-3xl: 4rem;     /* 64px */
+	
+	/* Semantic Colors */
+	--color-success: #34c759; /* iOS green */
+	--color-warning: #ff9500; /* iOS orange */
+	--color-error: #ff3b30; /* iOS red */
+	--color-info: #5856d6; /* iOS purple */
+	--radius: 0.75rem; /* iOS-like rounded corners */
+	--shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+	--shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.05);
+	--shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.08);
+	--shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+	--shadow-md: 0 6px 16px rgba(0, 0, 0, 0.12);
+	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+	--shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.18);
+	--shadow-2xl: 0 16px 40px rgba(0, 0, 0, 0.2);
+	--tracking-normal: 0em;
+	--spacing: 0.25rem;
+}
+
+.dark {
+	/* iPhone-like dark theme */
+	--background: #000000; /* Pure black background */
+	--foreground: #ffffff; /* White text */
+	--card: #1c1c1e; /* Dark card background */
+	--card-foreground: #ffffff; /* White card text */
+	--popover: #2c2c2e; /* Popover background */
+	--popover-foreground: #ffffff; /* Popover text */
+	--primary: #0a84ff; /* iOS blue (dark mode) */
+	--primary-foreground: #ffffff; /* White text on primary */
+	--secondary: #30d158; /* iOS green (dark mode) */
+	--secondary-foreground: #000000; /* Black text on secondary */
+	--muted: #8e8e93; /* iOS gray */
+	--muted-foreground: #8e8e93; /* Muted text */
+	--accent: #ff9f0a; /* iOS orange (dark mode) */
+	--accent-foreground: #000000; /* Black text on accent */
+	--destructive: #ff453a; /* iOS red (dark mode) */
+	--destructive-foreground: #ffffff; /* White text on destructive */
+	--border: #2c2c2e; /* Dark border */
+	--input: #2c2c2e; /* Dark input border */
+	--ring: #0a84ff; /* Focus ring */
+	--chart-1: #0a84ff; /* iOS blue */
+	--chart-2: #30d158; /* iOS green */
+	--chart-3: #ff9f0a; /* iOS orange */
+	--chart-4: #ff453a; /* iOS red */
+	--chart-5: #bf5af2; /* iOS purple */
+	--sidebar: #1c1c1e; /* Sidebar background */
+	--sidebar-foreground: #ffffff; /* Sidebar text */
+	--sidebar-primary: #0a84ff; /* Sidebar primary */
+	--sidebar-primary-foreground: #ffffff; /* Sidebar primary text */
+	--sidebar-accent: #30d158; /* Sidebar accent */
+	--sidebar-accent-foreground: #000000; /* Sidebar accent text */
+	--sidebar-border: #2c2c2e; /* Sidebar border */
+	--sidebar-ring: #0a84ff; /* Sidebar focus ring */
+	
+	--font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+	--font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+	--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+	--radius: 0.75rem; /* iOS-like rounded corners */
+	--shadow-2xs: 0 1px 2px rgba(0, 0, 0, 0.2);
+	--shadow-xs: 0 1px 3px rgba(0, 0, 0, 0.2);
+	--shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.25);
+	--shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+	--shadow-md: 0 6px 16px rgba(0, 0, 0, 0.35);
+	--shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
+	--shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.45);
+	--shadow-2xl: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+:root {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--color-card: var(--card);
+	--color-card-foreground: var(--card-foreground);
+	--color-popover: var(--popover);
+	--color-popover-foreground: var(--popover-foreground);
+	--color-primary: var(--primary);
+	--color-primary-foreground: var(--primary-foreground);
+	--color-secondary: var(--secondary);
+	--color-secondary-foreground: var(--secondary-foreground);
+	--color-muted: var(--muted);
+	--color-muted-foreground: var(--muted-foreground);
+	--color-accent: var(--accent);
+	--color-accent-foreground: var(--accent-foreground);
+	--color-destructive: var(--destructive);
+	--color-destructive-foreground: var(--destructive-foreground);
+	--color-border: var(--border);
+	--color-input: var(--input);
+	--color-ring: var(--ring);
+	--color-chart-1: var(--chart-1);
+	--color-chart-2: var(--chart-2);
+	--color-chart-3: var(--chart-3);
+	--color-chart-4: var(--chart-4);
+	--color-chart-5: var(--chart-5);
+	--color-sidebar: var(--sidebar);
+	--color-sidebar-foreground: var(--sidebar-foreground);
+	--color-sidebar-primary: var(--sidebar-primary);
+	--color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+	--color-sidebar-accent: var(--sidebar-accent);
+	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+	--color-sidebar-border: var(--sidebar-border);
+	--color-sidebar-ring: var(--sidebar-ring);
+
+	--font-sans: var(--font-sans);
+	--font-mono: var(--font-mono);
+	--font-serif: var(--font-serif);
+
+	--radius-sm: calc(var(--radius) - 4px);
+	--radius-md: calc(var(--radius) - 2px);
+	--radius-lg: var(--radius);
+	--radius-xl: calc(var(--radius) + 4px);
+
+	--shadow-2xs: var(--shadow-2xs);
+	--shadow-xs: var(--shadow-xs);
+	--shadow-sm: var(--shadow-sm);
+	--shadow: var(--shadow);
+	--shadow-md: var(--shadow-md);
+	--shadow-lg: var(--shadow-lg);
+	--shadow-xl: var(--shadow-xl);
+	--shadow-2xl: var(--shadow-2xl);
+}
+
+/* Minimal global application of the tokens */
+html, body {
+	height: 100%;
+}
+body {
+	margin: 0;
+	background: var(--color-background);
+	color: var(--color-foreground);
+	font-family: 'Poppins', var(--font-sans);
+}
+
+/* Base Typography Styles */
+* {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+body {
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+    font-weight: var(--font-weight-normal);
+    letter-spacing: var(--letter-spacing-normal);
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    letter-spacing: var(--letter-spacing-tight);
+    margin: 0;
+}
+
+h1 {
+    font-size: var(--font-size-4xl);
+}
+
+h2 {
+    font-size: var(--font-size-3xl);
+}
+
+h3 {
+    font-size: var(--font-size-2xl);
+}
+
+h4 {
+    font-size: var(--font-size-xl);
+}
+
+h5 {
+    font-size: var(--font-size-lg);
+}
+
+h6 {
+    font-size: var(--font-size-base);
+}
+
+p {
+    margin: 0;
+    line-height: var(--line-height-relaxed);
+}
+
+small {
+    font-size: var(--font-size-sm);
+}
+
+.text-xs {
+    font-size: var(--font-size-xs);
+}
+
+.text-sm {
+    font-size: var(--font-size-sm);
+}
+
+.text-base {
+    font-size: var(--font-size-base);
+}
+
+.text-lg {
+    font-size: var(--font-size-lg);
+}
+
+.text-xl {
+    font-size: var(--font-size-xl);
+}
+
+.font-light {
+    font-weight: var(--font-weight-light);
+}
+
+.font-normal {
+    font-weight: var(--font-weight-normal);
+}
+
+.font-medium {
+    font-weight: var(--font-weight-medium);
+}
+
+.font-semibold {
+    font-weight: var(--font-weight-semibold);
+}
+
+.font-bold {
+    font-weight: var(--font-weight-bold);
+}
+
+/* Example: toggling dark theme by adding/removing the 'dark' class on <html> or <body> */
+.app-root {
+    background: var(--color-background);
+    color: var(--color-foreground);
+}
+
+/* Usage example in component SCSS:
+	 .my-component { background: var(--color-card); color: var(--color-card-foreground); }
+*/
+
+/* ===================================
+   ANGULAR MATERIAL GLOBAL STYLING
+   =================================== */
+
+/* Material Select Dropdown Panel Styling */
+.mat-mdc-select-panel,
+.mat-select-panel {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  max-height: 280px !important;
+  overflow-y: auto !important;
+  
+  /* Ensure proper backdrop for dark theme */
+  .dark & {
+    background: var(--color-popover) !important;
+    border-color: var(--color-border) !important;
+  }
+}
+
+/* Material Select Options Styling */
+.mat-mdc-option,
+.mat-option {
+  background: transparent !important;
+  color: var(--color-foreground) !important;
+  padding: 12px 16px !important;
+  font-size: 14px !important;
+  line-height: 1.5 !important;
+  min-height: auto !important;
+  
+  &:hover,
+  &.mat-mdc-option-active,
+  &.mat-option-active {
+    background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+    color: var(--color-foreground) !important;
+  }
+  
+  &.mat-mdc-option-selected,
+  &.mat-option-selected {
+    background: color-mix(in srgb, var(--color-primary) 12%, transparent) !important;
+    color: var(--color-primary) !important;
+    
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary) 16%, transparent) !important;
+    }
+  }
+  
+  &.mat-mdc-option-disabled,
+  &.mat-option-disabled {
+    color: var(--color-muted-foreground) !important;
+    opacity: 0.6 !important;
+  }
+}
+
+/* Material Input Fields Styling */
+.mat-mdc-form-field {
+  &.mat-form-field-appearance-outline {
+    .mat-mdc-form-field-outline {
+      color: var(--color-border) !important;
+    }
+    
+    &.mat-focused .mat-mdc-form-field-outline {
+      color: var(--color-primary) !important;
+    }
+    
+    .mat-mdc-form-field-input-control {
+      background: transparent !important;
+      color: var(--color-foreground) !important;
+    }
+  }
+}
+
+/* Material Form Field Labels */
+.mat-mdc-form-field-label,
+.mat-mdc-floating-label {
+  color: var(--color-muted-foreground) !important;
+  
+  .mat-focused & {
+    color: var(--color-primary) !important;
+  }
+}
+
+/* Material Autocomplete Panel */
+.mat-mdc-autocomplete-panel {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  
+  .mat-mdc-option {
+    background: transparent !important;
+    
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+    }
+  }
+}
+
+/* Material Menu Panel */
+.mat-mdc-menu-panel {
+  background: var(--color-card) !important;
+  border: 1px solid var(--color-border) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: var(--shadow-lg) !important;
+  
+  .mat-mdc-menu-item {
+    background: transparent !important;
+    color: var(--color-foreground) !important;
+    
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+    }
+  }
+}
+
+/* Material Date Picker Panel */
+.mat-datepicker-popup {
+  .mat-calendar {
+    background: var(--color-card) !important;
+    color: var(--color-foreground) !important;
+  }
+  
+  .mat-calendar-body-cell-content {
+    background: transparent !important;
+    color: var(--color-foreground) !important;
+    
+    &:hover {
+      background: color-mix(in srgb, var(--color-primary) 8%, transparent) !important;
+    }
+  }
+  
+  .mat-calendar-body-selected {
+    background: var(--color-primary) !important;
+    color: var(--color-primary-foreground) !important;
+  }
+}
+
+/* CDK Overlay Backdrop */
+.cdk-overlay-backdrop {
+  background: rgba(0, 0, 0, 0.32) !important;
+}
+
+/* CDK Connected Overlay */
+.cdk-overlay-connected-position-bounding-box {
+  z-index: 1000 !important;
+}
+
+/* ===================================
+   MATERIAL ICONS GLOBAL CONFIGURATION
+   =================================== */
+
+/* Ensure Material Icons are properly rendered */
+.mat-icon {
+  font-family: 'Material Icons' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: 'liga';
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* Ensure icons are vertically centered */
+  vertical-align: middle;
+}
+
+/* Fix for Material Icons in buttons */
+.mat-mdc-button .mat-icon,
+.mat-mdc-raised-button .mat-icon,
+.mat-mdc-outlined-button .mat-icon,
+.mat-mdc-icon-button .mat-icon {
+  font-size: inherit;
+  width: auto;
+  height: auto;
+}
+
+/* Custom icon sizes */
+.mat-icon.mat-icon-sm {
+  font-size: 18px;
+}
+
+.mat-icon.mat-icon-lg {
+  font-size: 32px;
+}
+
+.mat-icon.mat-icon-xl {
+  font-size: 48px;
+}
+
+/* ================================
+   DASHBOARD PAGE STYLING SYSTEM
+   ================================ */
+
+/* Standard Page Container */
+.page-container {
+  min-height: calc(100vh - 64px);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  padding: var(--spacing-2xl) var(--spacing-xl);
+  max-width: 1920px;
+  margin: 0 auto;
+  
+  @media (max-width: 1440px) {
+    padding: var(--spacing-2xl) var(--spacing-lg);
+  }
+  
+  @media (max-width: 1024px) {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+  
+  @media (max-width: 768px) {
+    padding: var(--spacing-lg) var(--spacing-md);
+  }
+}
+
+/* Page Header Component */
+.page-header {
+  margin-bottom: var(--spacing-2xl);
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--spacing-lg);
+  
+  .page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-foreground);
+    margin: 0 0 var(--spacing-sm) 0;
+    letter-spacing: var(--letter-spacing-tight);
+    line-height: var(--line-height-tight);
+    
+    @media (max-width: 768px) {
+      font-size: var(--font-size-2xl);
+    }
+  }
+  
+  .page-description {
+    font-size: var(--font-size-lg);
+    color: var(--color-muted-foreground);
+    margin: 0;
+    line-height: var(--line-height-relaxed);
+  }
+  
+  .page-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-lg);
+    
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+  }
+}
+
+/* Card Component System */
+.card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: var(--spacing-xl);
+  transition: box-shadow 0.2s ease-in-out;
+  
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+  
+  .card-header {
+    margin-bottom: var(--spacing-lg);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border);
+    
+    .card-title {
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-foreground);
+      margin: 0 0 var(--spacing-xs) 0;
+    }
+    
+    .card-description {
+      font-size: var(--font-size-sm);
+      color: var(--color-muted-foreground);
+      margin: 0;
+    }
+  }
+  
+  .card-content {
+    color: var(--color-foreground);
+    line-height: var(--line-height-relaxed);
+  }
+  
+  .card-footer {
+    margin-top: var(--spacing-lg);
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-md);
+  }
+}
+
+/* Button System */
+.btn {
+  border-radius: var(--radius-md);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  border: 1px solid transparent;
+  text-decoration: none;
+  
+  &:focus {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: var(--color-primary-foreground);
+  border-color: var(--color-primary);
+  
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 90%, black);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+  
+  &:disabled {
+    background: var(--color-muted);
+    border-color: var(--color-muted);
+  }
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--color-foreground);
+  border-color: var(--color-border);
+  
+  &:hover:not(:disabled) {
+    background: var(--color-muted);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+}
+
+.btn-outline-secondary {
+  background: transparent;
+  color: var(--color-muted-foreground);
+  border-color: var(--color-border);
+  
+  &:hover:not(:disabled),
+  &.active {
+    background: var(--color-card);
+    color: var(--color-foreground);
+    border-color: var(--color-primary);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* Form Controls */
+.form-input {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  transition: all 0.2s ease;
+  
+  &:focus {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 10%, transparent);
+  }
+  
+  &:invalid {
+    border-color: var(--color-error);
+  }
+  
+  &:disabled {
+    opacity: 0.5;
+    background: var(--color-muted);
+    cursor: not-allowed;
+  }
+}
+
+/* Status Components */
+.status-badge {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  
+  &.status-success {
+    background: color-mix(in srgb, var(--color-success) 15%, transparent);
+    color: var(--color-success);
+  }
+  
+  &.status-warning {
+    background: color-mix(in srgb, var(--color-warning) 15%, transparent);
+    color: var(--color-warning);
+  }
+  
+  &.status-error {
+    background: color-mix(in srgb, var(--color-error) 15%, transparent);
+    color: var(--color-error);
+  }
+  
+  &.status-info {
+    background: color-mix(in srgb, var(--color-info) 15%, transparent);
+    color: var(--color-info);
+  }
+}
+
+/* Grid System */
+.grid {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+  
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.grid-auto-fit {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+/* Responsive Grid for 12-column layout */
+.grid-12 {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--spacing-lg);
+}
+
+.col-span-1 { grid-column: span 1; }
+.col-span-2 { grid-column: span 2; }
+.col-span-3 { grid-column: span 3; }
+.col-span-4 { grid-column: span 4; }
+.col-span-5 { grid-column: span 5; }
+.col-span-6 { grid-column: span 6; }
+.col-span-7 { grid-column: span 7; }
+.col-span-8 { grid-column: span 8; }
+.col-span-9 { grid-column: span 9; }
+.col-span-10 { grid-column: span 10; }
+.col-span-11 { grid-column: span 11; }
+.col-span-12 { grid-column: span 12; }
+
+@media (max-width: 1024px) {
+  .col-span-3, .col-span-4 { grid-column: span 6; }
+  .col-span-6 { grid-column: span 12; }
+}
+
+@media (max-width: 768px) {
+  .col-span-1, .col-span-2, .col-span-3, 
+  .col-span-4, .col-span-5, .col-span-6,
+  .col-span-7, .col-span-8, .col-span-9,
+  .col-span-10, .col-span-11, .col-span-12 {
+    grid-column: span 12;
+  }
+}
+/* Material Icons base styles */
+.material-icons {
+  font-family: 'Material Icons' !important;
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;  /* Preferred icon size */
+  display: inline-block;
+  line-height: 1;
+  text-transform: none;
+  letter-spacing: normal;
+  word-wrap: normal;
+  white-space: nowrap;
+  direction: ltr;
+  /* Support for Safari and Chrome */
+  -webkit-font-smoothing: antialiased;
+  /* Support for Firefox */
+  -moz-osx-font-smoothing: grayscale;
+  /* Support for IE */
+  text-rendering: optimizeLegibility;
+}
+
+/* Import angular-calendar styles */
+// Import the library's SCSS (package.json exports expose ./scss/* via the "sass" entry)
 /* You can add global styles to this file, and also import other style files */

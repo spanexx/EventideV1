@@ -1,0 +1,33 @@
+<div class="availability-container">
+  <div class="page-header">
+    <h1 class="page-title">Availability Management</h1>
+    <p class="page-description">Set your available hours for bookings</p>
+  </div>
+  
+  <div class="availability-header">
+    <h2>Your Schedule</h2>
+    <button class="refresh-btn" (click)="refreshAvailability()">
+      <i class="material-icons">refresh</i>
+      Refresh
+    </button>
+  </div>
+  
+  <div *ngIf="loading$ | async" class="loading">
+    Loading availability...
+  </div>
+  
+  <div *ngIf="!(loading$ | async)" class="calendar-container iphone-card">
+    <full-calendar #calendar [options]="calendarOptions"></full-calendar>
+  </div>
+  
+  <div class="availability-actions">
+    <button mat-raised-button color="primary">
+      <i class="material-icons">add</i>
+      Add Availability
+    </button>
+    <button mat-raised-button color="accent">
+      <i class="material-icons">save</i>
+      Save Changes
+    </button>
+  </div>
+</div>

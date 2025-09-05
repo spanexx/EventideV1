@@ -1,0 +1,122 @@
+@use '../../styles.scss';
+
+:host {
+  display: block;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
+.dashboard-layout {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 64px 1fr;
+  grid-template-areas:
+    "header header"
+    "sidebar content";
+  height: 100%;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  // iPhone X-style safe area insets
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+app-dashboard-header {
+  grid-area: header;
+  z-index: 101;
+}
+
+app-dashboard-sidebar {
+  grid-area: sidebar;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 280px;
+}
+
+.dashboard-content {
+  grid-area: content;
+  overflow-y: auto;
+  padding: var(--spacing-xl);
+  background: var(--background);
+  
+  // iPhone X-style safe area insets
+  padding-left: max(var(--spacing-xl), env(safe-area-inset-left));
+  padding-right: max(var(--spacing-xl), env(safe-area-inset-right));
+  padding-bottom: max(var(--spacing-xl), env(safe-area-inset-bottom));
+}
+
+/* Collapsed sidebar state */
+.sidebar-closed {
+  app-dashboard-sidebar {
+    width: 80px;
+  }
+}
+
+/* Responsive design for different screen sizes */
+@media (max-width: 1024px) {
+  .dashboard-layout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "content";
+  }
+  
+  app-dashboard-sidebar {
+    position: fixed;
+    left: 0;
+    top: 64px;
+    bottom: 0;
+    z-index: 1000;
+    transform: translateX(0);
+    box-shadow: var(--shadow-2xl);
+    width: 280px;
+    max-width: 90vw;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .sidebar-closed app-dashboard-sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .dashboard-content {
+    padding: var(--spacing-lg);
+  }
+}
+
+/* Medium screens - hide sidebar by default */
+@media (max-width: 768px) {
+  app-dashboard-sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar-closed app-dashboard-sidebar {
+    transform: translateX(0);
+  }
+  
+  .dashboard-content {
+    padding: var(--spacing-md);
+  }
+}
+
+/* Small screens */
+@media (max-width: 480px) {
+  .dashboard-layout {
+    grid-template-rows: 56px 1fr;
+  }
+  
+  app-dashboard-sidebar {
+    width: 70px;
+    max-width: 80vw;
+  }
+  
+  .dashboard-content {
+    padding: var(--spacing-sm);
+  }
+}
+
+/* Ultra-small screens */
+@media (max-width: 320px) {
+  .dashboard-content {
+    padding: var(--spacing-xs);
+  }
+}

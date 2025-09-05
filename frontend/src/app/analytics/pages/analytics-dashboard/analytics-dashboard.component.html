@@ -1,0 +1,99 @@
+<div class="analytics-dashboard">
+  <h1>Analytics Dashboard</h1>
+  
+  <div class="date-filter">
+    <mat-form-field>
+      <mat-label>Start Date</mat-label>
+      <input matInput [matDatepicker]="startDatePicker" [(ngModel)]="startDate">
+      <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #startDatePicker></mat-datepicker>
+    </mat-form-field>
+    
+    <mat-form-field>
+      <mat-label>End Date</mat-label>
+      <input matInput [matDatepicker]="endDatePicker" [(ngModel)]="endDate">
+      <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+      <mat-datepicker #endDatePicker></mat-datepicker>
+    </mat-form-field>
+    
+    <button mat-raised-button color="primary" (click)="loadData()" [disabled]="loading$ | async">
+      <span *ngIf="!(loading$ | async)">Load Data</span>
+      <span *ngIf="loading$ | async">Loading...</span>
+    </button>
+  </div>
+  
+  <div *ngIf="loading$ | async" class="loading">
+    <mat-spinner diameter="30"></mat-spinner>
+    <span>Loading analytics data...</span>
+  </div>
+  
+  <div *ngIf="error$ | async as error" class="error-message">
+    <mat-icon>error</mat-icon>
+    <span>{{ error }}</span>
+    <button mat-button (click)="retryLoad()">Retry</button>
+  </div>
+  
+  <div class="summary-cards">
+    <app-summary-card
+      title="Total Bookings"
+      [value]="(metrics$ | async)?.totalBookings || 0"
+      [change]="5.2"
+      icon="event"
+      [loading]="(loading$ | async) || false"
+      [hasError]="!!(error$ | async)">
+    </app-summary-card>
+    
+    <app-summary-card
+      title="Revenue"
+      [value]="((metrics$ | async)?.revenue | currency) || 0"
+      [change]="12.4"
+      icon="attach_money"
+      [loading]="(loading$ | async) || false"
+      [hasError]="!!(error$ | async)">
+    </app-summary-card>
+    
+    <app-summary-card
+      title="Occupancy Rate"
+      [value]="((metrics$ | async)?.occupancyRate || 0) + '%'"
+      [change]="-2.1"
+      icon="assessment"
+      [loading]="(loading$ | async) || false"
+      [hasError]="!!(error$ | async)">
+    </app-summary-card>
+    
+    <app-summary-card
+      title="Cancellations"
+      [value]="(metrics$ | async)?.cancellations || 0"
+      [change]="-15.8"
+      icon="cancel"
+      [loading]="(loading$ | async) || false"
+      [hasError]="!!(error$ | async)">
+    </app-summary-card>
+  </div>
+  
+  <div class="charts-container">
+    <app-line-chart
+      *ngIf="revenueData$ | async as revenueData"
+      [data]="revenueData.daily"
+      title="Daily Revenue">
+    </app-line-chart>
+    
+    <app-bar-chart
+      *ngIf="occupancyData$ | async as occupancyData"
+      [data]="occupancyData.daily"
+      title="Daily Occupancy Rate">
+    </app-bar-chart>
+    
+    <app-line-chart
+      *ngIf="bookingTrends$ | async as bookingTrends"
+      [data]="bookingTrends"
+      title="Booking Trends">
+    </app-line-chart>
+  </div>
+  
+  <div *ngIf="!(loading$ | async) && !(error$ | async) && !(metrics$ | async)" class="no-data">
+    <mat-icon>bar_chart</mat-icon>
+    <p>No analytics data available for the selected date range.</p>
+    <button mat-button (click)="loadData()">Load Data</button>
+  </div>
+</div>
