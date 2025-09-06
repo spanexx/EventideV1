@@ -9,6 +9,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { RouterModule } from '@angular/router';
 import * as GuestDashboardActions from '../../store/actions/guest-dashboard.actions';
+import * as GuestDashboardSelectors from '../../store/selectors/guest-dashboard.selectors';
 import { Booking } from '../../models/booking.models';
 
 @Component({
@@ -16,12 +17,12 @@ import { Booking } from '../../models/booking.models';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatTabsModule,
     MatCardModule,
     MatButtonModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    RouterModule
+    MatProgressSpinnerModule
   ],
   templateUrl: './booking-list.component.html',
   styleUrl: './booking-list.component.scss',
@@ -34,11 +35,10 @@ export class GuestBookingListComponent implements OnInit {
   error$: Observable<string | null>;
 
   constructor(private store: Store) {
-    // These would be properly selected from the store in a real implementation
-    this.upcomingBookings$ = new Observable();
-    this.pastBookings$ = new Observable();
-    this.loading$ = new Observable();
-    this.error$ = new Observable();
+    this.upcomingBookings$ = this.store.select(GuestDashboardSelectors.selectUpcomingBookings);
+    this.pastBookings$ = this.store.select(GuestDashboardSelectors.selectPastBookings);
+    this.loading$ = this.store.select(GuestDashboardSelectors.selectBookingsLoading);
+    this.error$ = this.store.select(GuestDashboardSelectors.selectBookingsError);
   }
 
   ngOnInit(): void {

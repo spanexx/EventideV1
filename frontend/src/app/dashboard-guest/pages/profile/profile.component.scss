@@ -1,59 +1,352 @@
+@use '../../../../styles.scss';
+
 .profile-container {
-  padding: 20px;
+  padding: var(--spacing-2xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  // Fade-in animation for container
+  opacity: 0;
+  animation: profileFadeIn 0.8s forwards;
+}
+
+@keyframes profileFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.page-header {
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
+  
+  h1 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-sm);
+    
+    // Text gradient for visual interest
+    background: linear-gradient(135deg, var(--foreground), color-mix(in srgb, var(--foreground) 70%, var(--primary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  p {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-lg);
+  }
+}
+
+.grid {
+  display: grid;
+  gap: var(--spacing-lg);
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .profile-card, .preferences-card {
-  margin-bottom: 30px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  margin-bottom: var(--spacing-lg);
+  position: relative;
+  overflow: hidden;
+  
+  // Enhanced card with gradient border
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    opacity: 0.3;
+  }
+  
+  // Subtle hover effect with elevation
+  &:hover {
+    // transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    
+    // Inner glow effect
+    &::before {
+      content: '';
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      bottom: -1px;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      opacity: 0.05;
+      z-index: -1;
+    }
+  }
+}
+
+.profile-card mat-card-header, .preferences-card mat-card-header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+  
+  mat-card-title {
+    font-size: var(--font-size-xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0;
+  }
+  
+  mat-card-subtitle {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-base);
+    margin-top: var(--spacing-xs);
+  }
+}
+
+.profile-card mat-card-content, .preferences-card mat-card-content {
+  padding: var(--spacing-lg);
+}
+
+.profile-card mat-card-actions, .preferences-card mat-card-actions {
+  padding: var(--spacing-lg);
+  border-top: 1px solid var(--border);
+  margin: 0;
+  
+  // Animated button container
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
 .form-field {
   width: 100%;
-  margin-bottom: 15px;
+  margin-bottom: var(--spacing-lg);
+  
+  // Enhanced form field with better focus states
+  mat-form-field {
+    width: 100%;
+    
+    // Floating label animation
+    .mat-form-field-label {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    // Underline animation on focus
+    .mat-form-field-underline {
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        right: 50%;
+        bottom: 0;
+        background: var(--primary);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    }
+    
+    &.mat-focused {
+      .mat-form-field-underline::after {
+        left: 0;
+        right: 0;
+      }
+    }
+  }
 }
 
 .form-actions {
-  margin-top: 20px;
+  margin-top: var(--spacing-xl);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  
+  // Animated buttons
+  button {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    
+    // Ripple effect
+    &::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      transform: translate(-50%, -50%);
+      transition: width 0.6s, height 0.6s;
+    }
+    
+    &:active::after {
+      width: 300px;
+      height: 300px;
+    }
+  }
 }
 
 mat-checkbox {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: var(--spacing-md);
+  font-size: var(--font-size-base);
+  
+  // Checkbox hover effect
+  &:hover {
+    .mat-checkbox-inner-container {
+      transform: scale(1.1);
+    }
+  }
+  
+  .mat-checkbox-inner-container {
+    transition: transform 0.2s ease;
+  }
+  
+  // Animated checkmark
+  .mat-checkbox-checked .mat-checkbox-background {
+    animation: checkboxChecked 0.3s ease;
+  }
+}
+
+@keyframes checkboxChecked {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
 }
 
 .loading-container, .error-container {
+  text-align: center;
+  padding: var(--spacing-3xl);
+  color: var(--muted-foreground);
+  font-size: var(--font-size-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  
+  // Animated spinner
+  mat-spinner {
+    margin-bottom: var(--spacing-lg);
+    animation: spin 1.2s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 .error-message {
-  color: #f44336;
-  margin-bottom: 15px;
+  color: var(--color-error);
+  margin-bottom: var(--spacing-lg);
+  
+  // Error icon
+  &::before {
+    content: 'error';
+    font-family: 'Material Icons';
+    margin-right: var(--spacing-sm);
+  }
 }
 
-// Responsive design
+/* iPhone-like enhancements */
+.iphone-card {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  
+  .profile-card, .preferences-card {
+    border-radius: 16px;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .profile-container {
+    padding: var(--spacing-xl);
+  }
+  
+  .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-container {
-    padding: 10px;
+    padding: var(--spacing-lg);
+  }
+  
+  .profile-card mat-card-header, .preferences-card mat-card-header {
+    padding: var(--spacing-md);
+  }
+  
+  .profile-card mat-card-content, .preferences-card mat-card-content {
+    padding: var(--spacing-md);
+  }
+  
+  .profile-card mat-card-actions, .preferences-card mat-card-actions {
+    padding: var(--spacing-md);
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
   
   .form-field {
-    margin-bottom: 10px;
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .form-actions {
+    margin-top: var(--spacing-lg);
+    flex-direction: column;
+  }
+  
+  .page-header {
+    h1 {
+      font-size: var(--font-size-2xl);
+    }
+    
+    p {
+      font-size: var(--font-size-base);
+    }
   }
 }
 
 @media (max-width: 480px) {
-  .profile-card, .preferences-card {
-    margin-bottom: 20px;
+  .profile-container {
+    padding: var(--spacing-md);
   }
   
   .form-actions {
-    margin-top: 15px;
+    margin-top: var(--spacing-lg);
+    flex-direction: column;
+    gap: var(--spacing-sm);
   }
   
-  mat-checkbox {
-    margin-bottom: 8px;
+  .profile-card, .preferences-card {
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .profile-card mat-card-header, .preferences-card mat-card-header {
+    padding: var(--spacing-sm);
+  }
+  
+  .profile-card mat-card-content, .preferences-card mat-card-content {
+    padding: var(--spacing-sm);
+  }
+  
+  .profile-card mat-card-actions, .preferences-card mat-card-actions {
+    padding: var(--spacing-sm);
   }
 }

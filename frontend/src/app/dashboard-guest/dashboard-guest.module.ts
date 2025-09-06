@@ -19,7 +19,7 @@ import { GuestDashboardEffects } from './store/effects/guest-dashboard.effects';
 
 @NgModule({
   declarations: [
-    DashboardGuestComponent
+    // Remove standalone components from declarations
   ],
   imports: [
     CommonModule,
@@ -28,6 +28,7 @@ import { GuestDashboardEffects } from './store/effects/guest-dashboard.effects';
     DashboardGuestRoutingModule,
     StoreModule.forFeature('guestDashboard', guestDashboardReducer),
     EffectsModule.forFeature([GuestDashboardEffects]),
+    // Import standalone components instead of declaring them
     DashboardGuestComponent,
     GuestHeaderComponent,
     GuestSidebarComponent

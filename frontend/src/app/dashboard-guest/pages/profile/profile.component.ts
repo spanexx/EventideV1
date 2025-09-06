@@ -2,6 +2,7 @@ import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Observable } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -10,6 +11,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import * as GuestDashboardActions from '../../store/actions/guest-dashboard.actions';
+import * as GuestDashboardSelectors from '../../store/selectors/guest-dashboard.selectors';
 import { GuestInfo, GuestPreferences } from '../../models/guest.models';
 
 @Component({
@@ -51,14 +53,24 @@ export class ProfileComponent implements OnInit {
       smsNotifications: [false]
     });
 
-    // These would be properly selected from the store in a real implementation
-    this.profile$ = new Observable();
-    this.loading$ = new Observable();
-    this.error$ = new Observable();
+    this.profile$ = this.store.select(GuestDashboardSelectors.selectProfileInfo);
+    this.loading$ = this.store.select(GuestDashboardSelectors.selectProfileLoading);
+    this.error$ = this.store.select(GuestDashboardSelectors.selectProfileError);
   }
 
   ngOnInit(): void {
     this.store.dispatch(GuestDashboardActions.loadProfile());
+    
+    // Populate form with existing profile data
+    this.profile$.pipe(take(1)).subscribe(profile => {
+      if (profile) {
+        this.profileForm.patchValue({
+          name: profile.name,
+          email: profile.email,
+          phone: profile.phone || ''
+        });
+      }
+    });
   }
 
   onSubmitProfile(): void {

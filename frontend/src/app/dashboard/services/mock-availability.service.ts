@@ -64,16 +64,45 @@ export class MockAvailabilityService {
     return of({ success: true }).pipe(delay(300));
   }
 
+  // Check for conflicts with existing slots
+  hasConflicts(newSlot: Availability): boolean {
+    return this.availability.some(slot => {
+      // Skip checking against itself
+      if (slot.id === newSlot.id) return false;
+      
+      // Check if the slots overlap
+      return (
+        newSlot.startTime < slot.endTime &&
+        newSlot.endTime > slot.startTime
+      );
+    });
+  }
+
   // Convert Availability objects to Calendar events
   convertToCalendarEvents(availability: Availability[]): EventInput[] {
-    return availability.map(slot => ({
-      id: slot.id,
-      title: slot.isBooked ? 'Booked' : 'Available',
-      start: slot.startTime,
-      end: slot.endTime,
-      backgroundColor: slot.isBooked ? '#f44336' : '#4caf50',
-      borderColor: slot.isBooked ? '#d32f2f' : '#388e3c',
-      classNames: [slot.isBooked ? 'booked-slot' : 'available-slot']
-    }));
+    return availability.map(slot => {
+      // For recurring slots, we might want to show them differently
+      const title = slot.isRecurring ? 
+        `${slot.isBooked ? 'Booked' : 'Available'} (Recurring)` : 
+        (slot.isBooked ? 'Booked' : 'Available');
+      
+      return {
+        id: slot.id,
+        title: title,
+        start: slot.startTime,
+        end: slot.endTime,
+        backgroundColor: slot.isBooked ? '#f44336' : '#4caf50',
+        borderColor: slot.isBooked ? '#d32f2f' : '#388e3c',
+        classNames: [
+          slot.isBooked ? 'booked-slot' : 'available-slot',
+          slot.isRecurring ? 'recurring-slot' : ''
+        ],
+        extendedProps: {
+          isRecurring: slot.isRecurring,
+          isBooked: slot.isBooked,
+          duration: slot.duration
+        }
+      };
+    });
   }
 }

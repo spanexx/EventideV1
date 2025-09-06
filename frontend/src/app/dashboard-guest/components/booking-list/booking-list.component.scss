@@ -1,58 +1,373 @@
+@use '../../../../styles.scss';
+
 .booking-list-container {
-  padding: 20px;
+  padding: var(--spacing-2xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  // Fade-in animation
+  opacity: 0;
+  animation: containerFadeIn 0.6s forwards;
 }
 
-.tab-content {
-  padding: 20px 0;
+@keyframes containerFadeIn {
+  to {
+    opacity: 1;
+  }
 }
 
-.booking-card {
-  margin-bottom: 15px;
+.page-header {
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
+  
+  .page-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-sm);
+    
+    // Text gradient effect
+    background: linear-gradient(135deg, var(--foreground), color-mix(in srgb, var(--foreground) 70%, var(--primary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .page-description {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-lg);
+  }
 }
 
-.booking-card mat-card-header {
-  margin-bottom: 10px;
+.booking-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  margin-bottom: var(--spacing-xl);
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+
+  .header-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0;
+  }
 }
 
-.booking-card mat-card-content p {
-  margin: 5px 0;
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+  border: none;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-xl); // iPhone-like rounded corners
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  // Subtle shadow
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+  &:hover {
+    background-color: color-mix(in srgb, var(--primary) 90%, black);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  &:active {
+    transform: scale(0.98); // iPhone-like pressed effect
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  }
+  
+  .material-icons {
+    font-size: 20px;
+  }
 }
 
 .loading-container, .error-container {
+  text-align: center;
+  padding: var(--spacing-3xl);
+  color: var(--muted-foreground);
+  font-size: var(--font-size-lg);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  
+  // Animated spinner
+  mat-spinner {
+    margin-bottom: var(--spacing-lg);
+    animation: spin 0.8s linear infinite;
+  }
+  
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 }
 
 .error-message {
-  color: #f44336;
-  margin-bottom: 15px;
+  color: var(--color-error);
+  margin-bottom: var(--spacing-lg);
 }
 
-// Responsive design
+.booking-filters {
+  margin-bottom: var(--spacing-lg);
+}
+
+.tab-content {
+  padding: var(--spacing-xl) 0;
+}
+
+.booking-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl); // iPhone-like rounded corners
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-md);
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  
+  // Enhanced card with gradient border
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+    opacity: 0.3;
+  }
+  
+  // Subtle hover effect
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+  
+  // iPhone-like pressed effect
+  &:active {
+    transform: scale(0.995);
+  }
+}
+
+.booking-card mat-card-header {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0;
+}
+
+.booking-card mat-card-content {
+  padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.booking-card mat-card-content p {
+  margin: var(--spacing-sm) 0;
+  color: var(--foreground);
+}
+
+.booking-card mat-card-actions {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-top: 1px solid var(--border);
+  margin: 0;
+  
+  // Button container with gap
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.booking-status {
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: 9999px; // Fully rounded for pill effect
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  
+  // Status icons
+  &::before {
+    font-family: 'Material Icons';
+    font-size: 16px;
+    vertical-align: middle;
+  }
+}
+
+.status-confirmed {
+  background-color: color-mix(in srgb, var(--color-success) 15%, transparent);
+  color: var(--color-success);
+  
+  &::before {
+    content: 'check_circle';
+  }
+}
+
+.status-pending {
+  background-color: color-mix(in srgb, var(--color-warning) 15%, transparent);
+  color: var(--color-warning);
+  
+  &::before {
+    content: 'pending';
+  }
+}
+
+.status-cancelled {
+  background-color: color-mix(in srgb, var(--color-error) 15%, transparent);
+  color: var(--color-error);
+  
+  &::before {
+    content: 'cancel';
+  }
+}
+
+.status-completed {
+  background-color: color-mix(in srgb, var(--color-info) 15%, transparent);
+  color: var(--color-info);
+  
+  &::before {
+    content: 'done_all';
+  }
+}
+
+/* iPhone-like enhancements */
+.iphone-card {
+  border-radius: 20px; // Larger iPhone-like rounded corners
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  
+  .booking-card {
+    border-radius: 16px; // Slightly smaller radius for cards inside
+  }
+  
+  .mat-tab-group {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+}
+
+.actions-section {
+  margin: var(--spacing-xl) 0;
+  text-align: center;
+  
+  .book-now-btn {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: var(--primary-foreground);
+    border: none;
+    padding: var(--spacing-md) var(--spacing-2xl);
+    border-radius: var(--radius-xl); // iPhone-like rounded corners
+    cursor: pointer;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-base);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    box-shadow: var(--shadow-md);
+    
+    .material-icons {
+      font-size: 20px;
+    }
+    
+    // iPhone-like pressed effect
+    &:active {
+      transform: scale(0.98);
+      box-shadow: var(--shadow-sm);
+    }
+    
+    // Focus state for accessibility
+    &:focus {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .booking-list-container {
+    padding: var(--spacing-xl);
+  }
+}
+
 @media (max-width: 768px) {
   .booking-list-container {
-    padding: 10px;
+    padding: var(--spacing-lg);
   }
-  
-  .tab-content {
-    padding: 10px 0;
-  }
-  
+
   .booking-card mat-card-header {
+    padding: var(--spacing-md) var(--spacing-lg);
     flex-direction: column;
     align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+  
+  .booking-card mat-card-content {
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+  
+  .booking-card mat-card-actions {
+    padding: var(--spacing-md) var(--spacing-lg);
+    flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .booking-list-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .refresh-btn {
+    align-self: flex-end;
+  }
+  
+  .page-header {
+    .page-title {
+      font-size: var(--font-size-2xl);
+    }
+    
+    .page-description {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .actions-section {
+    margin: var(--spacing-lg) 0;
+    
+    .book-now-btn {
+      padding: var(--spacing-sm) var(--spacing-xl);
+      font-size: var(--font-size-sm);
+    }
   }
 }
 
 @media (max-width: 480px) {
-  .booking-card mat-card-actions {
-    flex-direction: column;
+  .booking-list-container {
+    padding: var(--spacing-md);
   }
   
-  .booking-card mat-card-actions button {
-    margin-bottom: 10px;
+  .tab-content {
+    padding: var(--spacing-md) 0;
+  }
+  
+  .actions-section {
+    margin: var(--spacing-lg) 0;
+    
+    .book-now-btn {
+      padding: var(--spacing-sm) var(--spacing-lg);
+      font-size: var(--font-size-xs);
+      gap: var(--spacing-xs);
+      
+      .material-icons {
+        font-size: 18px;
+      }
+    }
   }
 }

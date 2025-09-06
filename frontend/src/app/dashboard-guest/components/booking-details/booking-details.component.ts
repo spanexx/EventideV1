@@ -8,6 +8,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import * as GuestDashboardActions from '../../store/actions/guest-dashboard.actions';
+import * as GuestDashboardSelectors from '../../store/selectors/guest-dashboard.selectors';
 import { Booking, BookingStatus } from '../../models/booking.models';
 
 @Component({
@@ -34,10 +35,9 @@ export class BookingDetailsComponent implements OnInit {
     private route: ActivatedRoute,
     private router: Router
   ) {
-    // These would be properly selected from the store in a real implementation
-    this.booking$ = new Observable();
-    this.loading$ = new Observable();
-    this.error$ = new Observable();
+    this.booking$ = this.store.select(GuestDashboardSelectors.selectCurrentBooking);
+    this.loading$ = this.store.select(GuestDashboardSelectors.selectBookingsLoading);
+    this.error$ = this.store.select(GuestDashboardSelectors.selectBookingsError);
   }
 
   ngOnInit(): void {

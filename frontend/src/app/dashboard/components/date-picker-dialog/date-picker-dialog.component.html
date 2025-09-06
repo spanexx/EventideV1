@@ -1,0 +1,18 @@
+<h2 mat-dialog-title>Go to Date</h2>
+<mat-dialog-content>
+  <form class="date-picker-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Select Date</mat-label>
+      <input matInput [matDatepicker]="picker" [(ngModel)]="selectedDate" name="selectedDate">
+      <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onNoClick()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onGoToDate()">
+    <mat-icon>event</mat-icon>
+    Go to Date
+  </button>
+</mat-dialog-actions>

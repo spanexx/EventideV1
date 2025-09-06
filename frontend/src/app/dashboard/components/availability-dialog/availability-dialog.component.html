@@ -1,23 +1,49 @@
-<h2 mat-dialog-title>Availability Slot</h2>
+<h2 mat-dialog-title>{{ isNew ? 'Create' : 'Edit' }} Availability Slot</h2>
 <mat-dialog-content>
-  <form>
-    <mat-form-field>
-      <mat-label>Start Time</mat-label>
-      <input matInput type="time" [(ngModel)]="availability.startTime" name="startTime">
+  <form class="availability-form">
+    <div class="time-fields">
+      <mat-form-field appearance="outline">
+        <mat-label>Start Time</mat-label>
+        <input matInput type="time" [(ngModel)]="availability.startTime" name="startTime">
+        <mat-icon matSuffix>schedule</mat-icon>
+      </mat-form-field>
+    </div>
+    
+    <mat-form-field appearance="outline">
+      <mat-label>Duration</mat-label>
+      <mat-select [(ngModel)]="availability.duration" (ngModelChange)="onDurationChange()" name="duration">
+        <mat-option value="15">15 minutes</mat-option>
+        <mat-option value="30">30 minutes</mat-option>
+        <mat-option value="45">45 minutes</mat-option>
+        <mat-option value="60">60 minutes</mat-option>
+        <mat-option value="90">90 minutes</mat-option>
+        <mat-option value="120">120 minutes</mat-option>
+      </mat-select>
+      <mat-icon matSuffix>timelapse</mat-icon>
     </mat-form-field>
     
-    <mat-form-field>
-      <mat-label>End Time</mat-label>
-      <input matInput type="time" [(ngModel)]="availability.endTime" name="endTime">
-    </mat-form-field>
+    <mat-checkbox [(ngModel)]="availability.isRecurring" name="isRecurring">
+      Recurring Availability
+    </mat-checkbox>
     
-    <mat-form-field>
-      <mat-label>Duration (minutes)</mat-label>
-      <input matInput type="number" [(ngModel)]="availability.duration" name="duration">
+    <mat-form-field appearance="outline" *ngIf="availability.isRecurring">
+      <mat-label>Day of Week</mat-label>
+      <mat-select [(ngModel)]="availability.dayOfWeek" name="dayOfWeek">
+        <mat-option value="0">Sunday</mat-option>
+        <mat-option value="1">Monday</mat-option>
+        <mat-option value="2">Tuesday</mat-option>
+        <mat-option value="3">Wednesday</mat-option>
+        <mat-option value="4">Thursday</mat-option>
+        <mat-option value="5">Friday</mat-option>
+        <mat-option value="6">Saturday</mat-option>
+      </mat-select>
     </mat-form-field>
   </form>
 </mat-dialog-content>
-<mat-dialog-actions>
+<mat-dialog-actions align="end">
   <button mat-button (click)="onNoClick()">Cancel</button>
-  <button mat-raised-button color="primary" (click)="onSaveClick()">Save</button>
+  <button mat-raised-button color="primary" (click)="onSaveClick()">
+    <mat-icon>save</mat-icon>
+    Save
+  </button>
 </mat-dialog-actions>

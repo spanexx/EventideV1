@@ -1,0 +1,25 @@
+<h2 mat-dialog-title>Copy Week Schedule</h2>
+<mat-dialog-content>
+  <form class="copy-week-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Source Week</mat-label>
+      <input matInput [matDatepicker]="sourcePicker" [(ngModel)]="sourceWeek" name="sourceWeek">
+      <mat-datepicker-toggle matSuffix [for]="sourcePicker"></mat-datepicker-toggle>
+      <mat-datepicker #sourcePicker></mat-datepicker>
+    </mat-form-field>
+    
+    <mat-form-field appearance="outline">
+      <mat-label>Target Week</mat-label>
+      <input matInput [matDatepicker]="targetPicker" [(ngModel)]="targetWeek" name="targetWeek">
+      <mat-datepicker-toggle matSuffix [for]="targetPicker"></mat-datepicker-toggle>
+      <mat-datepicker #targetPicker></mat-datepicker>
+    </mat-form-field>
+  </form>
+</mat-dialog-content>
+<mat-dialog-actions align="end">
+  <button mat-button (click)="onNoClick()">Cancel</button>
+  <button mat-raised-button color="primary" (click)="onCopyClick()">
+    <mat-icon>content_copy</mat-icon>
+    Copy Week
+  </button>
+</mat-dialog-actions>

@@ -6,26 +6,53 @@
   
   <div class="availability-header">
     <h2>Your Schedule</h2>
-    <button class="refresh-btn" (click)="refreshAvailability()">
-      <i class="material-icons">refresh</i>
-      Refresh
-    </button>
+    <div class="header-actions">
+      <button mat-stroked-button color="primary" class="refresh-btn" (click)="refreshAvailability()">
+        <mat-icon>refresh</mat-icon>
+        Refresh
+      </button>
+      <button mat-stroked-button color="accent" class="copy-week-btn" (click)="copyWeekSchedule()">
+        <mat-icon>content_copy</mat-icon>
+        Copy Week
+      </button>
+      <div class="history-controls">
+        <button mat-icon-button (click)="undo()" [disabled]="!canUndo()" matTooltip="Undo last action">
+          <mat-icon>undo</mat-icon>
+        </button>
+        <button mat-icon-button (click)="redo()" [disabled]="!canRedo()" matTooltip="Redo last action">
+          <mat-icon>redo</mat-icon>
+        </button>
+      </div>
+    </div>
   </div>
   
   <div *ngIf="loading$ | async" class="loading">
-    Loading availability...
+    <mat-spinner diameter="30"></mat-spinner>
+    <span>Loading availability...</span>
   </div>
   
-  <div *ngIf="!(loading$ | async)" class="calendar-container iphone-card">
+  <div *ngIf="!(loading$ | async)" class="calendar-container">
     <full-calendar #calendar [options]="calendarOptions"></full-calendar>
   </div>
   
+  <!-- Context Menu -->
+  <mat-menu #contextMenu="matMenu">
+    <button mat-menu-item (click)="editSlot()">
+      <mat-icon>edit</mat-icon>
+      <span>Edit</span>
+    </button>
+    <button mat-menu-item (click)="deleteSlot()">
+      <mat-icon>delete</mat-icon>
+      <span>Delete</span>
+    </button>
+  </mat-menu>
+  
   <div class="availability-actions">
-    <button mat-raised-button color="primary">
+    <button mat-raised-button color="primary" matTooltip="Add new availability slot">
       <i class="material-icons">add</i>
       Add Availability
     </button>
-    <button mat-raised-button color="accent">
+    <button mat-raised-button color="accent" matTooltip="Save all changes">
       <i class="material-icons">save</i>
       Save Changes
     </button>

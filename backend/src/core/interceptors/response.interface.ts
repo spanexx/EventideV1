@@ -50,5 +50,30 @@ export interface ApiResponse<T = any> {
      * HTTP status code
      */
     statusCode: number;
+
+    /**
+     * Optional pagination metadata for list endpoints
+     */
+    pagination?: {
+      /**
+       * Current page number
+       */
+      page: number;
+
+      /**
+       * Number of items per page
+       */
+      limit: number;
+
+      /**
+       * Total number of items
+       */
+      total: number;
+
+      /**
+       * Total number of pages
+       */
+      totalPages: number;
+    };
   };
 }

@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { Booking } from '../models/booking.models';
+import { Booking, BookingStatus } from '../models/booking.models';
 import { GuestInfo, GuestPreferences } from '../models/guest.models';
 
 @Injectable({
@@ -32,7 +32,7 @@ export class GuestDashboardService {
         startTime: new Date(),
         endTime: new Date(new Date().getTime() + 3600000), // 1 hour later
         duration: 60,
-        status: 'confirmed',
+        status: BookingStatus.CONFIRMED,
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -45,7 +45,7 @@ export class GuestDashboardService {
         startTime: new Date(Date.now() + 86400000),
         endTime: new Date(Date.now() + 86400000 + 3600000), // 1 hour later
         duration: 60,
-        status: 'pending',
+        status: BookingStatus.PENDING,
         createdAt: new Date(),
         updatedAt: new Date()
       }
@@ -71,10 +71,10 @@ export class GuestDashboardService {
       startTime: new Date(),
       endTime: new Date(new Date().getTime() + 3600000), // 1 hour later
       duration: 60,
-      status: 'confirmed',
+      status: BookingStatus.CONFIRMED,
       createdAt: new Date(),
       updatedAt: new Date()
-    }).pipe(
+    } as Booking).pipe(
       catchError(this.handleError<Booking | null>('getBookingById', null))
     );
   }

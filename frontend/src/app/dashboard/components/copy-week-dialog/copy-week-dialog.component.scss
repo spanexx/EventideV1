@@ -18,17 +18,11 @@
   gap: var(--spacing-md);
 }
 
-.availability-form {
+.copy-week-form {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
   padding: var(--spacing-xl);
-}
-
-.time-fields {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--spacing-lg);
 }
 
 .mat-mdc-form-field {
@@ -64,11 +58,3 @@
     transform: translateY(-2px);
   }
 }
-
-.error-snackbar {
-  background-color: #f44336;
-  color: white;
-  font-weight: var(--font-weight-medium);
-}
-
-

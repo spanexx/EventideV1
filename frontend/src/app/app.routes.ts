@@ -10,6 +10,10 @@ export const routes: Routes = [
     loadChildren: () => import('./dashboard/dashboard-routing.module').then(m => m.DashboardRoutingModule)
   },
   {
+    path: 'dashboard-guest',
+    loadChildren: () => import('./dashboard-guest/dashboard-guest-routing.module').then(m => m.DashboardGuestRoutingModule)
+  },
+  {
     path: 'booking',
     loadChildren: () => import('./booking/booking-routing.module').then(m => m.BookingRoutingModule)
   },

@@ -5,7 +5,7 @@
   height: calc(100vh - 64px - (2 * var(--spacing-xl)));
   display: flex;
   flex-direction: column;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -42,12 +42,12 @@
   }
 }
 
-.refresh-btn {
+.refresh-btn, .copy-week-btn {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
   background-color: var(--primary);
-  color: var(--primary-foreground);
+  color: whitesmoke;
   border: none;
   padding: var(--spacing-sm) var(--spacing-md);
   border-radius: var(--radius-md);
@@ -63,11 +63,307 @@
   &:active {
     transform: translateY(0);
   }
+}
+
+.copy-week-btn {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
   
-  .material-icons {
-    font-size: 20px;
+  &:hover {
+    background-color: color-mix(in srgb, var(--accent) 90%, black);
   }
 }
+
+:host {
+  --calendar-bg: var(--card);
+  --calendar-border-color: var(--border);
+  --calendar-header-bg: var(--background);
+  --calendar-today-bg: rgba(var(--primary-rgb), 0.1);
+  --calendar-event-bg: var(--primary);
+  --calendar-event-text-color: var(--primary-foreground);
+  --calendar-hover-bg: rgba(var(--primary-rgb), 0.05);
+}
+
+.availability-container {
+  padding: var(--spacing-xl);
+  height: calc(100vh - 64px - (2 * var(--spacing-xl)));
+  display: flex;
+  flex-direction: column;
+  max-width: 1400px;
+  margin: 0 auto;
+  gap: var(--spacing-xl);
+}
+
+.page-header {
+  text-align: center;
+  
+  .page-title {
+    font-size: var(--font-size-4xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    letter-spacing: -1px;
+  }
+  
+  .page-description {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-lg);
+    max-width: 600px;
+    margin: var(--spacing-sm) auto 0;
+  }
+}
+
+.availability-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: var(--spacing-lg);
+  border-bottom: 1px solid var(--border);
+
+  h2 {
+    font-size: var(--font-size-2xl);
+    font-weight: var(--font-weight-semibold);
+    color: var(--foreground);
+    margin: 0;
+  }
+}
+
+.header-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.history-controls {
+  display: flex;
+  gap: var(--spacing-xs);
+  
+  .mat-mdc-icon-button {
+    width: 36px;
+    height: 36px;
+    line-height: 36px;
+    
+    &[disabled] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// .refresh-btn {
+//   display: flex;
+//   align-items: center;
+//   gap: var(--spacing-sm);
+//   background-color: var(--primary);
+//   color: var(--primary-foreground);
+//   border: none;
+//   padding: var(--spacing-sm) var(--spacing-md);
+//   border-radius: var(--radius-md);
+//   cursor: pointer;
+//   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+//   font-weight: var(--font-weight-medium);
+
+//   &:hover {
+//     background-color: color-mix(in srgb, var(--primary) 90%, black);
+//     transform: translateY(-2px);
+//     box-shadow: var(--shadow-md);
+//   }
+  
+//   &:active {
+//     transform: translateY(0);
+//     box-shadow: none;
+//   }
+  
+//   .material-icons {
+//     font-size: 20px;
+//   }
+// }
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  color: var(--muted-foreground);
+  font-size: var(--font-size-lg);
+  gap: var(--spacing-md);
+}
+
+.calendar-container {
+  flex: 1;
+  overflow: hidden;
+  background: var(--calendar-bg);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--calendar-border-color);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+}
+
+.availability-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: flex-end;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border);
+}
+
+// FullCalendar overrides
+:host ::ng-deep {
+  .fc {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+
+    .fc-header-toolbar {
+      background-color: var(--calendar-header-bg);
+      padding: var(--spacing-lg);
+      border-bottom: 1px solid var(--calendar-border-color);
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    }
+
+    .fc-toolbar-title {
+      font-size: var(--font-size-2xl) !important;
+      font-weight: var(--font-weight-bold);
+      color: var(--foreground);
+    }
+
+    .fc-button {
+      background: var(--primary) !important;
+      color: var(--primary-foreground) !important;
+      border: none !important;
+      box-shadow: none !important;
+      text-transform: capitalize !important;
+      padding: var(--spacing-sm) var(--spacing-lg) !important;
+      border-radius: var(--radius-md) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      font-weight: var(--font-weight-medium) !important;
+
+      &:hover {
+        background: color-mix(in srgb, var(--primary) 90%, black) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: var(--shadow-md) !important;
+      }
+      
+      &:active, &:focus {
+        transform: translateY(0) !important;
+        box-shadow: none !important;
+      }
+    }
+    
+    .fc-button-group {
+      gap: 2px;
+    }
+
+    .fc-view-harness {
+      flex: 1;
+      overflow: auto;
+    }
+
+    .fc-daygrid-day-frame {
+      border-radius: var(--radius-md);
+      transition: background-color 0.2s ease;
+      
+      &:hover {
+        background-color: var(--calendar-hover-bg);
+      }
+    }
+
+    .fc-day-today {
+      background: var(--calendar-today-bg) !important;
+      border: none !important;
+      
+      .fc-daygrid-day-number {
+        font-weight: var(--font-weight-bold);
+        color: var(--primary);
+      }
+    }
+
+    .fc-event {
+      border: none !important;
+      border-radius: var(--radius-md) !important;
+      padding: 6px 8px !important;
+      font-size: var(--font-size-sm) !important;
+      font-weight: var(--font-weight-medium);
+      transition: all 0.2s ease;
+      cursor: pointer;
+      box-shadow: var(--shadow-xs);
+      
+      &:hover {
+        transform: scale(1.03);
+        box-shadow: var(--shadow-md);
+      }
+    }
+
+    .fc-event.event-available {
+      background-color: var(--color-success) !important;
+      color: var(--primary-foreground) !important;
+    }
+
+    .fc-event.event-booked {
+      background-color: var(--color-error) !important;
+      color: var(--primary-foreground) !important;
+    }
+    
+    .fc-daygrid-day.fc-day-past {
+      background-color: var(--muted);
+    }
+    
+    .fc-daygrid-day-number {
+      padding: var(--spacing-sm);
+    }
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .availability-container {
+    padding: var(--spacing-lg);
+    height: auto;
+  }
+  
+  .page-header .page-title {
+    font-size: var(--font-size-3xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .availability-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+  
+  .refresh-btn {
+    align-self: flex-end;
+  }
+  
+  :host ::ng-deep .fc {
+    .fc-header-toolbar {
+      flex-direction: column;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+    }
+    .fc-toolbar-title {
+      font-size: var(--font-size-xl) !important;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .availability-actions {
+    flex-direction: column;
+    
+    .mat-raised-button {
+      width: 100%;
+    }
+  }
+  
+  :host ::ng-deep .fc .fc-button {
+    padding: var(--spacing-xs) var(--spacing-sm) !important;
+    font-size: var(--font-size-sm) !important;
+  }
+}
+
 
 .loading {
   text-align: center;
@@ -78,16 +374,23 @@
 
 .calendar-container {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   background: var(--card);
-  padding: var(--spacing-lg);
+  padding: var(--spacing-md);
   border-radius: var(--radius-lg);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-height: 500px;
   
   &:hover {
     box-shadow: var(--shadow-lg);
+  }
+  
+  full-calendar {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
 }
 
@@ -101,6 +404,17 @@
 // FullCalendar overrides
 :host ::ng-deep {
   .fc {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    
+    .fc-header-toolbar {
+      background-color: var(--background);
+      padding: var(--spacing-md);
+      border-bottom: 1px solid var(--border);
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
     .fc-toolbar-title {
       font-size: var(--font-size-xl) !important;
       font-weight: var(--font-weight-semibold);
@@ -128,6 +442,11 @@
       }
     }
 
+    .fc-view-harness {
+      flex: 1;
+      overflow: auto;
+    }
+
     .fc-daygrid-day-frame {
       border-radius: var(--radius-md);
       transition: all 0.2s ease;
@@ -150,6 +469,37 @@
       
       &:hover {
         transform: scale(1.05);
+      }
+      
+      .fc-event-main-frame {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      
+      .fc-event-time {
+        font-weight: var(--font-weight-bold);
+      }
+      
+      .fc-event-title-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      
+      .fc-event-details {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      
+      .fc-event-duration {
+        font-size: 0.75em;
+        opacity: 0.9;
+      }
+      
+      .fc-event-recurring {
+        font-size: 0.9em;
       }
     }
 
@@ -179,6 +529,12 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 1200px) {
+  .availability-container {
+    max-width: 95%;
+  }
+}
+
 @media (max-width: 1024px) {
   .availability-container {
     padding: var(--spacing-lg);
@@ -194,6 +550,15 @@
       font-size: var(--font-size-base);
     }
   }
+  
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .copy-week-btn {
+    margin-left: var(--spacing-md);
+  }
 }
 
 @media (max-width: 768px) {
@@ -203,13 +568,92 @@
     gap: var(--spacing-md);
   }
   
-  .refresh-btn {
-    align-self: flex-end;
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .refresh-btn, .copy-week-btn {
+    margin-left: 0;
   }
   
   :host ::ng-deep .fc .fc-toolbar.fc-header-toolbar {
     flex-direction: column;
     gap: var(--spacing-sm);
+    
+    .fc-toolbar-chunk {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: var(--spacing-xs);
+    }
+  }
+  
+  :host ::ng-deep .fc {
+    .fc-event {
+      padding: 2px 4px !important;
+      font-size: 0.7rem !important;
+      
+      .fc-event-duration {
+        font-size: 0.6rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 576px) {
+  .availability-container {
+    padding: var(--spacing-md);
+  }
+  
+  .page-header {
+    text-align: left;
+    
+    .page-title {
+      font-size: var(--font-size-xl);
+    }
+    
+    .page-description {
+      font-size: var(--font-size-sm);
+    }
+  }
+  
+  .header-actions {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    width: 100%;
+  }
+  
+  .refresh-btn, .copy-week-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  :host ::ng-deep .fc {
+    .fc-header-toolbar {
+      padding: var(--spacing-sm);
+    }
+    
+    .fc-toolbar-title {
+      font-size: var(--font-size-lg) !important;
+    }
+    
+    .fc-button {
+      padding: var(--spacing-xs) var(--spacing-sm) !important;
+      font-size: var(--font-size-xs) !important;
+    }
+    
+    .fc-event {
+      font-size: 0.6rem !important;
+      
+      .fc-event-time {
+        font-size: 0.55rem;
+      }
+      
+      .fc-event-duration {
+        font-size: 0.5rem;
+      }
+    }
   }
 }
 
@@ -221,5 +665,28 @@
   :host ::ng-deep .fc .fc-button {
     padding: var(--spacing-xs) var(--spacing-sm) !important;
     font-size: var(--font-size-sm) !important;
+  }
+  
+  :host ::ng-deep .fc {
+    .fc-view {
+      overflow-x: auto;
+    }
+    
+    .fc-scroller {
+      overflow-x: auto !important;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  :host ::ng-deep .fc {
+    .fc-toolbar-title {
+      font-size: var(--font-size-base) !important;
+    }
+    
+    .fc-event {
+      padding: 1px 2px !important;
+      font-size: 0.5rem !important;
+    }
   }
 }

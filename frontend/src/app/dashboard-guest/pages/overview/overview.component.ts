@@ -2,12 +2,14 @@ import { Component, OnInit, ChangeDetectionStrategy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
+import { RouterModule } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import * as GuestDashboardActions from '../../store/actions/guest-dashboard.actions';
+import * as GuestDashboardSelectors from '../../store/selectors/guest-dashboard.selectors';
 import { Booking } from '../../models/booking.models';
 
 @Component({
@@ -15,6 +17,7 @@ import { Booking } from '../../models/booking.models';
   standalone: true,
   imports: [
     CommonModule,
+    RouterModule,
     MatCardModule,
     MatGridListModule,
     MatButtonModule,
@@ -32,11 +35,10 @@ export class OverviewComponent implements OnInit {
   error$: Observable<string | null>;
 
   constructor(private store: Store) {
-    // These would be properly selected from the store in a real implementation
-    this.upcomingBookings$ = new Observable();
-    this.totalBookings$ = new Observable();
-    this.loading$ = new Observable();
-    this.error$ = new Observable();
+    this.upcomingBookings$ = this.store.select(GuestDashboardSelectors.selectUpcomingBookings);
+    this.totalBookings$ = this.store.select(GuestDashboardSelectors.selectTotalBookings);
+    this.loading$ = this.store.select(GuestDashboardSelectors.selectGuestDashboardLoading);
+    this.error$ = this.store.select(GuestDashboardSelectors.selectGuestDashboardError);
   }
 
   ngOnInit(): void {

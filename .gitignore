@@ -54,3 +54,6 @@ frontend/*.log
 prompt.prepare
 # Task Management MCP Database
 tskdb_stdio*
+
+# Task Management MCP Database
+tskdb.json

@@ -1,0 +1,135 @@
+@use '../../../../styles.scss';
+
+.bookings-page {
+  padding: var(--spacing-2xl);
+  max-width: 1200px;
+  margin: 0 auto;
+  
+  // Fade-in animation for page
+  opacity: 0;
+  animation: pageFadeIn 0.7s forwards;
+}
+
+@keyframes pageFadeIn {
+  to {
+    opacity: 1;
+  }
+}
+
+.page-header {
+  margin-bottom: var(--spacing-2xl);
+  text-align: center;
+  
+  h1 {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--foreground);
+    margin-bottom: var(--spacing-sm);
+    
+    // Text gradient for visual interest
+    background: linear-gradient(135deg, var(--foreground), color-mix(in srgb, var(--foreground) 70%, var(--primary)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  p {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-lg);
+  }
+}
+
+/* Enhanced tab styling */
+.mat-tab-group {
+  // Custom tab header styling
+  .mat-tab-header {
+    border-bottom: 2px solid var(--border);
+    
+    .mat-tab-label {
+      font-weight: var(--font-weight-medium);
+      color: var(--muted-foreground);
+      opacity: 0.8;
+      min-width: 120px;
+      padding: var(--spacing-md) var(--spacing-xl);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      // Hover effect
+      &:hover:not(.mat-tab-label-active) {
+        color: var(--foreground);
+        opacity: 1;
+        background: color-mix(in srgb, var(--primary) 5%, transparent);
+      }
+      
+      // Active tab styling
+      &.mat-tab-label-active {
+        color: var(--primary);
+        opacity: 1;
+        
+        .mat-tab-label-content {
+          position: relative;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary);
+            border-radius: 2px;
+          }
+        }
+      }
+    }
+    
+    // Ink bar (active tab indicator)
+    .mat-ink-bar {
+      display: none;
+    }
+  }
+  
+  // Tab body styling
+  .mat-tab-body-wrapper {
+    margin-top: var(--spacing-lg);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .bookings-page {
+    padding: var(--spacing-xl);
+  }
+}
+
+@media (max-width: 768px) {
+  .bookings-page {
+    padding: var(--spacing-lg);
+  }
+  
+  .page-header {
+    h1 {
+      font-size: var(--font-size-2xl);
+    }
+    
+    p {
+      font-size: var(--font-size-base);
+    }
+  }
+  
+  .mat-tab-group .mat-tab-header .mat-tab-label {
+    min-width: 100px;
+    padding: var(--spacing-md) var(--spacing-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .bookings-page {
+    padding: var(--spacing-md);
+  }
+  
+  .mat-tab-group .mat-tab-header .mat-tab-label {
+    min-width: 80px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+  }
+}
