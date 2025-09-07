@@ -16,7 +16,6 @@ export enum SubscriptionTier {
 
 @Schema({ timestamps: true })
 export class User {
-
   @Prop({ type: String, unique: true, required: true, index: true })
   email: string | null = null;
 

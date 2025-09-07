@@ -1,50 +1,66 @@
 import { createAction, props } from '@ngrx/store';
 import { Availability } from '../../models/availability.models';
 
+// Load Availability
+export const loadAvailability = createAction(
+  '[Availability] Load Availability',
+  props<{ providerId: string; date: Date }>()
+);
+
+export const loadAvailabilitySuccess = createAction(
+  '[Availability] Load Availability Success',
+  props<{ availability: Availability[] }>()
+);
+
+export const loadAvailabilityFailure = createAction(
+  '[Availability] Load Availability Failure',
+  props<{ error: string }>()
+);
+
 // Create Availability Slot
 export const createAvailability = createAction(
-  '[Dashboard] Create Availability',
+  '[Availability] Create Availability',
   props<{ availability: Availability }>()
 );
 
 export const createAvailabilitySuccess = createAction(
-  '[Dashboard] Create Availability Success',
+  '[Availability] Create Availability Success',
   props<{ availability: Availability }>()
 );
 
 export const createAvailabilityFailure = createAction(
-  '[Dashboard] Create Availability Failure',
+  '[Availability] Create Availability Failure',
   props<{ error: string }>()
 );
 
 // Update Availability Slot
 export const updateAvailability = createAction(
-  '[Dashboard] Update Availability',
+  '[Availability] Update Availability',
   props<{ availability: Availability }>()
 );
 
 export const updateAvailabilitySuccess = createAction(
-  '[Dashboard] Update Availability Success',
+  '[Availability] Update Availability Success',
   props<{ availability: Availability }>()
 );
 
 export const updateAvailabilityFailure = createAction(
-  '[Dashboard] Update Availability Failure',
+  '[Availability] Update Availability Failure',
   props<{ error: string }>()
 );
 
 // Delete Availability Slot
 export const deleteAvailability = createAction(
-  '[Dashboard] Delete Availability',
+  '[Availability] Delete Availability',
   props<{ id: string }>()
 );
 
 export const deleteAvailabilitySuccess = createAction(
-  '[Dashboard] Delete Availability Success',
+  '[Availability] Delete Availability Success',
   props<{ id: string }>()
 );
 
 export const deleteAvailabilityFailure = createAction(
-  '[Dashboard] Delete Availability Failure',
+  '[Availability] Delete Availability Failure',
   props<{ error: string }>()
 );

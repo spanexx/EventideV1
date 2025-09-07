@@ -37,7 +37,7 @@ export class BookingService {
     // Simulate API call
     const booking: Booking = {
       id: '1',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This would come from the actual booking data
       customerId: 'customer-456',
       customerName: 'John Doe',
       customerEmail: 'john@example.com',

@@ -1,9 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  NotFoundException,
-} from '@nestjs/common';
+import { Controller, Get, Param, NotFoundException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UsersService } from './users.service';
 import { User } from './user.schema';
@@ -15,7 +10,10 @@ export class PublicUsersController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get public provider information' })
-  @ApiResponse({ status: 200, description: 'Returns public provider information' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns public provider information',
+  })
   @ApiResponse({ status: 404, description: 'Provider not found' })
   async getPublicProvider(@Param('id') id: string): Promise<Partial<User>> {
     try {

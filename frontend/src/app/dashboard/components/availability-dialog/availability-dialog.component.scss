@@ -31,8 +31,93 @@
   gap: var(--spacing-lg);
 }
 
+// All-day slot configuration
+.all-day-config {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  padding: var(--spacing-lg);
+  background-color: var(--muted);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+.slot-preview {
+  margin-top: var(--spacing-md);
+  
+  h3 {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    margin: 0 0 var(--spacing-sm) 0;
+    color: var(--foreground);
+  }
+}
+
+.preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.preview-item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--card);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  
+  .slot-number {
+    font-weight: var(--font-weight-bold);
+    color: var(--primary);
+    min-width: 20px;
+  }
+  
+  .slot-time {
+    font-weight: var(--font-weight-medium);
+  }
+  
+  .slot-duration {
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+  }
+}
+
+.warning-hint {
+  color: var(--warning);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .time-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .mat-mdc-form-field {
   width: 100%;
+}
+
+// Improve date picker for mobile
+@media (max-width: 768px) {
+  .mat-datepicker-content {
+    .mat-calendar {
+      width: 300px;
+      height: 350px;
+    }
+  }
+}
+
+// Style the date picker toggle
+.mat-datepicker-toggle {
+  cursor: pointer;
+  
+  .mat-icon {
+    color: var(--muted-foreground);
+  }
 }
 
 .mat-mdc-dialog-actions {

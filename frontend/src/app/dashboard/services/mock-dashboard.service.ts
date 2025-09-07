@@ -90,33 +90,33 @@ export class MockDashboardService {
     const mockAvailability: Availability[] = [
       {
         id: '1',
-        providerId: 'provider-123',
+        providerId: providerId,
+        type: 'one_off',
         date: new Date(),
         startTime: new Date(new Date().setHours(9, 0, 0, 0)),
         endTime: new Date(new Date().setHours(10, 0, 0, 0)),
         isBooked: false,
-        isRecurring: false,
         duration: 60
       },
       {
         id: '2',
-        providerId: 'provider-123',
+        providerId: providerId,
+        type: 'one_off',
         date: new Date(),
         startTime: new Date(new Date().setHours(11, 0, 0, 0)),
         endTime: new Date(new Date().setHours(11, 30, 0, 0)),
         isBooked: true,
         bookingId: 'booking-123',
-        isRecurring: false,
         duration: 30
       },
       {
         id: '3',
-        providerId: 'provider-123',
+        providerId: providerId,
+        type: 'recurring',
         date: new Date(),
         startTime: new Date(new Date().setHours(14, 0, 0, 0)),
         endTime: new Date(new Date().setHours(15, 0, 0, 0)),
         isBooked: false,
-        isRecurring: false,
         duration: 60
       }
     ];

@@ -19,6 +19,8 @@ import * as AuthActions from './auth/store/auth';
 import { AuthEffects, authReducer } from './auth/store/auth';
 import { AnalyticsEffects } from './analytics/store/effects/analytics.effects';
 import { analyticsReducer } from './analytics/store/reducers/analytics.reducer';
+import { availabilityReducer } from './dashboard/store-availability';
+import { AvailabilityEffects } from './dashboard/store-availability';
 
 // Function to initialize the app with existing auth state
 function initializeAppFactory() {
@@ -52,9 +54,10 @@ export const appConfig: ApplicationConfig = {
     provideStore({ 
       auth: authReducer,
       dashboard: dashboardReducer,
-      analytics: analyticsReducer
+      analytics: analyticsReducer,
+      availability: availabilityReducer
     }),
-    provideEffects([AuthEffects, DashboardEffects]),
+    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     {
       provide: APP_INITIALIZER,

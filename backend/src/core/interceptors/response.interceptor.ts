@@ -25,15 +25,33 @@ export class ResponseInterceptor<T>
     const statusCode = response.statusCode;
 
     return next.handle().pipe(
-      map((data) => ({
-        success: true,
-        data: data ? this.serializeData(data) : null,
-        message: this.getDefaultMessage(statusCode),
-        meta: {
-          timestamp: new Date().toISOString(),
-          statusCode,
-        },
-      })),
+      map((data) => {
+        // Check if response contains paginated data
+        const isPaginated =
+          data &&
+          typeof data === 'object' &&
+          !Array.isArray(data) &&
+          'results' in data &&
+          Array.isArray(data.results) &&
+          'pagination' in data &&
+          data.pagination !== null &&
+          typeof data.pagination === 'object';
+
+        return {
+          success: true,
+          data: isPaginated
+            ? this.serializeData(data.results)
+            : data
+              ? this.serializeData(data)
+              : null,
+          message: this.getDefaultMessage(statusCode),
+          meta: {
+            timestamp: new Date().toISOString(),
+            statusCode,
+            ...(isPaginated ? { pagination: data.pagination } : {}),
+          },
+        };
+      }),
     );
   }
 

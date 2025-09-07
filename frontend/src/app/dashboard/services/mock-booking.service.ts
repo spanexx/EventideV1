@@ -10,7 +10,7 @@ export class MockBookingService {
   private bookings: Booking[] = [
     {
       id: '1',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This will be updated when creating actual bookings
       customerId: 'customer-1',
       customerName: 'John Doe',
       customerEmail: 'john@example.com',
@@ -24,7 +24,7 @@ export class MockBookingService {
     },
     {
       id: '2',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This will be updated when creating actual bookings
       customerId: 'customer-2',
       customerName: 'Jane Smith',
       customerEmail: 'jane@example.com',
@@ -38,7 +38,7 @@ export class MockBookingService {
     },
     {
       id: '3',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This will be updated when creating actual bookings
       customerId: 'customer-3',
       customerName: 'Bob Johnson',
       customerEmail: 'bob@example.com',

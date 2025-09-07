@@ -1,6 +1,6 @@
-import { Component, OnInit, ViewChild, HostListener } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Component, OnInit, ViewChild, HostListener, AfterViewInit } from '@angular/core';
+import { Store, select } from '@ngrx/store';
+import { Observable, combineLatest } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
 import { CalendarOptions, DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -10,19 +10,22 @@ import { FullCalendarModule } from '@fullcalendar/angular';
 import { MatDialog } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import { MatMenu, MatMenuModule } from '@angular/material/menu';
+import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import * as DashboardActions from '../../store/actions/dashboard.actions';
-import * as AvailabilityActions from '../../store/actions/availability.actions';
+import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
 import * as DashboardSelectors from '../../store/selectors/dashboard.selectors';
+import * as AvailabilitySelectors from '../../store-availability/selectors/availability.selectors';
+import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import { Availability } from '../../models/availability.models';
-import { MockAvailabilityService } from '../../services/mock-availability.service';
+import { AvailabilityService } from '../../services/availability.service';
 import { AvailabilityDialogComponent } from '../../components/availability-dialog/availability-dialog.component';
 import { CopyWeekDialogComponent } from '../../components/copy-week-dialog/copy-week-dialog.component';
 import { DatePickerDialogComponent } from '../../components/date-picker-dialog/date-picker-dialog.component';
 import { ConfirmationDialogComponent } from '../../components/confirmation-dialog/confirmation-dialog.component';
 import { CommonModule } from '@angular/common';
+import { SnackbarService } from '../../../shared/services/snackbar.service';
 
 @Component({
   selector: 'app-availability',
@@ -45,6 +48,7 @@ export class AvailabilityComponent implements OnInit {
   
   availability$: Observable<Availability[]>;
   loading$: Observable<boolean>;
+  error$: Observable<string | null>;
   selectedSlot: Availability | null = null;
   
   // History management
@@ -95,45 +99,92 @@ export class AvailabilityComponent implements OnInit {
   constructor(
     private store: Store,
     private dialog: MatDialog,
-    private mockAvailabilityService: MockAvailabilityService
+    private availabilityService: AvailabilityService,
+    private snackbarService: SnackbarService
   ) {
-    this.availability$ = this.store.select(DashboardSelectors.selectAvailability);
-    this.loading$ = this.store.select(DashboardSelectors.selectDashboardLoading);
+    this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
+    this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
+    this.error$ = this.store.select(AvailabilitySelectors.selectAvailabilityError);
   }
 
   ngOnInit(): void {
     // Load availability data
     const today = new Date();
-    this.store.dispatch(DashboardActions.loadAvailability({ 
-      providerId: 'provider-123', 
-      date: today 
-    }));
+    
+    // Get the current user and load availability for that user
+    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+      if (userId) {
+        this.store.dispatch(AvailabilityActions.loadAvailability({ 
+          providerId: userId, 
+          date: today
+        }));
+      }
+    });
     
     // Subscribe to availability updates and convert to calendar events
     this.availability$.subscribe(availability => {
-      if (this.calendarComponent) {
-        const calendarApi = this.calendarComponent.getApi();
-        const events = this.mockAvailabilityService.convertToCalendarEvents(availability);
-        calendarApi.removeAllEvents();
-        calendarApi.addEventSource(events);
-      }
+      // Use a small delay to ensure the calendar component is fully initialized
+      setTimeout(() => {
+        if (this.calendarComponent) {
+          const calendarApi = this.calendarComponent.getApi();
+          // Check if calendarApi is available before using it
+          if (calendarApi) {
+            const events = this.availabilityService.convertToCalendarEvents(availability);
+            calendarApi.removeAllEvents();
+            calendarApi.addEventSource(events);
+          }
+        }
+      }, 0);
       
       // Save to history for undo/redo functionality
       this.saveToHistory(availability);
+    });
+    
+    // Subscribe to error updates and show snackbar notifications
+    this.error$.subscribe(error => {
+      if (error) {
+        this.snackbarService.showError('Error loading availability: ' + error);
+      }
     });
   }
 
   handleDateSelect(selectInfo: DateSelectArg) {
     // Handle date selection for creating new availability slots
+    // Check if a dialog is already open
+    const existingDialog = this.dialog.openDialogs.find(dialog => 
+      dialog.componentInstance instanceof AvailabilityDialogComponent
+    );
+    
+    if (existingDialog) {
+      console.log('Dialog already open, focusing existing dialog');
+      // Focus the existing dialog
+      existingDialog.componentInstance['dialogRef'].addPanelClass('dialog-focused');
+      return;
+    }
+    
+    // Prevent event propagation
+    if (selectInfo.jsEvent) {
+      selectInfo.jsEvent.preventDefault();
+      selectInfo.jsEvent.stopPropagation();
+    }
+    
+    console.log('Opening new availability dialog for date selection');
     const dialogRef = this.dialog.open(AvailabilityDialogComponent, {
       width: '400px',
-      data: { availability: null, date: selectInfo.start }
+      data: { 
+        availability: null, 
+        date: selectInfo.start,
+        startDate: selectInfo.start,
+        endDate: selectInfo.end,
+        allDay: selectInfo.allDay
+      }
     });
 
     dialogRef.afterClosed().subscribe(result => {
+      console.log('Dialog closed with result:', result);
       if (result) {
-        console.log('New availability slot:', result);
         // The dialog component will dispatch the create action
+        // No additional action needed here
       }
     });
   }
@@ -147,10 +198,12 @@ export class AvailabilityComponent implements OnInit {
         // Store the selected slot
         this.selectedSlot = slot;
         
+        // Prevent event propagation
+        clickInfo.jsEvent.preventDefault();
+        clickInfo.jsEvent.stopPropagation();
+        
         // Check if it's a right click
         if (clickInfo.jsEvent.which === 3 || clickInfo.jsEvent.button === 2) {
-          // Prevent default context menu
-          clickInfo.jsEvent.preventDefault();
           // Show context menu
           this.showContextMenu(clickInfo.jsEvent);
         } 
@@ -170,15 +223,13 @@ export class AvailabilityComponent implements OnInit {
 
   handleEvents(events: EventApi[]) {
     // Handle events update
-    console.log('Events updated:', events);
+    // This method is called when events are updated in the calendar
+    // No specific action needed here as the state is managed by NgRx
+    // But we can add any necessary logic here if needed
   }
 
   handleEventResize(resizeInfo: any) {
     // Handle event resize
-    console.log('Event resized:', resizeInfo.event.title);
-    console.log('New start:', resizeInfo.event.start);
-    console.log('New end:', resizeInfo.event.end);
-    
     // Find the availability slot based on the event ID
     this.availability$.subscribe(availability => {
       const slot = availability.find(a => a.id === resizeInfo.event.id);
@@ -188,7 +239,7 @@ export class AvailabilityComponent implements OnInit {
           ...slot,
           startTime: resizeInfo.event.start,
           endTime: resizeInfo.event.end,
-          duration: (resizeInfo.event.end.getTime() - resizeInfo.event.start.getTime()) / (1000 * 60) // Convert ms to minutes
+          duration: Math.round((resizeInfo.event.end.getTime() - resizeInfo.event.start.getTime()) / (1000 * 60)) // Convert ms to minutes
         };
         
         // Update the slot
@@ -199,17 +250,10 @@ export class AvailabilityComponent implements OnInit {
 
   handleEventDrop(dropInfo: any) {
     // Handle event drop (moving event to new time slot)
-    console.log('Event dropped:', dropInfo.event.title);
-    console.log('New start:', dropInfo.event.start);
-    console.log('New end:', dropInfo.event.end);
-    
     // Find the availability slot based on the event ID
     this.availability$.subscribe(availability => {
       const slot = availability.find(a => a.id === dropInfo.event.id);
       if (slot) {
-        // Calculate the time difference
-        const delta = dropInfo.delta;
-        
         // Create updated slot with new times
         const updatedSlot = {
           ...slot,
@@ -226,10 +270,16 @@ export class AvailabilityComponent implements OnInit {
 
   refreshAvailability(): void {
     const today = new Date();
-    this.store.dispatch(DashboardActions.loadAvailability({ 
-      providerId: 'provider-123', 
-      date: today 
-    }));
+    // Clear any previous errors
+    // Get the current user and refresh availability for that user
+    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+      if (userId) {
+        this.store.dispatch(AvailabilityActions.loadAvailability({ 
+          providerId: userId, 
+          date: today
+        }));
+      }
+    });
   }
 
   // History management methods
@@ -254,8 +304,16 @@ export class AvailabilityComponent implements OnInit {
     if (this.canUndo()) {
       this.historyIndex--;
       const prevState = this.history[this.historyIndex];
-      // In a real implementation, we would dispatch actions to restore the previous state
-      console.log('Undo to state:', prevState);
+      // Update the calendar with the previous state
+      if (this.calendarComponent) {
+        const calendarApi = this.calendarComponent.getApi();
+        // Check if calendarApi is available before using it
+        if (calendarApi) {
+          const events = this.availabilityService.convertToCalendarEvents(prevState);
+          calendarApi.removeAllEvents();
+          calendarApi.addEventSource(events);
+        }
+      }
     }
   }
 
@@ -263,8 +321,16 @@ export class AvailabilityComponent implements OnInit {
     if (this.canRedo()) {
       this.historyIndex++;
       const nextState = this.history[this.historyIndex];
-      // In a real implementation, we would dispatch actions to restore the next state
-      console.log('Redo to state:', nextState);
+      // Update the calendar with the next state
+      if (this.calendarComponent) {
+        const calendarApi = this.calendarComponent.getApi();
+        // Check if calendarApi is available before using it
+        if (calendarApi) {
+          const events = this.availabilityService.convertToCalendarEvents(nextState);
+          calendarApi.removeAllEvents();
+          calendarApi.addEventSource(events);
+        }
+      }
     }
   }
 
@@ -317,8 +383,38 @@ export class AvailabilityComponent implements OnInit {
       // A - Add availability
       if (event.key === 'a' && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
         event.preventDefault();
-        // This would open the add availability dialog
-        console.log('Add availability shortcut pressed');
+        // Check if a dialog is already open
+        const existingDialog = this.dialog.openDialogs.find(dialog => 
+          dialog.componentInstance instanceof AvailabilityDialogComponent
+        );
+        
+        if (existingDialog) {
+          console.log('Dialog already open, focusing existing dialog');
+          // Focus the existing dialog
+          existingDialog.componentInstance['dialogRef'].addPanelClass('dialog-focused');
+          return;
+        }
+        
+        console.log('Opening new availability dialog via keyboard shortcut');
+        // Open the add availability dialog with today's date
+        const today = new Date();
+        const dialogRef = this.dialog.open(AvailabilityDialogComponent, {
+          width: '400px',
+          data: { 
+            availability: null, 
+            date: today,
+            startDate: today,
+            endDate: new Date(today.getTime() + 60 * 60 * 1000) // Add 1 hour
+          }
+        });
+
+        dialogRef.afterClosed().subscribe(result => {
+          console.log('Dialog closed with result:', result);
+          if (result) {
+            // The dialog component will dispatch the create action
+            // No additional action needed here
+          }
+        });
         return;
       }
       
@@ -339,9 +435,64 @@ export class AvailabilityComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe(result => {
       if (result) {
-        console.log('Copy week schedule:', result);
-        // In a real implementation, this would copy the schedule from source to target week
-        // This would involve fetching the source week's availability and creating new entries for the target week
+        // Get the start and end dates for the source week
+        const sourceStart = new Date(result.sourceWeek);
+        sourceStart.setDate(sourceStart.getDate() - sourceStart.getDay()); // Start of week (Sunday)
+        
+        const sourceEnd = new Date(sourceStart);
+        sourceEnd.setDate(sourceEnd.getDate() + 6); // End of week (Saturday)
+        
+        // Get the start and end dates for the target week
+        const targetStart = new Date(result.targetWeek);
+        targetStart.setDate(targetStart.getDate() - targetStart.getDay()); // Start of week (Sunday)
+        
+        // Format dates as strings
+        const sourceStartDateString = sourceStart.toISOString().split('T')[0];
+        
+        // Get the current user and load availability for that user
+        this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+          if (userId) {
+            // Dispatch action to load availability for the source week
+            this.store.dispatch(AvailabilityActions.loadAvailability({ 
+              providerId: userId, 
+              date: sourceStart
+            }));
+            
+            // Get the source week's availability and create new slots for the target week
+            this.availability$.subscribe(availability => {
+              // Filter for slots in the source week
+              const sourceWeekSlots = availability.filter(slot => {
+                const slotDate = new Date(slot.date || slot.startTime);
+                return slotDate >= sourceStart && slotDate <= sourceEnd;
+              });
+              
+              // Create new slots for the target week
+              sourceWeekSlots.forEach(slot => {
+                const newSlot: any = { ...slot };
+                delete newSlot.id; // Remove the ID so a new one will be generated
+                
+                // Update dates for the target week
+                if (newSlot.date) {
+                  const newDate = new Date(newSlot.date);
+                  newDate.setDate(newDate.getDate() + 7); // Add 7 days for next week
+                  newSlot.date = newDate.toISOString().split('T')[0];
+                }
+                
+                // Update start and end times for the target week
+                const newStartTime = new Date(newSlot.startTime);
+                newStartTime.setDate(newStartTime.getDate() + 7);
+                newSlot.startTime = newStartTime;
+                
+                const newEndTime = new Date(newSlot.endTime);
+                newEndTime.setDate(newEndTime.getDate() + 7);
+                newSlot.endTime = newEndTime;
+                
+                // Dispatch action to create the new slot
+                this.store.dispatch(AvailabilityActions.createAvailability({ availability: newSlot }));
+              });
+            });
+          }
+        });
       }
     });
   }
@@ -353,9 +504,12 @@ export class AvailabilityComponent implements OnInit {
     });
 
     dialogRef.afterClosed().subscribe(result => {
-      if (result) {
+      if (result && this.calendarComponent) {
         const calendarApi = this.calendarComponent.getApi();
-        calendarApi.gotoDate(result);
+        // Check if calendarApi is available before using it
+        if (calendarApi) {
+          calendarApi.gotoDate(result);
+        }
       }
     });
   }
@@ -396,22 +550,37 @@ ${isRecurring ? 'Recurring' : 'One-time'}${isBooked ? ' (Booked)' : ''}`;
     // Prevent the browser's default context menu
     event.preventDefault();
     
-    // In a full implementation, we would position and open the context menu
-    // For now, we'll use a simplified approach
-    console.log('Context menu would appear here with options to Edit or Delete the slot');
+    // For now, we'll use the existing context menu but we need to implement proper positioning
+    // This is a simplified approach - in a full implementation, we would position the menu at the mouse coordinates
+    console.log('Context menu would open at position:', event.clientX, event.clientY);
+    // The context menu is already defined in the template and can be triggered by the edit/delete buttons
   }
 
   editSlot() {
     if (this.selectedSlot) {
+      // Check if a dialog is already open
+      const existingDialog = this.dialog.openDialogs.find(dialog => 
+        dialog.componentInstance instanceof AvailabilityDialogComponent
+      );
+      
+      if (existingDialog) {
+        console.log('Dialog already open, focusing existing dialog');
+        // Focus the existing dialog
+        existingDialog.componentInstance['dialogRef'].addPanelClass('dialog-focused');
+        return;
+      }
+      
+      console.log('Opening edit availability dialog for slot:', this.selectedSlot);
       const dialogRef = this.dialog.open(AvailabilityDialogComponent, {
         width: '400px',
         data: { availability: this.selectedSlot, date: this.selectedSlot.date }
       });
 
       dialogRef.afterClosed().subscribe(result => {
+        console.log('Dialog closed with result:', result);
         if (result) {
-          console.log('Updated availability slot:', result);
           // The dialog component will dispatch the update action
+          // No additional action needed here
         }
       });
     }
@@ -435,5 +604,42 @@ ${isRecurring ? 'Recurring' : 'One-time'}${isBooked ? ' (Booked)' : ''}`;
         }
       });
     }
+  }
+
+  /**
+   * Opens the availability dialog to add a new availability slot
+   */
+  addAvailability(): void {
+    const today = new Date();
+    // Check if a dialog is already open
+    const existingDialog = this.dialog.openDialogs.find(dialog => 
+      dialog.componentInstance instanceof AvailabilityDialogComponent
+    );
+    
+    if (existingDialog) {
+      console.log('Dialog already open, focusing existing dialog');
+      // Focus the existing dialog
+      existingDialog.componentInstance['dialogRef'].addPanelClass('dialog-focused');
+      return;
+    }
+    
+    console.log('Opening new availability dialog');
+    const dialogRef = this.dialog.open(AvailabilityDialogComponent, {
+      width: '400px',
+      data: { 
+        availability: null, 
+        date: today,
+        startDate: today,
+        endDate: new Date(today.getTime() + 60 * 60 * 1000) // Add 1 hour
+      }
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('Dialog closed with result:', result);
+      if (result) {
+        // The dialog component will dispatch the create action
+        // No additional action needed here
+      }
+    });
   }
 }

@@ -2,7 +2,6 @@ import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserDocument, UserRole } from 'src/modules/users/user.schema';
 
-
 export interface AuthRequest extends Request {
   user: UserDocument;
 }
