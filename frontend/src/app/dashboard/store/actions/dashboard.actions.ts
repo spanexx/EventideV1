@@ -1,7 +1,6 @@
 import { createAction, props } from '@ngrx/store';
 import { DashboardStats, Activity } from '../../models/dashboard.models';
 import { Booking } from '../../models/booking.models';
-import { Availability } from '../../models/availability.models';
 
 // Load Dashboard Stats
 export const loadDashboardStats = createAction('[Dashboard] Load Dashboard Stats');
@@ -42,22 +41,6 @@ export const loadBookingsSuccess = createAction(
 
 export const loadBookingsFailure = createAction(
   '[Dashboard] Load Bookings Failure',
-  props<{ error: string }>()
-);
-
-// Load Availability
-export const loadAvailability = createAction(
-  '[Dashboard] Load Availability',
-  props<{ providerId: string; date: Date }>()
-);
-
-export const loadAvailabilitySuccess = createAction(
-  '[Dashboard] Load Availability Success',
-  props<{ availability: Availability[] }>()
-);
-
-export const loadAvailabilityFailure = createAction(
-  '[Dashboard] Load Availability Failure',
   props<{ error: string }>()
 );
 

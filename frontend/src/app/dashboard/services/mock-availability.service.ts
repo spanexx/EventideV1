@@ -11,43 +11,62 @@ export class MockAvailabilityService {
   private availability: Availability[] = [
     {
       id: '1',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This will be updated when creating actual availability
+      type: 'one_off',
       date: new Date(),
       startTime: new Date(new Date().setHours(9, 0, 0, 0)),
       endTime: new Date(new Date().setHours(10, 0, 0, 0)),
       isBooked: false,
-      isRecurring: false,
       duration: 60
     },
     {
       id: '2',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This will be updated when creating actual availability
+      type: 'one_off',
       date: new Date(),
       startTime: new Date(new Date().setHours(11, 0, 0, 0)),
       endTime: new Date(new Date().setHours(11, 30, 0, 0)),
       isBooked: true,
       bookingId: 'booking-123',
-      isRecurring: false,
       duration: 30
     },
     {
       id: '3',
-      providerId: 'provider-123',
+      providerId: 'provider-123', // This will be updated when creating actual availability
+      type: 'recurring',
       date: new Date(),
       startTime: new Date(new Date().setHours(14, 0, 0, 0)),
       endTime: new Date(new Date().setHours(15, 0, 0, 0)),
       isBooked: false,
-      isRecurring: false,
       duration: 60
     }
   ];
 
+  // Simple ID generator
+  private generateId(): string {
+    return Math.random().toString(36).substr(2, 9);
+  }
+
   getAvailability(providerId: string, date: Date): Observable<Availability[]> {
-    return of(this.availability).pipe(delay(500));
+    const availabilityWithIds = this.availability.map(slot => ({
+      ...slot,
+      id: (slot as any)._id || slot.id, // Use _id if available, otherwise use id
+      date: slot.date ? new Date(slot.date) : undefined,
+      startTime: new Date(slot.startTime),
+      endTime: new Date(slot.endTime)
+    }));
+    return of(availabilityWithIds).pipe(delay(500));
   }
 
   setAvailability(slots: Availability[]): Observable<any> {
-    this.availability = [...this.availability, ...slots];
+    const slotsWithIds = slots.map(slot => ({
+      ...slot,
+      id: (slot as any)._id || slot.id || this.generateId(), // Use _id if available, otherwise use id, or generate new
+      date: slot.date ? new Date(slot.date) : undefined,
+      startTime: new Date(slot.startTime),
+      endTime: new Date(slot.endTime)
+    }));
+    this.availability = [...this.availability, ...slotsWithIds];
     return of({ success: true }).pipe(delay(300));
   }
 
@@ -82,7 +101,8 @@ export class MockAvailabilityService {
   convertToCalendarEvents(availability: Availability[]): EventInput[] {
     return availability.map(slot => {
       // For recurring slots, we might want to show them differently
-      const title = slot.isRecurring ? 
+      const isRecurring = slot.type === 'recurring';
+      const title = isRecurring ? 
         `${slot.isBooked ? 'Booked' : 'Available'} (Recurring)` : 
         (slot.isBooked ? 'Booked' : 'Available');
       
@@ -95,10 +115,10 @@ export class MockAvailabilityService {
         borderColor: slot.isBooked ? '#d32f2f' : '#388e3c',
         classNames: [
           slot.isBooked ? 'booked-slot' : 'available-slot',
-          slot.isRecurring ? 'recurring-slot' : ''
+          isRecurring ? 'recurring-slot' : ''
         ],
         extendedProps: {
-          isRecurring: slot.isRecurring,
+          isRecurring: isRecurring,
           isBooked: slot.isBooked,
           duration: slot.duration
         }

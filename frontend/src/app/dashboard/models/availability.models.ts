@@ -2,12 +2,12 @@
 export interface Availability {
   id: string;
   providerId: string;
+  type: 'recurring' | 'one_off';
   dayOfWeek?: number;
   date?: Date;
   startTime: Date;
   endTime: Date;
   duration: number;
-  isRecurring: boolean;
   isBooked: boolean;
   bookingId?: string;
 }

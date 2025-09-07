@@ -4,6 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import * as AnalyticsActions from '../../store/actions/analytics.actions';
 import * as AnalyticsSelectors from '../../store/selectors/analytics.selectors';
+import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -72,16 +73,21 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
   
   generateReport(): void {
-    this.store.dispatch(AnalyticsActions.generateReport({
-      request: {
-        providerId: 'provider-123', // This would come from auth state in a real app
-        dateRange: {
-          startDate: this.startDate,
-          endDate: this.endDate
-        }
-      },
-      reportType: this.reportType
-    }));
+    // Get the current user and generate report for that user
+    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+      if (userId) {
+        this.store.dispatch(AnalyticsActions.generateReport({
+          request: {
+            providerId: userId,
+            dateRange: {
+              startDate: this.startDate,
+              endDate: this.endDate
+            }
+          },
+          reportType: this.reportType
+        }));
+      }
+    });
   }
   
   retryGenerate(): void {

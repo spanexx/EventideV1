@@ -14,9 +14,9 @@
 
 // /**
 //  * Marks an endpoint as deprecated with appropriate headers and documentation
-//  * 
+//  *
 //  * @param options Deprecation configuration options
-//  * 
+//  *
 //  * @example
 //  * ```typescript
 //  * @Deprecated({
@@ -36,23 +36,23 @@
 //   const decorators = [
 //     // Set metadata for middleware to detect deprecated endpoints
 //     SetMetadata(DEPRECATED_ENDPOINT_KEY, options),
-    
+
 //     // Protect with feature flag to control deprecation rollout
 //     FeatureFlag('legacy_api_deprecation'),
-    
+
 //     // Add Swagger documentation
 //     ApiHeader({
 //       name: 'X-API-Deprecated',
 //       description: 'Indicates this endpoint is deprecated',
 //       required: false,
 //     }),
-    
+
 //     ApiHeader({
 //       name: 'X-API-Deprecated-Version',
 //       description: 'Version when this endpoint was deprecated',
 //       required: false,
 //     }),
-    
+
 //     ApiResponse({
 //       status: 200,
 //       description: `⚠️ **DEPRECATED**: This endpoint is deprecated as of version ${options.version}. ${options.replacement ? `Use ${options.replacement} instead.` : ''} ${options.sunsetDate ? `This endpoint will be removed on ${options.sunsetDate}.` : ''}`,
@@ -93,16 +93,16 @@
 
 //   static logUsage(endpoint: string, options: DeprecationOptions, userContext?: any) {
 //     const key = `${endpoint}_v${options.version}`;
-    
+
 //     // Update usage statistics
 //     if (!this.usageStats.has(key)) {
 //       this.usageStats.set(key, { count: 0, lastUsed: new Date(), users: new Set() });
 //     }
-    
+
 //     const stats = this.usageStats.get(key)!;
 //     stats.count++;
 //     stats.lastUsed = new Date();
-    
+
 //     if (userContext?.id) {
 //       stats.users.add(userContext.id);
 //     }
@@ -152,14 +152,14 @@
 //   static getUnusedEndpoints(daysSinceLastUse: number = 30): string[] {
 //     const cutoffDate = new Date();
 //     cutoffDate.setDate(cutoffDate.getDate() - daysSinceLastUse);
-    
+
 //     const unused: string[] = [];
 //     this.usageStats.forEach((value, key) => {
 //       if (value.lastUsed < cutoffDate) {
 //         unused.push(key);
 //       }
 //     });
-    
+
 //     return unused;
 //   }
 
@@ -168,7 +168,7 @@
 //    */
 //   static getHighUsageEndpoints(minUsageCount: number = 100): Array<{ endpoint: string, stats: any }> {
 //     const highUsage: Array<{ endpoint: string, stats: any }> = [];
-    
+
 //     this.usageStats.forEach((value, key) => {
 //       if (value.count >= minUsageCount) {
 //         highUsage.push({
@@ -181,7 +181,7 @@
 //         });
 //       }
 //     });
-    
+
 //     // Sort by usage count descending
 //     return highUsage.sort((a, b) => b.stats.count - a.stats.count);
 //   }

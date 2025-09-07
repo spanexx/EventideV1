@@ -14,6 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import * as AnalyticsActions from '../../store/actions/analytics.actions';
 import * as AnalyticsSelectors from '../../store/selectors/analytics.selectors';
+import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import { SummaryCardComponent } from '../../components/summary-cards/summary-card.component';
 import { LineChartComponent } from '../../components/charts/line-chart.component';
 import { BarChartComponent } from '../../components/charts/bar-chart.component';
@@ -84,15 +85,20 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
   }
   
   loadData(): void {
-    this.store.dispatch(AnalyticsActions.loadAnalyticsData({
-      request: {
-        providerId: 'provider-123', // This would come from auth state in a real app
-        dateRange: {
-          startDate: this.startDate,
-          endDate: this.endDate
-        }
+    // Get the current user and load analytics data for that user
+    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+      if (userId) {
+        this.store.dispatch(AnalyticsActions.loadAnalyticsData({
+          request: {
+            providerId: userId,
+            dateRange: {
+              startDate: this.startDate,
+              endDate: this.endDate
+            }
+          }
+        }));
       }
-    }));
+    });
   }
   
   retryLoad(): void {

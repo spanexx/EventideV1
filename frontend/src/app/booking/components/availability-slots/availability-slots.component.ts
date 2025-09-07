@@ -1,8 +1,9 @@
 import { Component } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { Store } from '@ngrx/store';
+import { Store, select } from '@ngrx/store';
 import * as BookingActions from '../../store/actions/booking.actions';
 import * as BookingSelectors from '../../store/selectors/booking.selectors';
+import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -125,13 +126,17 @@ export class AvailabilitySlotsComponent {
     this.error$ = this.store.select(BookingSelectors.selectBookingError);
     
     // Load available slots for the current date
-    this.store.dispatch(BookingActions.loadAvailableSlots({
-      request: {
-        providerId: 'provider-123', // This would come from route parameters or store in a real app
-        date: this.currentDate,
-        duration: 30 // This would come from the previously selected duration
+    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+      if (userId) {
+        this.store.dispatch(BookingActions.loadAvailableSlots({
+          request: {
+            providerId: userId,
+            date: this.currentDate,
+            duration: 30 // This would come from the previously selected duration
+          }
+        }));
       }
-    }));
+    });
   }
   
   selectSlot(slot: any) {
@@ -164,12 +169,16 @@ export class AvailabilitySlotsComponent {
   }
   
   private loadSlotsForDate() {
-    this.store.dispatch(BookingActions.loadAvailableSlots({
-      request: {
-        providerId: 'provider-123',
-        date: this.currentDate,
-        duration: 30
+    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+      if (userId) {
+        this.store.dispatch(BookingActions.loadAvailableSlots({
+          request: {
+            providerId: userId,
+            date: this.currentDate,
+            duration: 30
+          }
+        }));
       }
-    }));
+    });
   }
 }

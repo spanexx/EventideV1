@@ -29,7 +29,11 @@ import { ConfigService } from '@nestjs/config';
 import { UsersService } from '../modules/users/users.service';
 import { CreateUserDto } from '../modules/users/dto/create-user.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { LoginResponse, RefreshTokenResponse, SignupResponse } from './auth-interfaces/auth.interface';
+import {
+  LoginResponse,
+  RefreshTokenResponse,
+  SignupResponse,
+} from './auth-interfaces/auth.interface';
 
 // Extend Express Request type with our User type
 interface RequestWithUser extends Request {
@@ -95,10 +99,10 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   // Throttling for refresh token endpoint:
-  @Throttle({ 
+  @Throttle({
     // Default limit: 10 refresh attempts per minute per IP
     // Prevents token refresh abuse while allowing normal usage
-    default: { limit: 10, ttl: 60000 } 
+    default: { limit: 10, ttl: 60000 },
   }) // 10 attempts per minute
   @ApiOperation({ summary: 'Refresh access token' })
   @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
@@ -113,10 +117,10 @@ export class AuthController {
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   // Throttling for forgot password endpoint:
-  @Throttle({ 
+  @Throttle({
     // Default limit: 5 forgot password requests per minute per IP
     // Prevents email spam while allowing legitimate users to request resets
-    default: { limit: 5, ttl: 60000 } 
+    default: { limit: 5, ttl: 60000 },
   }) // 5 attempts per minute
   @ApiOperation({ summary: 'Request password reset' })
   @ApiResponse({ status: 200, description: 'Password reset email sent' })
@@ -141,10 +145,10 @@ export class AuthController {
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   // Throttling for reset password endpoint:
-  @Throttle({ 
+  @Throttle({
     // Default limit: 5 password reset attempts per minute per IP
     // Prevents brute force attempts to guess reset tokens
-    default: { limit: 5, ttl: 60000 } 
+    default: { limit: 5, ttl: 60000 },
   }) // 5 attempts per minute
   @ApiOperation({ summary: 'Reset password with token' })
   @ApiResponse({ status: 200, description: 'Password reset successfully' })
@@ -204,19 +208,23 @@ export class AuthController {
     @Query('redirect') redirect?: string,
   ) {
     try {
-      const profile = req.user as {
-        googleId?: string;
-        email?: string;
-        firstName?: string;
-        lastName?: string;
-        picture?: string;
-        sub?: string;
-        [key: string]: any;
-      } | undefined;
+      const profile = req.user as
+        | {
+            googleId?: string;
+            email?: string;
+            firstName?: string;
+            lastName?: string;
+            picture?: string;
+            sub?: string;
+            [key: string]: any;
+          }
+        | undefined;
 
       // Check if profile exists and has required properties
       if (!profile || !profile.googleId || !profile.email) {
-        throw new UnauthorizedException('Google authentication failed - missing required profile information');
+        throw new UnauthorizedException(
+          'Google authentication failed - missing required profile information',
+        );
       }
 
       // Create a properly typed GoogleProfile object
@@ -229,7 +237,8 @@ export class AuthController {
       };
 
       // Login with Google profile
-      const loginResponse = await this.authService.loginWithGoogle(googleProfile);
+      const loginResponse =
+        await this.authService.loginWithGoogle(googleProfile);
 
       // Determine redirect URL
       const frontendUrl = this.configService.get<string>(

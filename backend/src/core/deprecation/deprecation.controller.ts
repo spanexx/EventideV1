@@ -61,8 +61,8 @@
 //   resetStatistics() {
 //     this.logger.warn('Admin requested deprecation statistics reset');
 //     this.deprecationService.resetStatistics();
-//     return { 
-//       success: true, 
+//     return {
+//       success: true,
 //       message: 'Deprecation usage statistics have been reset',
 //       timestamp: new Date().toISOString()
 //     };

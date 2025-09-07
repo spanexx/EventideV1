@@ -26,12 +26,14 @@
     </div>
   </div>
   
-  <div *ngIf="loading$ | async" class="loading">
-    <mat-spinner diameter="30"></mat-spinner>
-    <span>Loading availability...</span>
-  </div>
+  @if (loading$ | async) {
+    <div class="loading">
+      <mat-spinner diameter="30"></mat-spinner>
+      <span>Loading availability...</span>
+    </div>
+  }
   
-  <div *ngIf="!(loading$ | async)" class="calendar-container">
+  <div class="calendar-container">
     <full-calendar #calendar [options]="calendarOptions"></full-calendar>
   </div>
   
@@ -48,7 +50,7 @@
   </mat-menu>
   
   <div class="availability-actions">
-    <button mat-raised-button color="primary" matTooltip="Add new availability slot">
+    <button mat-raised-button color="primary" matTooltip="Add new availability slot" (click)="addAvailability()">
       <i class="material-icons">add</i>
       Add Availability
     </button>

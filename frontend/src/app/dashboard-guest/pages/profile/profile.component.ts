@@ -75,15 +75,26 @@ export class ProfileComponent implements OnInit {
 
   onSubmitProfile(): void {
     if (this.profileForm.valid) {
-      const profileData: GuestInfo = {
-        id: '', // This would come from the existing profile
-        name: this.profileForm.value.name,
-        email: this.profileForm.value.email,
-        phone: this.profileForm.value.phone,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      };
-      this.store.dispatch(GuestDashboardActions.updateProfile({ profile: profileData }));
+      // Get the existing profile ID if available
+      this.profile$.pipe(take(1)).subscribe(profile => {
+        const profileData: GuestInfo = {
+          id: profile?.id || '', // Use existing ID if available, otherwise empty string
+          name: this.profileForm.value.name,
+          email: this.profileForm.value.email,
+          phone: this.profileForm.value.phone,
+          createdAt: profile?.createdAt || new Date(),
+          updatedAt: new Date()
+        };
+        
+        // If the ID is empty, it means we're creating a new profile
+        // In that case, we should not send the empty ID to the backend
+        if (!profileData.id) {
+          const { id, ...newProfile } = profileData;
+          this.store.dispatch(GuestDashboardActions.updateProfile({ profile: newProfile as any }));
+        } else {
+          this.store.dispatch(GuestDashboardActions.updateProfile({ profile: profileData }));
+        }
+      });
     }
   }
 

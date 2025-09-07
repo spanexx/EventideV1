@@ -10,12 +10,13 @@ import * as bcrypt from 'bcryptjs';
 import { SecurityMonitoringService } from '../core/security/security-monitoring.service';
 import { CreateUserDto } from '../modules/users/dto/create-user.dto';
 import { UserDocument } from '../modules/users/user.schema';
-import { 
-  GoogleProfile, LoginResponse, 
-  RefreshTokenResponse, SignupResponse, 
-  TokenPayload 
+import {
+  GoogleProfile,
+  LoginResponse,
+  RefreshTokenResponse,
+  SignupResponse,
+  TokenPayload,
 } from './auth-interfaces/auth.interface';
-
 
 @Injectable()
 export class AuthService {

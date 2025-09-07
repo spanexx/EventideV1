@@ -26,8 +26,8 @@ build/
 *.sqlite
 
 # Documentation
-docs/
-*.md
+# docs/
+# *.md
 
 # Temporary files
 tmp/
@@ -51,7 +51,7 @@ frontend/logs/
 frontend/*.log
 
 
-prompt.prepare
+# prompt.prepare
 # Task Management MCP Database
 tskdb_stdio*
 

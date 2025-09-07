@@ -6,9 +6,6 @@ import { DashboardComponent } from './dashboard.component';
 import { DashboardRoutingModule } from './dashboard-routing.module';
 import { reducers } from './store';
 import { DashboardEffects } from './store/effects/dashboard.effects';
-import { MockDashboardService } from './services/mock-dashboard.service';
-import { MockBookingService } from './services/mock-booking.service';
-import { MockAvailabilityService } from './services/mock-availability.service';
 import { AnalyticsEffects } from '../analytics/store/effects/analytics.effects';
 
 @NgModule({
@@ -21,9 +18,6 @@ import { AnalyticsEffects } from '../analytics/store/effects/analytics.effects';
     EffectsModule.forFeature([DashboardEffects, AnalyticsEffects])
   ],
   providers: [
-    MockDashboardService,
-    MockBookingService,
-    MockAvailabilityService
   ]
 })
 export class DashboardModule { }

@@ -1,5 +1,5 @@
 // Define GoogleProfile locally to match UsersService's expected shape
-export  interface GoogleProfile {
+export interface GoogleProfile {
   googleId: string;
   email: string;
   firstName: string;

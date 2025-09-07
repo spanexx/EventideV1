@@ -21,12 +21,6 @@ export const selectBookings = createSelector(
   (state: DashboardState) => state.bookings
 );
 
-// Availability selectors
-export const selectAvailability = createSelector(
-  selectDashboardState,
-  (state: DashboardState) => state.availability
-);
-
 // Loading and error selectors
 export const selectDashboardLoading = createSelector(
   selectDashboardState,
