@@ -31,7 +31,13 @@ export const selectBooking = createSelector(
 // Availability selectors
 export const selectAvailability = createSelector(
   selectBookingState,
-  (state: BookingState) => state.availability
+  (state: BookingState) => {
+    // Clean up the availability data to ensure it only has 'id' and not '_id'
+    return state.availability.map(slot => {
+      const { _id, ...rest } = slot as any;
+      return rest;
+    });
+  }
 );
 
 // Loading and error selectors

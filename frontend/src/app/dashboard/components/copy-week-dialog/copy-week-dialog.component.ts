@@ -43,7 +43,8 @@ export class CopyWeekDialogComponent {
   }
 
   onCopyClick(): void {
-    // In a real implementation, this would copy the schedule
+    // Return the selected weeks for copying
+    // The actual copying is handled in the availability component
     this.dialogRef.close({
       sourceWeek: this.sourceWeek,
       targetWeek: this.targetWeek

@@ -27,27 +27,27 @@
 //       // Try to get route handler from the request
 //       const route = (req as any).route;
 //       const endpoint = `${req.method} ${route?.path || req.path}`;
-      
+
 //       // Check if this endpoint is deprecated via route handler metadata
 //       // Note: This is a simplified approach since we don't have direct access to the handler here
 //       // In a real implementation, you might need to store deprecation info differently
-      
+
 //       // For now, let's handle known deprecated endpoints based on the endpoint pattern
 //       const deprecationInfo = self.getDeprecationInfo(endpoint, req.originalUrl);
-      
+
 //       if (deprecationInfo) {
 //         // Add deprecation headers
 //         res.setHeader('X-API-Deprecated', 'true');
 //         res.setHeader('X-API-Deprecated-Version', deprecationInfo.version);
-        
+
 //         if (deprecationInfo.replacement) {
 //           res.setHeader('X-API-Replacement', deprecationInfo.replacement);
 //         }
-        
+
 //         if (deprecationInfo.sunsetDate) {
 //           res.setHeader('X-API-Sunset-Date', deprecationInfo.sunsetDate);
 //         }
-        
+
 //         if (deprecationInfo.documentation) {
 //           res.setHeader('X-API-Documentation', deprecationInfo.documentation);
 //         }
@@ -259,7 +259,7 @@
 //       recommendations.push(
 //         `🚨 High Priority: ${highUsage.length} deprecated endpoints have high usage. Consider extending sunset dates or accelerating migration support.`
 //       );
-      
+
 //       highUsage.slice(0, 3).forEach(endpoint => {
 //         recommendations.push(
 //           `⚠️  ${endpoint.endpoint}: ${endpoint.stats.count} requests from ${endpoint.stats.uniqueUsers} users - needs immediate attention`

@@ -12,6 +12,8 @@ import { SessionModule } from './core/sessions/session.module';
 import { CustomCacheModule } from './core/cache/cache.module';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { MetricsModule } from './core/metrics/metrics.module';
+import { AvailabilityModule } from './modules/availability/availability.module';
+import { WebsocketsModule } from './core/websockets';
 
 @Module({
   imports: [
@@ -43,14 +45,16 @@ import { MetricsModule } from './core/metrics/metrics.module';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        throttlers: [{
-          // Time-to-live: 60 seconds by default
-          // After this time, consumed tokens are replenished
-          ttl: configService.get<number>('THROTTLE_TTL', 60),
-          // Limit: 10 requests per TTL period per IP address
-          // After 10 requests, subsequent requests will be blocked until TTL expires
-          limit: configService.get<number>('THROTTLE_LIMIT', 10),
-        }]
+        throttlers: [
+          {
+            // Time-to-live: 60 seconds by default
+            // After this time, consumed tokens are replenished
+            ttl: configService.get<number>('THROTTLE_TTL', 60),
+            // Limit: 10 requests per TTL period per IP address
+            // After 10 requests, subsequent requests will be blocked until TTL expires
+            limit: configService.get<number>('THROTTLE_LIMIT', 10),
+          },
+        ],
       }),
     }),
     ScheduleModule.forRoot(),
@@ -58,6 +62,7 @@ import { MetricsModule } from './core/metrics/metrics.module';
     SessionModule,
     CustomCacheModule,
     MetricsModule,
+    WebsocketsModule,
 
     // FeatureFlagsModule,
     // I18nConfigModule.forRoot(),
@@ -68,15 +73,13 @@ import { MetricsModule } from './core/metrics/metrics.module';
     // AiModule,
     // ProvidersModule,
     // PaymentsModule,
-    // AvailabilityModule,
+    AvailabilityModule,
     // ClientsModule,
     // ServicesModule,
     // FrontendLogsModule,
-    AuthModule
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {
-  
-}
+export class AppModule {}

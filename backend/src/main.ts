@@ -21,7 +21,9 @@ async function bootstrap() {
       const used = process.memoryUsage();
       console.log('Memory Usage:');
       for (const key in used) {
-        console.log(`${key}: ${Math.round(used[key] / 1024 / 1024 * 100) / 100} MB`);
+        console.log(
+          `${key}: ${Math.round((used[key] / 1024 / 1024) * 100) / 100} MB`,
+        );
       }
     }
 
@@ -36,20 +38,19 @@ async function bootstrap() {
       logMemoryUsage();
     }, 30000); // Log every 30 seconds
 
-      // Initialize core functionality
-      console.log('Initializing core functionality...');
-      app.use(helmet());
-      app.enableCors({
-        origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true,
-        credentials: true,
-      });
-      app.useGlobalPipes(new ValidationPipe());
-      app.useGlobalInterceptors(new ResponseInterceptor());
-      app.useGlobalFilters(new GlobalExceptionFilter(app.getHttpAdapter()));
-      // Set global prefix for all routes
-      app.setGlobalPrefix('api');
+    // Initialize core functionality
+    console.log('Initializing core functionality...');
+    app.use(helmet());
+    app.enableCors({
+      origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true,
+      credentials: true,
+    });
+    app.useGlobalPipes(new ValidationPipe());
+    app.useGlobalInterceptors(new ResponseInterceptor());
+    app.useGlobalFilters(new GlobalExceptionFilter(app.getHttpAdapter()));
+    // Set global prefix for all routes
+    app.setGlobalPrefix('api');
 
-     
     // Initialize Swagger
     console.log('Setting up Swagger documentation...');
     const config = new DocumentBuilder()
@@ -57,11 +58,14 @@ async function bootstrap() {
       .setDescription('The Eventide API description')
       .setVersion('1.0')
       .addTag('System', 'System-related endpoints including health check')
+      .addTag('auth', 'Authentication endpoints')
+      .addTag('users', 'User management endpoints')
+      .addTag('availability', 'Availability management endpoints')
       .build();
     const document = SwaggerModule.createDocument(app, config);
     SwaggerModule.setup('api', app, document);
 
-        // Get port from environment variable
+    // Get port from environment variable
     const port = parseInt(process.env.PORT ?? '3000', 10);
     const host = '0.0.0.0'; // Important: Listen on all interfaces
 
@@ -82,7 +86,7 @@ async function bootstrap() {
     console.log('Health check endpoint:', `http://${host}:${port}/health`);
     console.log('Swagger documentation:', `http://${host}:${port}/api`);
 
-// Handle shutdown gracefully
+    // Handle shutdown gracefully
     const signals = ['SIGTERM', 'SIGINT'];
     signals.forEach((signal) => {
       process.on(signal, () => {
@@ -103,6 +107,5 @@ async function bootstrap() {
     console.error('Failed to start application:', error);
     process.exit(1);
   }
-
 }
 bootstrap();

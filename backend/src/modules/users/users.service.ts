@@ -108,7 +108,7 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`Provider with ID ${id} not found`);
     }
-    
+
     // Return only public information that exists in the User schema
     return {
       id: user.id,
@@ -117,7 +117,7 @@ export class UsersService {
       lastName: user.lastName,
       role: user.role,
       subscriptionTier: user.subscriptionTier,
-      picture: user.picture // Using picture instead of avatar as it exists in the schema
+      picture: user.picture, // Using picture instead of avatar as it exists in the schema
     };
   }
 
@@ -127,6 +127,36 @@ export class UsersService {
    */
   async findAllActive(): Promise<UserDocument[]> {
     return this.userModel.find({ isActive: true }).exec();
+  }
+
+  /**
+   * Find all active users with pagination
+   * @param page Page number (1-based)
+   * @param limit Number of items per page
+   * @returns Promise<PaginatedUsersDto>
+   */
+  async findAllActivePaginated(
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<any> {
+    const skip = (page - 1) * limit;
+
+    const [results, total] = await Promise.all([
+      this.userModel.find({ isActive: true }).skip(skip).limit(limit).exec(),
+      this.userModel.countDocuments({ isActive: true }).exec(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      results,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+      },
+    };
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<UserDocument> {
