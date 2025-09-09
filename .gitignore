@@ -62,5 +62,5 @@ tskdb.json
 GEMINI.md
 QWEN.md
 prompt.prepare
-commands/
 tskdb_stdio-default.json
+commands/
