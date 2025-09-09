@@ -57,3 +57,10 @@ tskdb_stdio*
 
 # Task Management MCP Database
 tskdb.json
+
+# Private/secret files
+GEMINI.md
+QWEN.md
+prompt.prepare
+commands/
+tskdb_stdio-default.json
