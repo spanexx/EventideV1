@@ -1,0 +1,48 @@
+description = "Implement and configure logging strategies. This command handles logging operations following the project's logging guidelines and best practices."
+
+prompt = """
+
+Implement and configure logging strategies.
+
+This command handles logging operations following the project's logging guidelines and best practices.
+
+Given the logging request provided as an argument, do this:
+
+1. Run `scripts/logging-strategy.sh --json "{{args}}"` from repo root and parse JSON for LOGGING_TYPE, LOG_LEVEL, OUTPUT_FORMAT, and ROTATION_POLICY. All file paths must be absolute.
+
+2. Based on the logging type, execute the appropriate logging operation:
+   - **setup-logging**: Configure application logging
+   - **configure-levels**: Set up log levels and filtering
+   - **setup-rotation**: Configure log rotation and retention
+   - **centralize-logs**: Set up centralized logging
+   - **add-structured-logging**: Implement structured logging
+   - **setup-monitoring**: Configure log monitoring
+   - **optimize-performance**: Optimize logging performance
+
+3. For each logging operation, follow the logging protocol:
+   - **Requirements Analysis**: Identify logging requirements
+   - **Configuration Setup**: Configure logging tools and services
+   - **Format Definition**: Define log formats and structures
+   - **Rotation Setup**: Configure log rotation and retention
+   - **Monitoring Configuration**: Set up log monitoring and alerting
+   - **Performance Optimization**: Optimize logging performance
+
+4. Enforce logging best practices:
+   - Use appropriate log levels
+   - Implement structured logging
+   - Include contextual information
+   - Avoid logging sensitive data
+   - Use log rotation
+   - Monitor log performance
+
+5. Generate logging report:
+   - Document logging configuration
+   - List configured log levels and formats
+   - Report log rotation settings
+   - Provide monitoring information
+   - Include troubleshooting guides
+
+6. Report completion with logging type, configuration status, and monitoring setup.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

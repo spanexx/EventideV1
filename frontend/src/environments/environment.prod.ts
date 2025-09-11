@@ -2,5 +2,9 @@ export const environment = {
   production: true,
   apiUrl: 'http://localhost:3000/api',
   wsUrl: 'http://localhost:3000',
-  frontendUrl: 'http://localhost:4200'
+  frontendUrl: 'http://localhost:4200',
+  performanceLogging: {
+    enabled: false,
+    sampleRate: 0.05
+  }
 };

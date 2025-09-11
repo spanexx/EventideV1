@@ -150,6 +150,39 @@ describe('AvailabilityDialogComponent', () => {
       expect(result[1].startTime.getTime()).toBeGreaterThan(result[0].endTime.getTime());
     });
 
+    it('should calculate evenly distributed slots with custom day times', () => {
+      component.numberOfSlots = 2;
+      component.dayStartTime = '09:00';
+      component.dayEndTime = '17:00';
+      component.data.date = new Date('2023-01-01');
+      
+      const result = component.calculateEvenDistribution();
+      
+      expect(result.length).toBe(2);
+      expect(result[0].startTime.getHours()).toBe(9);
+      expect(result[0].endTime.getHours()).toBeGreaterThan(9);
+      expect(result[1].startTime.getTime()).toBeGreaterThan(result[0].endTime.getTime());
+      
+      // Verify that slots are within the custom working hours
+      const firstSlotStart = result[0].startTime;
+      const lastSlotEnd = result[result.length - 1].endTime;
+      
+      expect(firstSlotStart.getHours()).toBeGreaterThanOrEqual(9);
+      expect(lastSlotEnd.getHours()).toBeLessThanOrEqual(17);
+    });
+
+    it('should handle invalid time range gracefully', () => {
+      component.numberOfSlots = 2;
+      component.dayStartTime = '17:00';
+      component.dayEndTime = '09:00'; // End time before start time
+      component.data.date = new Date('2023-01-01');
+      
+      const result = component.calculateEvenDistribution();
+      
+      // Should return empty array for invalid time range
+      expect(result.length).toBe(0);
+    });
+
     it('should adjust number of slots if duration is too small', () => {
       component.numberOfSlots = 100; // Too many slots for a day
       component.data.date = new Date('2023-01-01');
@@ -163,6 +196,21 @@ describe('AvailabilityDialogComponent', () => {
   });
 
   describe('createAllDaySlots', () => {
+    it('should call the availability service with custom working hours and close the dialog on success', () => {
+      const mockSlots = [mockAvailability];
+      mockAvailabilityService.createAllDayAvailability.and.returnValue(of(mockSlots));
+      
+      component.dayStartTime = '09:00';
+      component.dayEndTime = '17:00';
+      component.createAllDaySlots('provider-1');
+      
+      expect(mockAvailabilityService.createAllDayAvailability).toHaveBeenCalled();
+      const calledWith = mockAvailabilityService.createAllDayAvailability.calls.argsFor(0)[0];
+      expect(calledWith.workingStartTime).toBeDefined();
+      expect(calledWith.workingEndTime).toBeDefined();
+      expect(mockDialogRef.close).toHaveBeenCalledWith(mockSlots);
+    });
+
     it('should call the availability service and close the dialog on success', () => {
       const mockSlots = [mockAvailability];
       mockAvailabilityService.createAllDayAvailability.and.returnValue(of(mockSlots));

@@ -1,0 +1,102 @@
+description = "Execute tasks defined in specs/*/task.md using MCP task management tools."
+
+prompt = """
+
+Execute tasks defined in a spec's task.md using the project's MCP task management tools.
+
+Goal
+-----
+Given JSON args, find the appropriate specs/*/task.md, parse tasks, and use the MCP task tools to create/manage/update tasks. Reflect status changes back to task.md and persist ID mappings.
+
+Args (JSON)
+------------
+{
+  "spec_path": "/absolute/path/to/spec/folder",   // optional; e.g. /home/spanexx/Desktop/Projects/EventideV1/specs/001-the-calendar-is
+  "spec_key": "001-the-calendar-is",              // optional; used if spec_path not provided
+  "action": "run|list|start|complete|cancel",     // required
+  "task_id": "<markdown_task_id>",               // optional; required for start|complete|cancel when targeting a specific task
+  "task_title": "<exact task title>"              // optional; alternative selector for a task
+}
+
+Conventions
+-----------
+- All file paths MUST be absolute under the repository root: /home/spanexx/Desktop/Projects/EventideV1
+- The spec task file is expected at: <spec_path>/task.md
+- Store ID mappings between markdown tasks and MCP tasks at: .qwen/state/specs-task-map.json
+
+Procedure
+---------
+1) Resolve Target Spec
+   - If args.spec_path is provided, validate it exists and contains task.md.
+   - Else if args.spec_key is provided, search /home/spanexx/Desktop/Projects/EventideV1/specs/**/<spec_key>/task.md.
+   - Else attempt auto-detection:
+     - Check current Git branch name for a token matching a subfolder of /specs.
+     - Fallback: the most recently modified subfolder in /specs containing task.md.
+
+2) Read and Parse task.md
+   - Load <spec_path>/task.md.
+   - Parse tasks as markdown checkboxes:
+     - Pending:  "- [ ] Title" or "* [ ] Title"
+     - Completed:"- [x] Title" or "* [x] Title"
+     - Optional inline ID: "(id: <ID>)" appended to the line.
+   - Extract a normalized task list with: markdown_id (if any), title, status (pending|completed), line_number.
+
+3) Load/Init Mapping State
+   - Read .qwen/state/specs-task-map.json; if missing, initialize as {}.
+   - Mapping schema:
+     {
+       "<spec_path>": {
+         "<markdown_id or slug(title)>": {
+           "mcp_task_id": "...",
+           "title": "...",
+           "status": "pending|in_progress|completed|cancelled"
+         }
+       }
+     }
+
+4) Perform Action Using MCP Task Tools
+   - list: Display parsed tasks with their MCP linkage (if any) and statuses.
+   - run: For all pending tasks without MCP linkage, create tasks via MCP todo tools, set first one to in_progress.
+   - start: Ensure target task exists in MCP; create if missing; set status=in_progress.
+   - complete: Set status=completed in MCP.
+   - cancel: Set status=cancelled in MCP.
+
+   Notes:
+   - Use the project's MCP task tools (e.g., create/update items, set status: pending|in_progress|completed|cancelled).
+   - Persist created MCP IDs back into specs-task-map.json.
+
+5) Reflect Changes Back to task.md
+   - Update checkbox state to mirror MCP status:
+     - pending → "[ ]"
+     - in_progress → keep "[ ]" but append "(status: in_progress)"
+     - completed → "[x]"
+     - cancelled → keep "[ ]" but append "(status: cancelled)"
+   - Ensure the line includes a stable markdown id token: "(id: <slug-or-id>)".
+   - Preserve all unrelated content and formatting.
+
+6) Save Mapping State
+   - Write updated .qwen/state/specs-task-map.json with absolute paths.
+
+7) Output Report
+   - Print: target spec_path, action, number of tasks created/updated, and next suggested action.
+
+Validation
+----------
+- Fail clearly if task.md not found.
+- Never write relative paths.
+- Do not remove tasks from task.md; only update checkboxes/metadata inline.
+
+Examples
+--------
+// Run all pending tasks for 001-the-calendar-is
+{"spec_key":"001-the-calendar-is","action":"run"}
+
+// Start a task by title
+{"spec_key":"001-the-calendar-is","action":"start","task_title":"Implement availability dialog UX"}
+
+// Complete by markdown id
+{"spec_key":"001-the-calendar-is","action":"complete","task_id":"avail-ux"}
+
+"""
+
+

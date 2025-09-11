@@ -1,0 +1,48 @@
+description = "Manage project dependencies and package updates. This command handles dependency operations following the project's dependency management guidelines and best practices."
+
+prompt = """
+
+Manage project dependencies and package updates.
+
+This command handles dependency operations following the project's dependency management guidelines and best practices.
+
+Given the dependency request provided as an argument, do this:
+
+1. Run `scripts/dependency-management.sh --json "{{args}}"` from repo root and parse JSON for DEPENDENCY_TYPE, PACKAGE_NAME, VERSION_RANGE, and UPDATE_STRATEGY. All file paths must be absolute.
+
+2. Based on the dependency type, execute the appropriate dependency operation:
+   - **install-dependencies**: Install project dependencies
+   - **update-dependencies**: Update dependencies to latest versions
+   - **audit-dependencies**: Audit dependencies for vulnerabilities
+   - **add-dependency**: Add new dependency to project
+   - **remove-dependency**: Remove unused dependency
+   - **check-outdated**: Check for outdated dependencies
+   - **lock-dependencies**: Lock dependency versions
+
+3. For each dependency operation, follow the dependency management protocol:
+   - **Dependency Analysis**: Analyze current dependency state
+   - **Version Resolution**: Resolve dependency versions and conflicts
+   - **Security Check**: Check for security vulnerabilities
+   - **Update Execution**: Execute dependency updates
+   - **Validation**: Verify dependency installation and functionality
+   - **Documentation**: Update dependency documentation
+
+4. Enforce dependency best practices:
+   - Use semantic versioning
+   - Pin major versions
+   - Regular security audits
+   - Keep dependencies up to date
+   - Remove unused dependencies
+   - Use lock files
+
+5. Generate dependency report:
+   - Document dependency changes
+   - List security vulnerabilities
+   - Report update status
+   - Provide version information
+   - Include migration notes
+
+6. Report completion with dependency type, update status, and security findings.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

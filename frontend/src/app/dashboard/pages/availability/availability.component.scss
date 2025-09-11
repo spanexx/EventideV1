@@ -1,87 +1,9 @@
 @use '../../../../styles.scss';
 
-.availability-container {
-  padding: var(--spacing-xl);
-  height: calc(100vh - 64px - (2 * var(--spacing-xl)));
-  display: flex;
-  flex-direction: column;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.page-header {
-  margin-bottom: var(--spacing-2xl);
-  text-align: center;
-  
-  .page-title {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--foreground);
-    margin-bottom: var(--spacing-sm);
-  }
-  
-  .page-description {
-    color: var(--muted-foreground);
-    font-size: var(--font-size-lg);
-  }
-}
-
-.availability-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--spacing-xl);
-  padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--border);
-
-  h2 {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-semibold);
-    color: var(--foreground);
-    margin: 0;
-  }
-}
-
-.refresh-btn, .copy-week-btn {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-sm);
-  background-color: var(--primary);
-  color: whitesmoke;
-  border: none;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    background-color: color-mix(in srgb, var(--primary) 90%, black);
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-  }
-  
-  &:active {
-    transform: translateY(0);
-  }
-}
-
-.copy-week-btn {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
-  
-  &:hover {
-    background-color: color-mix(in srgb, var(--accent) 90%, black);
-  }
-}
-
-:host {
-  --calendar-bg: var(--card);
-  --calendar-border-color: var(--border);
-  --calendar-header-bg: var(--background);
-  --calendar-today-bg: rgba(var(--primary-rgb), 0.1);
-  --calendar-event-bg: var(--primary);
-  --calendar-event-text-color: var(--primary-foreground);
-  --calendar-hover-bg: rgba(var(--primary-rgb), 0.05);
+.fc .event-invalid {
+  opacity: 0.5;
+  filter: grayscale(0.4);
+  border-style: dashed !important;
 }
 
 .availability-container {
@@ -141,42 +63,26 @@
     width: 36px;
     height: 36px;
     line-height: 36px;
+    border-radius: 50%; // Circular buttons for iOS feel
+    background: var(--card);
+    box-shadow: var(--shadow-xs);
     
     &[disabled] {
       opacity: 0.5;
       cursor: not-allowed;
     }
+    
+    // Subtle hover effect
+    &:hover:not([disabled]) {
+      background: color-mix(in srgb, var(--primary) 5%, var(--card));
+      transform: scale(1.05);
+    }
+    
+    &:active {
+      transform: scale(0.95);
+    }
   }
 }
-
-// .refresh-btn {
-//   display: flex;
-//   align-items: center;
-//   gap: var(--spacing-sm);
-//   background-color: var(--primary);
-//   color: var(--primary-foreground);
-//   border: none;
-//   padding: var(--spacing-sm) var(--spacing-md);
-//   border-radius: var(--radius-md);
-//   cursor: pointer;
-//   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-//   font-weight: var(--font-weight-medium);
-
-//   &:hover {
-//     background-color: color-mix(in srgb, var(--primary) 90%, black);
-//     transform: translateY(-2px);
-//     box-shadow: var(--shadow-md);
-//   }
-  
-//   &:active {
-//     transform: translateY(0);
-//     box-shadow: none;
-//   }
-  
-//   .material-icons {
-//     font-size: 20px;
-//   }
-// }
 
 .loading {
   display: flex;
@@ -191,200 +97,16 @@
 .calendar-container {
   flex: 1;
   overflow: hidden;
-  background: var(--calendar-bg);
-  border-radius: var(--radius-xl);
-  border: 1px solid var(--calendar-border-color);
+  background: var(--card);
+  border-radius: 22px; // More iOS-like rounded corners
+  border: 1px solid var(--border);
   box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
-}
-
-.availability-actions {
-  display: flex;
-  gap: var(--spacing-md);
-  justify-content: flex-end;
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border);
-}
-
-// FullCalendar overrides
-:host ::ng-deep {
-  .fc {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-
-    .fc-header-toolbar {
-      background-color: var(--calendar-header-bg);
-      padding: var(--spacing-lg);
-      border-bottom: 1px solid var(--calendar-border-color);
-      border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-    }
-
-    .fc-toolbar-title {
-      font-size: var(--font-size-2xl) !important;
-      font-weight: var(--font-weight-bold);
-      color: var(--foreground);
-    }
-
-    .fc-button {
-      background: var(--primary) !important;
-      color: var(--primary-foreground) !important;
-      border: none !important;
-      box-shadow: none !important;
-      text-transform: capitalize !important;
-      padding: var(--spacing-sm) var(--spacing-lg) !important;
-      border-radius: var(--radius-md) !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      font-weight: var(--font-weight-medium) !important;
-
-      &:hover {
-        background: color-mix(in srgb, var(--primary) 90%, black) !important;
-        transform: translateY(-2px) !important;
-        box-shadow: var(--shadow-md) !important;
-      }
-      
-      &:active, &:focus {
-        transform: translateY(0) !important;
-        box-shadow: none !important;
-      }
-    }
-    
-    .fc-button-group {
-      gap: 2px;
-    }
-
-    .fc-view-harness {
-      flex: 1;
-      overflow: auto;
-    }
-
-    .fc-daygrid-day-frame {
-      border-radius: var(--radius-md);
-      transition: background-color 0.2s ease;
-      
-      &:hover {
-        background-color: var(--calendar-hover-bg);
-      }
-    }
-
-    .fc-day-today {
-      background: var(--calendar-today-bg) !important;
-      border: none !important;
-      
-      .fc-daygrid-day-number {
-        font-weight: var(--font-weight-bold);
-        color: var(--primary);
-      }
-    }
-
-    .fc-event {
-      border: none !important;
-      border-radius: var(--radius-md) !important;
-      padding: 6px 8px !important;
-      font-size: var(--font-size-sm) !important;
-      font-weight: var(--font-weight-medium);
-      transition: all 0.2s ease;
-      cursor: pointer;
-      box-shadow: var(--shadow-xs);
-      
-      &:hover {
-        transform: scale(1.03);
-        box-shadow: var(--shadow-md);
-      }
-    }
-
-    .fc-event.event-available {
-      background-color: var(--color-success) !important;
-      color: var(--primary-foreground) !important;
-    }
-
-    .fc-event.event-booked {
-      background-color: var(--color-error) !important;
-      color: var(--primary-foreground) !important;
-    }
-    
-    .fc-daygrid-day.fc-day-past {
-      background-color: var(--muted);
-    }
-    
-    .fc-daygrid-day-number {
-      padding: var(--spacing-sm);
-    }
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 1024px) {
-  .availability-container {
-    padding: var(--spacing-lg);
-    height: auto;
-  }
-  
-  .page-header .page-title {
-    font-size: var(--font-size-3xl);
-  }
-}
-
-@media (max-width: 768px) {
-  .availability-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
-  }
-  
-  .refresh-btn {
-    align-self: flex-end;
-  }
-  
-  :host ::ng-deep .fc {
-    .fc-header-toolbar {
-      flex-direction: column;
-      gap: var(--spacing-md);
-      padding: var(--spacing-md);
-    }
-    .fc-toolbar-title {
-      font-size: var(--font-size-xl) !important;
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .availability-actions {
-    flex-direction: column;
-    
-    .mat-raised-button {
-      width: 100%;
-    }
-  }
-  
-  :host ::ng-deep .fc .fc-button {
-    padding: var(--spacing-xs) var(--spacing-sm) !important;
-    font-size: var(--font-size-sm) !important;
-  }
-}
-
-
-.loading {
-  text-align: center;
-  padding: var(--spacing-3xl);
-  color: var(--muted-foreground);
-  font-size: var(--font-size-lg);
-}
-
-.calendar-container {
-  flex: 1;
-  overflow: hidden;
-  background: var(--card);
-  padding: var(--spacing-md);
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 500px;
   
   &:hover {
-    box-shadow: var(--shadow-lg);
+    box-shadow: var(--shadow-xl);
   }
   
   full-calendar {
@@ -397,11 +119,12 @@
 .availability-actions {
   display: flex;
   gap: var(--spacing-md);
-  margin-top: var(--spacing-lg);
   justify-content: flex-end;
+  padding-top: var(--spacing-lg);
+  border-top: 1px solid var(--border);
 }
 
-// FullCalendar overrides
+// FullCalendar overrides with iPhone-like styling
 :host ::ng-deep {
   .fc {
     height: 100%;
@@ -412,7 +135,7 @@
       background-color: var(--background);
       padding: var(--spacing-md);
       border-bottom: 1px solid var(--border);
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
+      border-radius: 22px 22px 0 0; // Match container radius
     }
 
     .fc-toolbar-title {
@@ -421,25 +144,37 @@
       color: var(--foreground);
     }
 
+    // Style toolbar buttons with iOS-like appearance
     .fc-button {
-      background: var(--primary) !important;
-      color: var(--primary-foreground) !important;
-      border: none !important;
-      box-shadow: none !important;
-      text-transform: capitalize !important;
+      background: var(--card) !important;
+      color: var(--foreground) !important;
+      border: 1px solid var(--border) !important;
+      box-shadow: var(--shadow-xs) !important;
+      text-transform: none !important;
       padding: var(--spacing-sm) var(--spacing-md) !important;
-      border-radius: var(--radius-md) !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      border-radius: 12px !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      font-weight: var(--font-weight-medium) !important;
+      text-shadow: none !important;
 
       &:hover {
-        background: color-mix(in srgb, var(--primary) 90%, black) !important;
-        transform: translateY(-2px) !important;
+        background: color-mix(in srgb, var(--primary) 5%, var(--card)) !important;
+        border-color: var(--primary) !important;
         box-shadow: var(--shadow-md) !important;
+        transform: translateY(-1px) !important;
       }
       
-      &:active {
+      &:active, &.fc-button-active {
+        background: var(--primary) !important;
+        color: var(--primary-foreground) !important;
+        border-color: var(--primary) !important;
+        box-shadow: var(--shadow-sm) !important;
         transform: translateY(0) !important;
       }
+    }
+    
+    .fc-button-group {
+      gap: var(--spacing-xs);
     }
 
     .fc-view-harness {
@@ -448,27 +183,39 @@
     }
 
     .fc-daygrid-day-frame {
-      border-radius: var(--radius-md);
+      border-radius: 12px;
       transition: all 0.2s ease;
+      border: 1px solid transparent;
       
       &:hover {
-        background-color: color-mix(in srgb, var(--primary) 5%, transparent);
+        background-color: color-mix(in srgb, var(--primary) 3%, transparent);
+        border-color: color-mix(in srgb, var(--primary) 10%, transparent);
       }
     }
 
     .fc-day-today {
-      background: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+      background: color-mix(in srgb, var(--primary) 8%, transparent) !important;
+      border: 1px solid color-mix(in srgb, var(--primary) 20%, transparent) !important;
+      
+      .fc-daygrid-day-number {
+        font-weight: var(--font-weight-bold);
+        color: var(--primary);
+      }
     }
 
     .fc-event {
-      border-radius: var(--radius-sm) !important;
+      border: none !important;
+      border-radius: 10px !important;
       padding: 4px 6px !important;
       font-size: var(--font-size-xs) !important;
       font-weight: var(--font-weight-medium);
-      transition: all 0.2s ease;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer;
+      box-shadow: var(--shadow-xs);
       
       &:hover {
-        transform: scale(1.05);
+        transform: scale(1.02);
+        box-shadow: var(--shadow-md);
       }
       
       .fc-event-main-frame {
@@ -514,17 +261,68 @@
       border-color: var(--color-error) !important;
       color: var(--primary-foreground) !important;
     }
+    
+    // Day cell styling with iOS-like appearance
+    .fc-daygrid-day.fc-day-past {
+      background-color: var(--muted);
+      opacity: 0.7;
+    }
+    
+    .fc-daygrid-day.has-availability {
+      background-color: color-mix(in srgb, var(--color-success) 8%, transparent);
+      border: 1px solid color-mix(in srgb, var(--color-success) 15%, transparent);
+      
+      .fc-daygrid-day-number {
+        font-weight: var(--font-weight-bold);
+        position: relative;
+        
+        &::after {
+          content: "•";
+          color: var(--color-success);
+          position: absolute;
+          top: 0;
+          right: 4px;
+          font-size: 16px;
+        }
+      }
+    }
+    
+    .fc-daygrid-day.past-date {
+      background-color: color-mix(in srgb, var(--muted) 30%, transparent);
+      
+      .fc-daygrid-day-number {
+        color: var(--muted-foreground);
+        opacity: 0.6;
+      }
+    }
+    
+    .fc-daygrid-day.has-availability.past-date {
+      background-color: color-mix(in srgb, var(--muted) 30%, transparent);
+      
+      .fc-daygrid-day-number {
+        color: var(--muted-foreground);
+        opacity: 0.6;
+        
+        &::after {
+          color: color-mix(in srgb, var(--color-success) 30%, transparent);
+        }
+      }
+    }
+    
+    .fc-daygrid-day-number {
+      padding: var(--spacing-sm);
+    }
   }
 }
 
 /* iPhone-like enhancements */
 .iphone-card {
-  border-radius: 20px;
+  border-radius: 22px;
   overflow: hidden;
   box-shadow: var(--shadow-lg);
   
   .calendar-container {
-    border-radius: 16px;
+    border-radius: 20px;
   }
 }
 
@@ -555,10 +353,6 @@
     width: 100%;
     justify-content: space-between;
   }
-  
-  .copy-week-btn {
-    margin-left: var(--spacing-md);
-  }
 }
 
 @media (max-width: 768px) {
@@ -571,10 +365,6 @@
   .header-actions {
     width: 100%;
     justify-content: space-between;
-  }
-  
-  .refresh-btn, .copy-week-btn {
-    margin-left: 0;
   }
   
   :host ::ng-deep .fc .fc-toolbar.fc-header-toolbar {
@@ -624,11 +414,6 @@
     width: 100%;
   }
   
-  .refresh-btn, .copy-week-btn {
-    width: 100%;
-    justify-content: center;
-  }
-  
   :host ::ng-deep .fc {
     .fc-header-toolbar {
       padding: var(--spacing-sm);
@@ -674,6 +459,31 @@
     
     .fc-scroller {
       overflow-x: auto !important;
+    }
+  }
+}
+
+/* iOS-like context menu */
+.iphone-context-menu {
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: var(--shadow-xl) !important;
+  
+  .mat-mdc-menu-content {
+    border-radius: 16px;
+    padding: var(--spacing-xs) 0;
+  }
+  
+  .mat-mdc-menu-item {
+    border-radius: 0;
+    padding: var(--spacing-sm) var(--spacing-xl);
+    
+    &:hover {
+      background: color-mix(in srgb, var(--primary) 5%, transparent);
+    }
+    
+    .mat-icon {
+      margin-right: var(--spacing-md);
     }
   }
 }

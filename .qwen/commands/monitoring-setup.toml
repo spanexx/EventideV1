@@ -1,0 +1,48 @@
+description = "Set up monitoring and observability for the application. This command handles monitoring configuration following the project's monitoring guidelines and best practices."
+
+prompt = """
+
+Set up monitoring and observability for the application.
+
+This command handles monitoring configuration following the project's monitoring guidelines and best practices.
+
+Given the monitoring request provided as an argument, do this:
+
+1. Run `scripts/monitoring-setup.sh --json "{{args}}"` from repo root and parse JSON for MONITORING_TYPE, METRICS_SCOPE, ALERT_THRESHOLDS, and DASHBOARD_CONFIG. All file paths must be absolute.
+
+2. Based on the monitoring type, execute the appropriate monitoring setup:
+   - **setup-application-monitoring**: Configure application performance monitoring
+   - **setup-infrastructure-monitoring**: Set up infrastructure monitoring
+   - **setup-logging**: Configure centralized logging
+   - **setup-alerts**: Configure alerting rules
+   - **setup-dashboards**: Create monitoring dashboards
+   - **setup-health-checks**: Configure health check endpoints
+   - **setup-metrics**: Set up metrics collection
+
+3. For each monitoring setup, follow the monitoring protocol:
+   - **Requirements Analysis**: Identify monitoring requirements
+   - **Tool Configuration**: Configure monitoring tools and services
+   - **Metrics Definition**: Define key performance indicators
+   - **Alert Setup**: Configure alerting rules and notifications
+   - **Dashboard Creation**: Create monitoring dashboards
+   - **Validation**: Verify monitoring setup and functionality
+
+4. Enforce monitoring best practices:
+   - Monitor key business metrics
+   - Set appropriate alert thresholds
+   - Use distributed tracing
+   - Implement log aggregation
+   - Monitor application health
+   - Track performance metrics
+
+5. Generate monitoring report:
+   - Document monitoring configuration
+   - List configured metrics and alerts
+   - Provide dashboard access information
+   - Report monitoring tool status
+   - Include troubleshooting guides
+
+6. Report completion with monitoring type, setup status, and access information.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

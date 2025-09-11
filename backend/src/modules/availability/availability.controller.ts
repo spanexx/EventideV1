@@ -26,6 +26,8 @@ import { CreateAvailabilityDto } from './dto/create-availability.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { GetAvailabilityDto } from './dto/get-availability.dto';
 import { CreateAllDayAvailabilityDto } from './dto/create-all-day-availability.dto';
+import { CreateBulkAvailabilityDto } from './dto/create-bulk-availability.dto';
+import { UpdateDaySlotQuantityDto } from './dto/update-day-slot-quantity.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { IAvailability } from './interfaces/availability.interface';
 
@@ -54,6 +56,24 @@ export class AvailabilityController {
     return this.availabilityService.create(createAvailabilityDto);
   }
 
+  @Put('day/slots')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Adjust number of slots for a specific day' })
+  @ApiResponse({ status: 200, description: 'Day slot quantity adjusted successfully', type: [Object] })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT token missing or invalid' })
+  @ApiBody({ type: UpdateDaySlotQuantityDto })
+  async updateDaySlotQuantity(
+    @Body() updateDto: UpdateDaySlotQuantityDto,
+  ): Promise<IAvailability[]> {
+    this.logger.log(
+      `Adjusting day slot quantity for provider ${updateDto.providerId} on ${updateDto.date}`,
+    );
+    return this.availabilityService.adjustDaySlotQuantity(updateDto);
+  }
+
   @Post('all-day')
   @HttpCode(HttpStatus.CREATED)
   @UseGuards(JwtAuthGuard)
@@ -70,6 +90,39 @@ export class AvailabilityController {
       `Creating all-day availability slots for provider ${createAllDayAvailabilityDto.providerId}`,
     );
     return this.availabilityService.createAllDaySlots(createAllDayAvailabilityDto);
+  }
+
+  @Post('bulk')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create multiple availability slots in bulk' })
+  @ApiResponse({ status: 201, description: 'Availability slots created successfully', type: [Object] })
+  @ApiResponse({ status: 400, description: 'Bad request - invalid input data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - JWT token missing or invalid' })
+  @ApiResponse({ status: 409, description: 'Conflict - overlapping slots detected' })
+  @ApiBody({ type: CreateBulkAvailabilityDto })
+  async createBulk(
+    @Body() createBulkAvailabilityDto: CreateBulkAvailabilityDto,
+  ): Promise<IAvailability[]> {
+    this.logger.log(
+      `Creating bulk availability slots for provider ${createBulkAvailabilityDto.providerId}`,
+    );
+    return this.availabilityService.createBulkSlots(createBulkAvailabilityDto);
+  }
+
+  @Post('validate')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Validate availability slots and return conflicts with suggestions' })
+  @ApiResponse({ status: 200, description: 'Validation completed', type: Object })
+  @ApiBody({ type: CreateBulkAvailabilityDto })
+  async validate(
+    @Body() dto: CreateBulkAvailabilityDto,
+  ): Promise<any> {
+    this.logger.log(`Validating availability for provider ${dto.providerId}`);
+    return this.availabilityService.validateSlots(dto);
   }
 
   /**
@@ -155,5 +208,16 @@ export class AvailabilityController {
   async delete(@Param('id') id: string): Promise<{ success: boolean }> {
     this.logger.log(`Deleting availability slot with ID ${id}`);
     return this.availabilityService.delete(id);
+  }
+
+  @Delete('cleanup/past')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Cleanup past one-off availability slots' })
+  @ApiResponse({ status: 200, description: 'Past availability slots cleaned up', type: Object })
+  async cleanupPastSlots(): Promise<{ removed: number }> {
+    const removed = await this.availabilityService.cleanupPastOneOffSlots();
+    return { removed };
   }
 }

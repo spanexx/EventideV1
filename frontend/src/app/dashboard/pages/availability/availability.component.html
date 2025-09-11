@@ -7,13 +7,11 @@
   <div class="availability-header">
     <h2>Your Schedule</h2>
     <div class="header-actions">
-      <button mat-stroked-button color="primary" class="refresh-btn" (click)="refreshAvailability()">
+      <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
-        Refresh
       </button>
-      <button mat-stroked-button color="accent" class="copy-week-btn" (click)="copyWeekSchedule()">
+      <button mat-icon-button (click)="copyWeekSchedule()" matTooltip="Copy Week">
         <mat-icon>content_copy</mat-icon>
-        Copy Week
       </button>
       <div class="history-controls">
         <button mat-icon-button (click)="undo()" [disabled]="!canUndo()" matTooltip="Undo last action">
@@ -24,6 +22,11 @@
         </button>
       </div>
     </div>
+  </div>
+
+  <div class="summary-banner" *ngIf="summary$ | async as summary">
+    <span>{{ summary.created }} created<span *ngIf="summary.skipped">, {{ summary.skipped }} skipped</span>.</span>
+    <button mat-button color="primary" (click)="dismissSummary()">Dismiss</button>
   </div>
   
   @if (loading$ | async) {
@@ -37,8 +40,15 @@
     <full-calendar #calendar [options]="calendarOptions"></full-calendar>
   </div>
   
+  <!-- Hidden trigger for context menu -->
+  <span [matMenuTriggerFor]="contextMenu" 
+        #contextMenuTrigger="matMenuTrigger" 
+        [style.left.px]="contextMenuPosition.x" 
+        [style.top.px]="contextMenuPosition.y" 
+        style="visibility: hidden; position: fixed;"></span>
+  
   <!-- Context Menu -->
-  <mat-menu #contextMenu="matMenu">
+  <mat-menu #contextMenu="matMenu" class="iphone-context-menu">
     <button mat-menu-item (click)="editSlot()">
       <mat-icon>edit</mat-icon>
       <span>Edit</span>
@@ -50,13 +60,8 @@
   </mat-menu>
   
   <div class="availability-actions">
-    <button mat-raised-button color="primary" matTooltip="Add new availability slot" (click)="addAvailability()">
-      <i class="material-icons">add</i>
-      Add Availability
-    </button>
-    <button mat-raised-button color="accent" matTooltip="Save all changes">
-      <i class="material-icons">save</i>
-      Save Changes
+    <button mat-fab color="primary" matTooltip="Add new availability slot" (click)="addAvailability()">
+      <mat-icon>add</mat-icon>
     </button>
   </div>
 </div>

@@ -12,14 +12,43 @@ export interface AllDaySlot {
   duration: number;
 }
 
+export interface BulkSlotConfig {
+  startTime: Date;
+  endTime: Date;
+  duration: number;
+}
+
 export interface CreateAllDayAvailabilityDto {
   providerId: string;
   date: Date;
-  numberOfSlots: number;
+  numberOfSlots?: number;
+  minutesPerSlot?: number;
+  breakTime?: number;
   autoDistribute?: boolean;
   slots?: AllDaySlot[];
   isRecurring?: boolean;
   dayOfWeek?: number;
+}
+
+export interface CreateBulkAvailabilityDto {
+  providerId: string;
+  type?: 'one_off' | 'recurring';
+  dayOfWeek?: number;
+  date?: Date;
+  startDate?: Date;
+  endDate?: Date;
+  quantity?: number;
+  slots?: BulkSlotConfig[];
+  skipConflicts?: boolean;
+  replaceConflicts?: boolean;
+  dryRun?: boolean;
+  idempotencyKey?: string;
+}
+
+export interface BulkValidationResponse {
+  created?: any[];
+  conflicts: Array<{ requested: BulkSlotConfig & { date?: Date }; conflictingWith: any[] }>;
+  suggestions?: Array<{ for: any; alternative: { startTime: Date; endTime: Date } }>;
 }
 
 @Injectable({
@@ -112,5 +141,81 @@ export class AvailabilityService {
         isRecurring: slot.type === 'recurring'
       }
     }));
+  }
+
+  /**
+   * Create multiple availability slots in bulk
+   * @param bulkAvailabilityDto - Data for creating multiple availability slots
+   * @returns Array of created availability slots
+   */
+  createBulkAvailability(bulkAvailabilityDto: CreateBulkAvailabilityDto): Observable<any> {
+    return this.http.post<any>(`${this.API_URL}/bulk`, bulkAvailabilityDto).pipe(
+      map(res => {
+        if (Array.isArray(res)) {
+          return res.map(slot => ({
+            ...slot,
+            id: slot._id || slot.id,
+            date: slot.date ? new Date(slot.date) : undefined,
+            startTime: new Date(slot.startTime),
+            endTime: new Date(slot.endTime)
+          }));
+        }
+        // Multi-status response: { created, conflicts }
+        return {
+          created: (res.created || []).map((slot: any) => ({
+            ...slot,
+            id: slot._id || slot.id,
+            date: slot.date ? new Date(slot.date) : undefined,
+            startTime: new Date(slot.startTime),
+            endTime: new Date(slot.endTime)
+          })),
+          conflicts: (res.conflicts || []).map((c: any) => ({
+            ...c,
+            requested: {
+              ...c.requested,
+              startTime: new Date(c.requested.startTime),
+              endTime: new Date(c.requested.endTime)
+            },
+            conflictingWith: (c.conflictingWith || []).map((x: any) => ({
+              ...x,
+              startTime: new Date(x.startTime),
+              endTime: new Date(x.endTime)
+            }))
+          }))
+        };
+      })
+    );
+  }
+
+  validateAvailability(payload: CreateBulkAvailabilityDto): Observable<BulkValidationResponse> {
+    return this.http.post<any>(`${this.API_URL}/validate`, payload).pipe(
+      map(res => ({
+        ...res,
+        conflicts: (res?.conflicts || []).map((c: any) => ({
+          ...c,
+          requested: {
+            ...c.requested,
+            startTime: new Date(c.requested.startTime),
+            endTime: new Date(c.requested.endTime)
+          },
+          conflictingWith: (c.conflictingWith || []).map((x: any) => ({
+            ...x,
+            startTime: new Date(x.startTime),
+            endTime: new Date(x.endTime)
+          }))
+        })),
+        suggestions: (res?.suggestions || []).map((s: any) => ({
+          ...s,
+          alternative: {
+            startTime: new Date(s.alternative.startTime),
+            endTime: new Date(s.alternative.endTime)
+          }
+        }))
+      }))
+    );
+  }
+
+  generateIdempotencyKey(prefix: string = 'bulk'): string {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
   }
 }

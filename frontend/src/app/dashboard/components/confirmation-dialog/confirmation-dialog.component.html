@@ -7,5 +7,6 @@
 </mat-dialog-content>
 <mat-dialog-actions align="end">
   <button mat-button (click)="onCancel()">{{ data.cancelText || 'Cancel' }}</button>
+  <button *ngFor="let action of data.extraActions" mat-stroked-button color="primary" (click)="onExtraAction(action.value)">{{ action.label }}</button>
   <button mat-raised-button color="primary" (click)="onConfirm()">{{ data.confirmText || 'Confirm' }}</button>
 </mat-dialog-actions>

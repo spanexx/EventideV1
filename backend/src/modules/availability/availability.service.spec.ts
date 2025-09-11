@@ -128,6 +128,73 @@ describe('AvailabilityService', () => {
       expect(model.create).toHaveBeenCalledTimes(2); // Should create 2 slots
     });
 
+    it('should create multiple availability slots with custom working hours', async () => {
+      const workingStartDate = new Date();
+      workingStartDate.setHours(9, 0, 0, 0);
+      
+      const workingEndDate = new Date();
+      workingEndDate.setHours(17, 0, 0, 0);
+      
+      const createAllDayAvailabilityDto: CreateAllDayAvailabilityDto = {
+        providerId: 'provider-123',
+        date: new Date(),
+        workingStartTime: workingStartDate,
+        workingEndTime: workingEndDate,
+        numberOfSlots: 2,
+        autoDistribute: true,
+      };
+
+      // Mock the find method to return no conflicts
+      jest
+        .spyOn(model, 'find')
+        .mockReturnValue({ exec: jest.fn().mockResolvedValue([]) } as any);
+      
+      // Mock the create method to return a mock availability
+      jest
+        .spyOn(model, 'create')
+        .mockResolvedValue(mockAvailability as any);
+
+      const result = await service.createAllDaySlots(createAllDayAvailabilityDto);
+      
+      expect(result).toBeDefined();
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should validate that both workingStartTime and workingEndTime are provided together', async () => {
+      const workingStartDate = new Date();
+      workingStartDate.setHours(9, 0, 0, 0);
+      
+      const createAllDayAvailabilityDto: CreateAllDayAvailabilityDto = {
+        providerId: 'provider-123',
+        date: new Date(),
+        workingStartTime: workingStartDate,
+        // Missing workingEndTime
+        numberOfSlots: 2,
+        autoDistribute: true,
+      };
+
+      await expect(service.createAllDaySlots(createAllDayAvailabilityDto)).rejects.toThrow();
+    });
+
+    it('should validate that workingEndTime is after workingStartTime', async () => {
+      const workingStartDate = new Date();
+      workingStartDate.setHours(17, 0, 0, 0); // 5 PM
+      
+      const workingEndDate = new Date();
+      workingEndDate.setHours(9, 0, 0, 0); // 9 AM
+      
+      const createAllDayAvailabilityDto: CreateAllDayAvailabilityDto = {
+        providerId: 'provider-123',
+        date: new Date(),
+        workingStartTime: workingStartDate,
+        workingEndTime: workingEndDate,
+        numberOfSlots: 2,
+        autoDistribute: true,
+      };
+
+      await expect(service.createAllDaySlots(createAllDayAvailabilityDto)).rejects.toThrow();
+    });
+
     it('should create multiple availability slots for an all-day period with manual slots', async () => {
       const createAllDayAvailabilityDto: CreateAllDayAvailabilityDto = {
         providerId: 'provider-123',
@@ -237,6 +304,43 @@ describe('AvailabilityService', () => {
       expect(slots[0].duration).toBeGreaterThan(0);
     });
 
+    it('should generate evenly distributed slots with custom working hours', () => {
+      const providerId = 'provider-123';
+      const date = new Date();
+      const numberOfSlots = 2;
+      
+      const workingStartDate = new Date(date);
+      workingStartDate.setHours(9, 0, 0, 0);
+      
+      const workingEndDate = new Date(date);
+      workingEndDate.setHours(17, 0, 0, 0);
+      
+      // Call the private method through reflection
+      const slots = (service as any).generateEvenlyDistributedSlots(
+        providerId,
+        date,
+        numberOfSlots,
+        undefined,
+        15,
+        false,
+        undefined,
+        workingStartDate,
+        workingEndDate
+      );
+      
+      expect(slots).toBeDefined();
+      expect(slots.length).toBe(2);
+      expect(slots[0].providerId).toBe(providerId);
+      expect(slots[0].duration).toBeGreaterThan(0);
+      
+      // Verify that slots are within the custom working hours
+      const firstSlotStart = new Date(slots[0].startTime);
+      const lastSlotEnd = new Date(slots[slots.length - 1].endTime);
+      
+      expect(firstSlotStart.getHours()).toBeGreaterThanOrEqual(9);
+      expect(lastSlotEnd.getHours()).toBeLessThanOrEqual(17);
+    });
+
     it('should adjust number of slots if duration is too small', () => {
       const providerId = 'provider-123';
       const date = new Date();
@@ -254,6 +358,48 @@ describe('AvailabilityService', () => {
       // Should have been adjusted to a reasonable number
       expect(slots.length).toBeLessThan(25);
       expect(slots.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe('edge cases for breakTime and minutesPerSlot', () => {
+    it('should support breakTime = 0', () => {
+      const providerId = 'provider-123';
+      const date = new Date();
+      const slots = (service as any).generateEvenlyDistributedSlots(
+        providerId,
+        date,
+        4,
+        undefined,
+        0
+      );
+      expect(slots.length).toBe(4);
+      expect(slots[0].duration).toBeGreaterThanOrEqual(15);
+    });
+
+    it('should cap with breakTime = 60', () => {
+      const providerId = 'provider-123';
+      const date = new Date();
+      const slots = (service as any).generateEvenlyDistributedSlots(
+        providerId,
+        date,
+        4,
+        undefined,
+        60
+      );
+      expect(slots.length).toBeGreaterThan(0);
+    });
+
+    it('should compute from minutesPerSlot when provided', () => {
+      const providerId = 'provider-123';
+      const date = new Date();
+      const slots = (service as any).generateEvenlyDistributedSlots(
+        providerId,
+        date,
+        1,
+        120, // minutesPerSlot
+        15
+      );
+      expect(slots.length).toBeGreaterThan(1);
     });
   });
 });

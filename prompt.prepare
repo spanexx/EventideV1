@@ -1,0 +1,109 @@
+I'll gather context across the codebase about the availability dialog, time slot calculations, and all-day availability to enhance your prompt. Now I'll search for where start/end time and slot logic are implemented in both frontend and backend.
+
+[5 tools called]
+
+I reviewed the availability dialog and backend services to see how all-day slots are generated. Both frontend and backend hardcode the working window to 8:00–20:00, and the dialog doesn’t expose start/end time for all-day mode. I’ll provide an enhanced prompt with concrete context and implementation guidance.
+
+### Enhanced Prompt: All‑Day Availability with Custom Start/End, Slots, and Breaks
+
+- **Goal**: In all-day mode, let providers choose day start time, end time, number of slots or minutes per slot, and break duration. Use these to calculate slot distribution and preview. Persist via API with conflict checks and recurring support.
+
+- **Key Context**
+  - **Frontend**
+    - `@/frontend/src/app/dashboard/components/availability-dialog/availability-dialog.component.html`: All-day UI exists for number of slots/minutes and break, but no start/end time inputs for all-day.
+    - `@/frontend/src/app/dashboard/components/availability-dialog/availability-dialog.component.ts`: `calculateEvenDistribution()` assumes 8:00–20:00; supports `slotConfigurationMode` (`'slots' | 'minutes'`), `numberOfSlots`, `minutesPerSlot`, `breakTime`.
+  - **Backend**
+    - `@/backend/src/modules/availability/availability.service.ts`: `createAllDaySlots()` uses `generateEvenlyDistributedSlots()` which hardcodes 8:00–20:00; supports `numberOfSlots` or `minutesPerSlot`, with `breakTime` default 15.
+    - `@/backend/src/modules/availability/dto/create-all-day-availability.dto.ts`: No fields for defining day start/end bounds for auto distribution.
+  - **Docs**
+    - `@/docs/enhanced-all-day-availability-documentation.md`: Describes auto-distribution across 8 AM–8 PM with breaks.
+
+- **Requirements**
+  - **UI (All-Day Dialog)**
+    - Add time inputs under all-day config:
+      - `Day Start Time` and `Day End Time` (type: time).
+      - Keep existing controls for `Specify Number of Slots` or `Specify Minutes per Slot`, `Auto-Distribute`, and `Break Time`.
+    - Update slot preview to respect chosen day start/end instead of fixed 8:00–20:00.
+    - Validation:
+      - `dayEndTime > dayStartTime`.
+      - If minutes-per-slot mode, compute slots as floor((workMinutes + break) / (minutesPerSlot + break)), ensure at least 1.
+      - Ensure computed slot duration ≥ 15 minutes; adjust slots accordingly.
+    - Persist chosen settings in all-day request when saving.
+    - Files to modify:
+      - `@/frontend/src/app/dashboard/components/availability-dialog/availability-dialog.component.html`
+      - `@/frontend/src/app/dashboard/components/availability-dialog/availability-dialog.component.ts`
+  - **API Contract**
+    - Extend DTO:
+      - Add optional `workingStartTime?: Date` and `workingEndTime?: Date` (day bounds for distribution).
+      - Keep `numberOfSlots?`, `minutesPerSlot?`, `breakTime?`, `autoDistribute?`, `isRecurring?`, `dayOfWeek?`.
+      - Validation: both start/end must be present together when `autoDistribute === true`; `workingEndTime > workingStartTime`.
+    - Update Swagger.
+    - Files to modify:
+      - `@/backend/src/modules/availability/dto/create-all-day-availability.dto.ts`
+      - `@/backend/src/modules/availability/availability.controller.ts` (if method signature/validation glue needed)
+  - **Backend Logic**
+    - Update `generateEvenlyDistributedSlots()` to:
+      - Use `workingStartTime`/`workingEndTime` if provided; else default to 8:00–20:00.
+      - Derive `workingMinutes` from given bounds.
+      - Accept `minutesPerSlot` or compute `timePerSlot` from `numberOfSlots` considering `breakTime`.
+      - Maintain conflict checks, recurring behavior, and break insertion logic.
+    - Files to modify:
+      - `@/backend/src/modules/availability/availability.service.ts`
+  - **Recurring**
+    - If `isRecurring === true`, ignore the specific `date` portion of `workingStartTime/workingEndTime` and apply hours/minutes to each generated recurring instance per `dayOfWeek`.
+
+- **Request/Response Examples**
+  - Create all-day with start/end and slots:
+```json
+POST /availability/all-day
+{
+  "providerId": "USER_ID",
+  "date": "2025-09-16T00:00:00.000Z",
+  "autoDistribute": true,
+  "workingStartTime": "2025-09-16T09:00:00.000Z",
+  "workingEndTime": "2025-09-16T17:00:00.000Z",
+  "numberOfSlots": 8,
+  "breakTime": 10,
+  "isRecurring": false
+}
+```
+  - Create all-day with minutes-per-slot:
+```json
+POST /availability/all-day
+{
+  "providerId": "USER_ID",
+  "date": "2025-09-16T00:00:00.000Z",
+  "autoDistribute": true,
+  "workingStartTime": "2025-09-16T08:30:00.000Z",
+  "workingEndTime": "2025-09-16T19:00:00.000Z",
+  "minutesPerSlot": 45,
+  "breakTime": 15
+}
+```
+  - Manual slots (autoDistribute false) remains supported via `slots: [{ startTime, endTime, duration }]`.
+
+- **Acceptance Criteria**
+  - All-day dialog shows start/end time inputs; preview reflects chosen window and updates as controls change.
+  - Backend creates slots bounded within provided start/end times.
+  - Validation errors shown for invalid windows or too-short durations.
+  - Recurring all-day respects time window for each `dayOfWeek`.
+  - Existing non-all-day flow unaffected.
+  - Unit tests updated/added for:
+    - DTO validation.
+    - Slot distribution with custom windows (slots vs minutes modes).
+    - Recurring generation using hours/minutes across dates.
+
+- **Affected Files**
+  - `@/frontend/src/app/dashboard/components/availability-dialog/availability-dialog.component.html`
+  - `@/frontend/src/app/dashboard/components/availability-dialog/availability-dialog.component.ts`
+  - `@/backend/src/modules/availability/dto/create-all-day-availability.dto.ts`
+  - `@/backend/src/modules/availability/availability.service.ts`
+  - `@/backend/src/modules/availability/availability.controller.ts` (if needed)
+  - `@/docs/enhanced-all-day-availability-documentation.md` (reflect new fields)
+
+- **Notes**
+  - Maintain default behavior (8:00–20:00) when new fields are omitted.
+  - Keep `breakTime` default 15.
+  - Ensure timezone consistency when sending/receiving times.
+
+Status: I located where the 8:00–20:00 default is enforced in both the dialog and the service, and prepared an implementation-ready prompt with file references and acceptance criteria.

@@ -85,6 +85,8 @@ export const AvailabilitySchema = SchemaFactory.createForClass(Availability);
 // Index for efficient querying by provider and date
 AvailabilitySchema.index({ providerId: 1, date: 1 });
 AvailabilitySchema.index({ providerId: 1, dayOfWeek: 1 });
+// Unique index to prevent overlapping duplicates at the exact same start time
+AvailabilitySchema.index({ providerId: 1, startTime: 1 }, { unique: true });
 
 // Ensure the virtual id property is correctly set up
 AvailabilitySchema.virtual('id').get(function () {

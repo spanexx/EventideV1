@@ -10,7 +10,9 @@ import {
   ArrayMinSize,
   ValidateNested,
   Min,
+  Max,
   ValidateIf,
+  Validate,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -43,10 +45,38 @@ export class CreateAllDayAvailabilityDto {
   @Type(() => Date)
   date: Date;
 
-  @ApiProperty({ description: 'The number of slots to create for the day' })
+  @ApiPropertyOptional({ description: 'The working start time for slot distribution', type: Date })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  @ValidateIf((object: CreateAllDayAvailabilityDto) => object.autoDistribute === true)
+  workingStartTime?: Date;
+
+  @ApiPropertyOptional({ description: 'The working end time for slot distribution', type: Date })
+  @IsOptional()
+  @IsDate()
+  @Type(() => Date)
+  @ValidateIf((object: CreateAllDayAvailabilityDto) => object.autoDistribute === true)
+  workingEndTime?: Date;
+
+  @ApiPropertyOptional({ description: 'The number of slots to create for the day' })
+  @IsOptional()
   @IsNumber()
   @Min(1)
-  numberOfSlots: number;
+  numberOfSlots?: number;
+
+  @ApiPropertyOptional({ description: 'The duration of each slot in minutes' })
+  @IsOptional()
+  @IsNumber()
+  @Min(15)
+  minutesPerSlot?: number;
+
+  @ApiPropertyOptional({ description: 'The break time between slots in minutes' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(60)
+  breakTime?: number;
 
   @ApiPropertyOptional({ description: 'Whether to auto-distribute time evenly' })
   @IsOptional()
