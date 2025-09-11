@@ -1,0 +1,48 @@
+description = "Execute security analysis and validation checklist. This command handles security operations following the project's security guidelines and best practices."
+
+prompt = """
+
+Execute security analysis and validation checklist.
+
+This command handles security operations following the project's security guidelines and best practices.
+
+Given the security request provided as an argument, do this:
+
+1. Run `scripts/security-checklist.sh --json "{{args}}"` from repo root and parse JSON for SECURITY_TYPE, SCAN_SCOPE, VULNERABILITY_LEVEL, and COMPLIANCE_STANDARD. All file paths must be absolute.
+
+2. Based on the security type, execute the appropriate security analysis:
+   - **vulnerability-scan**: Scan for security vulnerabilities
+   - **dependency-check**: Check for vulnerable dependencies
+   - **code-security**: Analyze code for security issues
+   - **authentication-audit**: Audit authentication mechanisms
+   - **authorization-check**: Verify authorization controls
+   - **data-protection**: Check data protection measures
+   - **compliance-scan**: Verify compliance with standards
+
+3. For each security operation, follow the security analysis protocol:
+   - **Threat Assessment**: Identify potential security threats
+   - **Vulnerability Scanning**: Scan code and dependencies for vulnerabilities
+   - **Security Validation**: Verify security controls and measures
+   - **Compliance Checking**: Ensure adherence to security standards
+   - **Remediation Planning**: Plan security fixes and improvements
+
+4. Enforce security best practices:
+   - Use secure coding practices
+   - Implement proper authentication
+   - Apply authorization controls
+   - Encrypt sensitive data
+   - Validate all inputs
+   - Use secure dependencies
+   - Follow OWASP guidelines
+
+5. Generate security report:
+   - Document security findings
+   - List vulnerabilities by severity
+   - Provide remediation recommendations
+   - Report compliance status
+   - Include security metrics
+
+6. Report completion with security type, findings summary, and remediation status.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

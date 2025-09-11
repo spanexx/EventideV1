@@ -1,25 +1,114 @@
 <h2 mat-dialog-title>{{ isNew ? (data.allDay ? 'Create All-Day Availability' : 'Create Availability Slot') : 'Edit Availability Slot' }}</h2>
 <mat-dialog-content>
   <form class="availability-form">
-    <!-- Date picker for one-off appointments -->
-    <mat-form-field appearance="outline" *ngIf="!isRecurring">
+    <!-- Bulk Creation Toggle -->
+    <mat-checkbox [(ngModel)]="isBulkCreation" name="isBulkCreation" *ngIf="isNew && !data.allDay">
+      Create Multiple Slots
+    </mat-checkbox>
+    
+    <!-- Date configuration for bulk creation -->
+    <div *ngIf="isBulkCreation">
+      <mat-radio-group [(ngModel)]="dateRangeMode" name="dateRangeMode">
+        <mat-radio-button value="single">Single Date</mat-radio-button>
+        <mat-radio-button value="range">Date Range</mat-radio-button>
+      </mat-radio-group>
+      
+      <!-- Single date input -->
+      <mat-form-field appearance="outline" *ngIf="dateRangeMode === 'single' && !isRecurring">
+        <mat-label>Date</mat-label>
+        <input matInput [matDatepicker]="datepicker" [(ngModel)]="availability.date" (ngModelChange)="onDateChange($event)" name="date">
+        <mat-datepicker-toggle matSuffix [for]="datepicker">
+          <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
+        </mat-datepicker-toggle>
+        <mat-datepicker #datepicker></mat-datepicker>
+      </mat-form-field>
+      
+      <!-- Date range inputs -->
+      <div *ngIf="dateRangeMode === 'range' && !isRecurring">
+        <mat-form-field appearance="outline">
+          <mat-label>Start Date</mat-label>
+          <input matInput [matDatepicker]="startDatepicker" [(ngModel)]="startDate" name="startDate">
+          <mat-datepicker-toggle matSuffix [for]="startDatepicker">
+            <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
+          </mat-datepicker-toggle>
+          <mat-datepicker #startDatepicker></mat-datepicker>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline">
+          <mat-label>End Date</mat-label>
+          <input matInput [matDatepicker]="endDatepicker" [(ngModel)]="endDate" name="endDate">
+          <mat-datepicker-toggle matSuffix [for]="endDatepicker">
+            <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
+          </mat-datepicker-toggle>
+          <mat-datepicker #endDatepicker></mat-datepicker>
+        </mat-form-field>
+      </div>
+      
+      <!-- Quantity input -->
+      <mat-form-field appearance="outline">
+        <mat-label>Number of Slots per Day</mat-label>
+        <input matInput type="number" [(ngModel)]="quantity" name="quantity" min="1" max="24">
+        <mat-icon matSuffix>view_module</mat-icon>
+      </mat-form-field>
+      
+      <!-- Skip conflicts option -->
+      <mat-checkbox [(ngModel)]="skipConflicts" name="skipConflicts">
+        Skip Conflicts (Create non-conflicting slots only)
+      </mat-checkbox>
+    </div>
+    
+    <!-- Date picker for one-off appointments (non-bulk) -->
+    <mat-form-field appearance="outline" *ngIf="!isRecurring && !isBulkCreation">
       <mat-label>Date</mat-label>
       <input matInput [matDatepicker]="datepicker" [(ngModel)]="availability.date" (ngModelChange)="onDateChange($event)" name="date">
-      <mat-datepicker-toggle matSuffix [for]="datepicker"></mat-datepicker-toggle>
+      <mat-datepicker-toggle matSuffix [for]="datepicker">
+        <mat-icon matDatepickerToggleIcon>calendar_today</mat-icon>
+      </mat-datepicker-toggle>
       <mat-datepicker #datepicker></mat-datepicker>
     </mat-form-field>
     
     <!-- Enhanced All-Day Slot Configuration -->
     <div class="all-day-config" *ngIf="data.allDay">
-      <mat-form-field appearance="outline">
+      <div class="time-inputs">
+        <mat-form-field appearance="outline">
+          <mat-label>Day Start Time</mat-label>
+          <input matInput type="time" [(ngModel)]="dayStartTime" (ngModelChange)="onDayTimeChange($event)" name="dayStartTime">
+          <mat-icon matSuffix>schedule</mat-icon>
+        </mat-form-field>
+        
+        <mat-form-field appearance="outline">
+          <mat-label>Day End Time</mat-label>
+          <input matInput type="time" [(ngModel)]="dayEndTime" (ngModelChange)="onDayTimeChange($event)" name="dayEndTime">
+          <mat-icon matSuffix>schedule</mat-icon>
+        </mat-form-field>
+      </div>
+      
+      <mat-radio-group [(ngModel)]="slotConfigurationMode" name="slotConfigurationMode" (ngModelChange)="onSlotConfigurationModeChange($event)">
+        <mat-radio-button value="slots">Specify Number of Slots</mat-radio-button>
+        <mat-radio-button value="minutes">Specify Minutes per Slot</mat-radio-button>
+      </mat-radio-group>
+      
+      <mat-form-field appearance="outline" *ngIf="slotConfigurationMode === 'slots'">
         <mat-label>Number of Slots</mat-label>
         <input matInput type="number" [(ngModel)]="numberOfSlots" (ngModelChange)="onNumberOfSlotsChange($event)" name="numberOfSlots" min="1" max="24">
         <mat-icon matSuffix>view_module</mat-icon>
       </mat-form-field>
       
+      <mat-form-field appearance="outline" *ngIf="slotConfigurationMode === 'minutes'">
+        <mat-label>Minutes per Slot</mat-label>
+        <input matInput type="number" [(ngModel)]="minutesPerSlot" (ngModelChange)="onMinutesPerSlotChange($event)" name="minutesPerSlot" min="15" max="240" step="15">
+        <mat-icon matSuffix>schedule</mat-icon>
+      </mat-form-field>
+      
       <mat-checkbox [(ngModel)]="autoDistribute" (ngModelChange)="onAutoDistributeChange($event)" name="autoDistribute">
         Auto-Distribute Time Evenly
       </mat-checkbox>
+      
+      <mat-form-field appearance="outline">
+        <mat-label>Break Time (minutes)</mat-label>
+        <input matInput type="number" [(ngModel)]="breakTime" (ngModelChange)="updateSlotPreview()" name="breakTime" min="0" max="60">
+        <mat-icon matSuffix>hourglass_empty</mat-icon>
+      </mat-form-field>
       
       <div class="slot-preview" *ngIf="slotPreview.length > 0">
         <h3>Slot Preview</h3>
@@ -32,12 +121,16 @@
         </div>
       </div>
       
-      <mat-hint *ngIf="numberOfSlots > 8" class="warning-hint">
+      <mat-hint *ngIf="slotConfigurationMode === 'slots' && numberOfSlots > 8" class="warning-hint">
         Warning: Having more than 8 slots in a day may be difficult to manage.
+      </mat-hint>
+      
+      <mat-hint *ngIf="slotConfigurationMode === 'minutes' && minutesPerSlot < 30" class="warning-hint">
+        Warning: Slots shorter than 30 minutes may be difficult to manage.
       </mat-hint>
     </div>
     
-    <div class="time-fields" *ngIf="!data.allDay">
+    <div class="time-fields" *ngIf="!data.allDay && !isBulkCreation">
       <mat-form-field appearance="outline">
         <mat-label>Start Time</mat-label>
         <input matInput type="time" [value]="formatTime(availability.startTime)" (change)="onStartTimeChange($event)" name="startTime">
@@ -45,7 +138,7 @@
       </mat-form-field>
     </div>
     
-    <mat-form-field appearance="outline" *ngIf="!data.allDay">
+    <mat-form-field appearance="outline" *ngIf="!data.allDay && !isBulkCreation">
       <mat-label>Duration</mat-label>
       <mat-select [value]="availability.duration" (selectionChange)="onDurationChange($event)" name="duration">
         <mat-option [value]="15">15 minutes</mat-option>
@@ -58,11 +151,11 @@
       <mat-icon matSuffix>timelapse</mat-icon>
     </mat-form-field>
     
-    <mat-checkbox [(ngModel)]="isRecurring" (ngModelChange)="onRecurringChange($event)" name="isRecurring">
+    <mat-checkbox [(ngModel)]="isRecurring" (ngModelChange)="onRecurringChange($event)" name="isRecurring" *ngIf="!isBulkCreation">
       Recurring Availability
     </mat-checkbox>
     
-    <mat-form-field appearance="outline" *ngIf="isRecurring">
+    <mat-form-field appearance="outline" *ngIf="isRecurring && !isBulkCreation">
       <mat-label>Day of Week</mat-label>
       <mat-select [(ngModel)]="availability.dayOfWeek" name="dayOfWeek">
         <mat-option [value]="0">Sunday</mat-option>
@@ -77,9 +170,16 @@
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">
-  <button mat-button (click)="onNoClick()">Cancel</button>
+  <button mat-button (click)="onNoClick()">
+    <mat-icon>close</mat-icon>
+    Cancel
+  </button>
+  <button mat-stroked-button color="warn" *ngIf="!isNew" (click)="onDeleteClick()">
+    <mat-icon>delete</mat-icon>
+    Delete
+  </button>
   <button mat-raised-button color="primary" (click)="onSaveClick()">
     <mat-icon>save</mat-icon>
-    Save
+    {{ isBulkCreation ? 'Create Slots' : 'Save' }}
   </button>
 </mat-dialog-actions>

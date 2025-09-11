@@ -1,0 +1,53 @@
+description = "Enhance prompts by gathering deep context from the codebase and providing detailed information to improve AI responses. This command uses deep research to add comprehensive context to prompts."
+
+prompt = """
+
+Enhance prompts by gathering deep context from the codebase and providing detailed information to improve AI responses.
+
+This command uses deep research to add comprehensive context to prompts.
+
+Given the prompt enhancement request provided as an argument, do this:
+
+1. Run `scripts/enhance-prompt.sh --json "{{args}}"` from repo root and parse JSON for PROMPT_TEXT, ENHANCEMENT_SCOPE, CONTEXT_DEPTH, and OUTPUT_FORMAT. All file paths must be absolute.
+
+2. Analyze the prompt to identify key topics and requirements:
+   - Extract main concepts and keywords
+   - Identify technical domains (frontend, backend, database, etc.)
+   - Determine scope and complexity
+   - Recognize file references and command instructions
+
+3. Execute comprehensive context gathering using deep research:
+   - **Text Research**: Search for relevant documentation and patterns
+   - **Code Research**: Find related implementations and components
+   - **Architecture Research**: Understand system design and relationships
+   - **Security Research**: Identify security considerations
+   - **Performance Research**: Analyze performance implications
+   - **Dependency Research**: Map related modules and dependencies
+
+4. Process file references and command instructions:
+   - Parse @path references to specific files
+   - Extract content from referenced files
+   - Process @commands/filename.md references
+   - Include relevant context from referenced files
+
+5. Generate enhanced prompt with comprehensive context:
+   - Use `/templates/enhance-prompt-template.md` as the base structure
+   - Include contextual information from codebase analysis
+   - Add technical considerations and constraints
+   - Provide implementation guidance and best practices
+   - Reference related components and files
+   - Include examples and patterns from existing code
+
+6. Structure the enhanced prompt with:
+   - **Original Prompt**: The user's original request
+   - **Contextual Information**: Relevant code snippets and architecture details
+   - **Technical Considerations**: Security, performance, and integration points
+   - **Implementation Guidance**: Best practices and code examples
+   - **Reference Materials**: Related documentation and resources
+
+7. Save enhanced prompt to OUTPUT_FILE with proper formatting and structure.
+
+8. Report completion with enhancement summary, context depth, and output file path.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

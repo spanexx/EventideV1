@@ -349,7 +349,7 @@ export class AvailabilityService {
         slotsToCreate = this.generateEvenlyDistributedSlots(
           providerId,
           date,
-          numberOfSlots,
+          numberOfSlots || 1, // Provide default value of 1 if numberOfSlots is undefined
           isRecurring,
           dayOfWeek
         );

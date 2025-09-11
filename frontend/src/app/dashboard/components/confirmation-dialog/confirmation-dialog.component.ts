@@ -19,7 +19,7 @@ import { CommonModule } from '@angular/common';
 export class ConfirmationDialogComponent {
   constructor(
     public dialogRef: MatDialogRef<ConfirmationDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: { title: string, message: string, confirmText: string, cancelText: string }
+    @Inject(MAT_DIALOG_DATA) public data: { title: string, message: string, confirmText: string, cancelText: string, extraActions?: Array<{ label: string, value: any }> }
   ) { }
 
   onConfirm(): void {
@@ -28,5 +28,9 @@ export class ConfirmationDialogComponent {
 
   onCancel(): void {
     this.dialogRef.close(false);
+  }
+
+  onExtraAction(value: any): void {
+    this.dialogRef.close(value);
   }
 }

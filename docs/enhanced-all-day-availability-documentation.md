@@ -9,16 +9,19 @@ The enhanced all-day availability feature allows providers to specify the number
 ### 1. Configurable Slot Count
 Providers can specify how many sub-slots they want for an all-day period (1-24 slots).
 
-### 2. Auto-Distribution
-The system automatically distributes time evenly throughout the working day (8 AM to 8 PM) with configurable breaks between slots.
+### 2. Custom Working Hours
+Providers can specify custom working start and end times for the day, rather than being limited to the default 8 AM to 8 PM window.
 
-### 3. Manual Configuration
+### 3. Auto-Distribution
+The system automatically distributes time evenly throughout the working day with configurable breaks between slots.
+
+### 4. Manual Configuration
 Providers can manually configure each slot's start time and duration when auto-distribution is disabled.
 
-### 4. Preview Functionality
+### 5. Preview Functionality
 A preview shows how time will be divided before saving the configuration.
 
-### 5. Recurring Support
+### 6. Recurring Support
 All-day slots can be configured as recurring availability for specific days of the week.
 
 ## API Endpoints
@@ -33,7 +36,11 @@ POST /availability/all-day
 interface CreateAllDayAvailabilityDto {
   providerId: string;
   date: Date;
-  numberOfSlots: number;
+  workingStartTime?: Date; // Custom working start time (optional)
+  workingEndTime?: Date; // Custom working end time (optional)
+  numberOfSlots?: number; // Required if minutesPerSlot not provided
+  minutesPerSlot?: number; // Required if numberOfSlots not provided
+  breakTime?: number; // Break time between slots in minutes (default: 15)
   autoDistribute?: boolean; // defaults to true
   slots?: AllDaySlot[]; // required when autoDistribute is false
   isRecurring?: boolean; // defaults to false
@@ -82,14 +89,17 @@ The `AvailabilityDialogComponent` handles the UI for creating and editing availa
 
 Key properties:
 - `numberOfSlots`: Number of sub-slots for all-day availability (1-24)
+- `dayStartTime`: Custom working start time (default: '08:00')
+- `dayEndTime`: Custom working end time (default: '20:00')
 - `autoDistribute`: Whether to automatically distribute slots
 - `slotPreview`: Preview of slot distribution
 
 Key methods:
 - `onNumberOfSlotsChange()`: Handles changes to the number of slots input
+- `onDayTimeChange()`: Handles changes to the day start/end times
 - `onAutoDistributeChange()`: Handles changes to the auto-distribute toggle
 - `updateSlotPreview()`: Updates the preview of slot distribution
-- `calculateEvenDistribution()`: Calculates even distribution of slots
+- `calculateEvenDistribution()`: Calculates even distribution of slots using custom working hours
 - `createAllDaySlots()`: Creates all-day slots via the availability service
 
 ### Backend Services
@@ -98,8 +108,8 @@ Key methods:
 The `AvailabilityService` provides methods for managing availability slots, including the new all-day functionality.
 
 Key methods:
-- `createAllDaySlots()`: Creates multiple availability slots for an all-day period
-- `generateEvenlyDistributedSlots()`: Generates evenly distributed slots throughout a working day
+- `createAllDaySlots()`: Creates multiple availability slots for an all-day period with support for custom working hours
+- `generateEvenlyDistributedSlots()`: Generates evenly distributed slots throughout a working day, using custom hours when provided
 
 ### Database Schema
 
@@ -147,7 +157,7 @@ export class Availability {
 
 ### Auto-Distribution Algorithm
 
-1. Working hours are defined as 8 AM to 8 PM (12 hours = 720 minutes)
+1. Working hours are defined by `workingStartTime` and `workingEndTime` (defaulting to 8 AM to 8 PM if not provided)
 2. Break time between slots is 15 minutes by default
 3. Time per slot is calculated as:
    ```
@@ -163,7 +173,8 @@ The system handles several edge cases:
 
 1. **Invalid Slot Count**: Too many slots (> 24) or too few (< 1) are automatically clamped
 2. **Time Distribution Issues**: Insufficient time for the specified number of slots automatically adjusts the slot count
-3. **Conflicts**: Overlapping slots are detected and prevented
+3. **Invalid Working Hours**: `workingEndTime` must be after `workingStartTime`
+4. **Conflicts**: Overlapping slots are detected and prevented
 
 ## Testing
 
@@ -182,12 +193,32 @@ Integration tests verify the communication between frontend and backend:
 
 ## Usage Examples
 
-### Creating Auto-Distributed All-Day Slots
+### Creating Auto-Distributed All-Day Slots with Custom Hours
 ```typescript
 const allDayDto = {
   providerId: 'provider-123',
   date: new Date('2023-01-01'),
+  workingStartTime: new Date('2023-01-01T09:00:00'),
+  workingEndTime: new Date('2023-01-01T17:00:00'),
   numberOfSlots: 4,
+  autoDistribute: true
+};
+
+availabilityService.createAllDayAvailability(allDayDto).subscribe(
+  slots => console.log('Created slots:', slots),
+  error => console.error('Error:', error)
+);
+```
+
+### Creating Auto-Distributed All-Day Slots with Minutes Per Slot
+```typescript
+const allDayDto = {
+  providerId: 'provider-123',
+  date: new Date('2023-01-01'),
+  workingStartTime: new Date('2023-01-01T09:00:00'),
+  workingEndTime: new Date('2023-01-01T17:00:00'),
+  minutesPerSlot: 60,
+  breakTime: 30,
   autoDistribute: true
 };
 
@@ -224,11 +255,13 @@ availabilityService.createAllDayAvailability(allDayDto).subscribe(
 );
 ```
 
-### Creating Recurring All-Day Slots
+### Creating Recurring All-Day Slots with Custom Hours
 ```typescript
 const allDayDto = {
   providerId: 'provider-123',
   date: new Date('2023-01-01'),
+  workingStartTime: new Date('2023-01-01T09:00:00'),
+  workingEndTime: new Date('2023-01-01T17:00:00'),
   numberOfSlots: 3,
   autoDistribute: true,
   isRecurring: true,
