@@ -8,19 +8,27 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatRadioModule } from '@angular/material/radio';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatExpansionModule } from '@angular/material/expansion';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Observable } from 'rxjs';
 import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
 import { Availability } from '../../models/availability.models';
-import { AvailabilityService } from '../../services/availability.service';
+import { AvailabilityService, CreateBulkAvailabilityDto } from '../../services/availability.service';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import { User } from '../../../services/auth.service';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
 
 interface AllDaySlot {
+  startTime: Date;
+  endTime: Date;
+  duration: number;
+}
+
+interface BulkSlot {
   startTime: Date;
   endTime: Date;
   duration: number;
@@ -38,24 +46,43 @@ interface AllDaySlot {
     MatIconModule,
     MatCheckboxModule,
     MatSelectModule,
+    MatRadioModule,
     MatSnackBarModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatExpansionModule,
     FormsModule
   ],
   templateUrl: './availability-dialog.component.html',
   styleUrl: './availability-dialog.component.scss'
 })
 export class AvailabilityDialogComponent {
-  availability: Availability;
-  isNew: boolean;
-  isRecurring: boolean;
+  availability!: Availability;
+  isNew!: boolean;
+  isRecurring!: boolean;
   user$: Observable<User | null>;
   
   // Enhanced all-day slot properties
   numberOfSlots: number = 1;
+  minutesPerSlot: number = 60;
+  breakTime: number = 15; // Default break time of 15 minutes
+  slotConfigurationMode: 'slots' | 'minutes' = 'slots';
   autoDistribute: boolean = true;
   slotPreview: AllDaySlot[] = [];
+  
+  // Custom day start/end times for all-day slots (default to 8:00 and 20:00)
+  dayStartTime: string = '08:00';
+  dayEndTime: string = '20:00';
+  
+  // Bulk creation properties
+  isBulkCreation: boolean = false;
+  startDate: Date | null = null;
+  endDate: Date | null = null;
+  quantity: number = 1;
+  skipConflicts: boolean = false;
+  
+  // Date range mode
+  dateRangeMode: 'single' | 'range' = 'single';
 
   constructor(
     public dialogRef: MatDialogRef<AvailabilityDialogComponent>,
@@ -100,6 +127,15 @@ export class AvailabilityDialogComponent {
         this.availability.dayOfWeek = parseInt(this.availability.dayOfWeek, 10);
       }
     } else {
+      // Check if the selected date is in the past
+      if (data.date && this.isDateInPast(data.date)) {
+        this.snackbarService.showError('Cannot create availability for past dates');
+        // Close the dialog
+        setTimeout(() => {
+          this.dialogRef.close();
+        }, 100);
+        return;
+      }
       // Calculate start and end times based on selection data
       let startDate: Date;
       let endDate: Date;
@@ -131,6 +167,14 @@ export class AvailabilityDialogComponent {
       };
       this.isRecurring = false;
     }
+  }
+
+  /**
+   * Handle changes to the day start/end times
+   */
+  onDayTimeChange(event: any): void {
+    // Update the slot preview when day times change
+    this.updateSlotPreview();
   }
 
   onRecurringChange(isRecurring: boolean): void {
@@ -187,6 +231,32 @@ export class AvailabilityDialogComponent {
   }
 
   /**
+   * Handle changes to the slot configuration mode
+   */
+  onSlotConfigurationModeChange(event: any): void {
+    const value = event.value || event;
+    this.slotConfigurationMode = value;
+    
+    // Update the slot preview
+    this.updateSlotPreview();
+  }
+
+  /**
+   * Handle changes to the minutes per slot
+   */
+  onMinutesPerSlotChange(event: any): void {
+    const value = event.target ? event.target.value : event;
+    this.minutesPerSlot = parseInt(value, 10) || 60;
+    
+    // Ensure the value is within reasonable bounds
+    if (this.minutesPerSlot < 15) this.minutesPerSlot = 15;
+    if (this.minutesPerSlot > 240) this.minutesPerSlot = 240;
+    
+    // Update the slot preview
+    this.updateSlotPreview();
+  }
+
+  /**
    * Update the preview of slot distribution
    */
   updateSlotPreview(): void {
@@ -210,33 +280,61 @@ export class AvailabilityDialogComponent {
   calculateEvenDistribution(): AllDaySlot[] {
     const slots: AllDaySlot[] = [];
     
-    // Working hours: 8 AM to 8 PM (12 hours = 720 minutes)
+    // Use custom day start/end times or default to 8 AM to 8 PM
+    const [startHours, startMinutes] = this.dayStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = this.dayEndTime.split(':').map(Number);
+    
     const workingStart = new Date(this.data.date || new Date());
-    workingStart.setHours(8, 0, 0, 0);
+    workingStart.setHours(startHours, startMinutes, 0, 0);
     
     const workingEnd = new Date(this.data.date || new Date());
-    workingEnd.setHours(20, 0, 0, 0);
+    workingEnd.setHours(endHours, endMinutes, 0, 0);
     
-    const workingMinutes = 720; // 12 hours in minutes
-    const breakTime = 15; // 15 minutes break between slots
+    // Calculate working minutes
+    const workingMinutes = (workingEnd.getTime() - workingStart.getTime()) / (1000 * 60);
+    
+    // Validate that end time is after start time
+    if (workingMinutes <= 0) {
+      // Invalid time range, return empty array
+      return slots;
+    }
+    
+    // Calculate based on the selected configuration mode
+    let numberOfSlots: number;
+    
+    if (this.slotConfigurationMode === 'minutes') {
+      // Calculate number of slots based on minutes per slot
+      // Total slots = (workingMinutes - (breakTime * (slots - 1))) / minutesPerSlot
+      // Simplified: slots = workingMinutes / (minutesPerSlot + breakTime)
+      numberOfSlots = Math.floor((workingMinutes + this.breakTime) / (this.minutesPerSlot + this.breakTime));
+      if (numberOfSlots < 1) numberOfSlots = 1;
+    } else {
+      // Use the specified number of slots
+      numberOfSlots = this.numberOfSlots;
+    }
     
     // Calculate time per slot including breaks
     // Total time = (slots * slot_time) + ((slots - 1) * break_time)
     // slot_time = (workingMinutes - ((numberOfSlots - 1) * breakTime)) / numberOfSlots
-    const totalTimeForBreaks = (this.numberOfSlots - 1) * breakTime;
-    const timePerSlot = (workingMinutes - totalTimeForBreaks) / this.numberOfSlots;
+    const totalTimeForBreaks = (numberOfSlots - 1) * this.breakTime;
+    const timePerSlot = (workingMinutes - totalTimeForBreaks) / numberOfSlots;
     
     // Ensure we have a reasonable slot duration
     if (timePerSlot < 15) {
       // If slots are too small, we'll adjust the number of slots
-      this.numberOfSlots = Math.floor((workingMinutes + breakTime) / (15 + breakTime));
-      if (this.numberOfSlots < 1) this.numberOfSlots = 1;
+      numberOfSlots = Math.floor((workingMinutes + this.breakTime) / (15 + this.breakTime));
+      if (numberOfSlots < 1) numberOfSlots = 1;
+      
+      // Recalculate time per slot with adjusted number of slots
+      const adjustedTotalTimeForBreaks = (numberOfSlots - 1) * this.breakTime;
+      // Update timePerSlot with the new calculation
+      const adjustedTimePerSlot = (workingMinutes - adjustedTotalTimeForBreaks) / numberOfSlots;
     }
     
     // Distribute slots
     let currentTime = new Date(workingStart);
     
-    for (let i = 0; i < this.numberOfSlots; i++) {
+    for (let i = 0; i < numberOfSlots; i++) {
       const startTime = new Date(currentTime);
       const endTime = new Date(currentTime.getTime() + timePerSlot * 60000);
       
@@ -247,8 +345,8 @@ export class AvailabilityDialogComponent {
       });
       
       // Add break time for next slot (except for the last slot)
-      if (i < this.numberOfSlots - 1) {
-        currentTime = new Date(endTime.getTime() + breakTime * 60000);
+      if (i < numberOfSlots - 1) {
+        currentTime = new Date(endTime.getTime() + this.breakTime * 60000);
       }
     }
     
@@ -273,6 +371,16 @@ export class AvailabilityDialogComponent {
 
   onDateChange(event: any): void {
     if (this.availability.date) {
+      // Check if the selected date is in the past
+      if (this.isDateInPast(this.availability.date)) {
+        this.snackbarService.showError('Cannot select past dates for availability');
+        // Reset to today's date
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        this.availability.date = today;
+        return;
+      }
+      
       // Update the start and end times to match the new date
       const newStartDate = new Date(this.availability.date);
       newStartDate.setHours(this.availability.startTime.getHours(), this.availability.startTime.getMinutes(), 0, 0);
@@ -297,6 +405,20 @@ export class AvailabilityDialogComponent {
 
   onNoClick(): void {
     this.dialogRef.close();
+  }
+
+  onDeleteClick(): void {
+    if (!this.isNew && this.availability && this.availability.id) {
+      this.user$.subscribe(user => {
+        if (user) {
+          const confirmed = confirm('Are you sure you want to delete this availability slot?');
+          if (confirmed) {
+            this.store.dispatch(AvailabilityActions.deleteAvailability({ id: this.availability.id }));
+            this.dialogRef.close({ deleted: true, id: this.availability.id });
+          }
+        }
+      }).unsubscribe();
+    }
   }
 
   onDurationChange(event?: any): void {
@@ -324,6 +446,12 @@ export class AvailabilityDialogComponent {
         console.log('Availability data being saved:', this.availability);
         console.log('Provider ID:', this.availability.providerId);
         console.log('Is new availability:', this.isNew);
+        
+        // Handle bulk creation
+        if (this.isBulkCreation) {
+          this.createBulkSlots(user.id);
+          return;
+        }
         
         // Handle all-day slots differently
         if (this.data.allDay) {
@@ -371,15 +499,43 @@ export class AvailabilityDialogComponent {
   }
 
   /**
+   * Check if a date is in the past
+   * @param date The date to check
+   * @returns True if the date is in the past, false otherwise
+   */
+  isDateInPast(date: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+    return checkDate < today;
+  }
+
+  /**
    * Create multiple slots for all-day availability
    * @param providerId The provider ID
    */
   createAllDaySlots(providerId: string): void {
+    // Parse day start/end times to create Date objects
+    const [startHours, startMinutes] = this.dayStartTime.split(':').map(Number);
+    const [endHours, endMinutes] = this.dayEndTime.split(':').map(Number);
+    
+    // Create Date objects for working start/end times
+    const workingStartDate = new Date(this.data.date);
+    workingStartDate.setHours(startHours, startMinutes, 0, 0);
+    
+    const workingEndDate = new Date(this.data.date);
+    workingEndDate.setHours(endHours, endMinutes, 0, 0);
+    
     // Use the new service method to create all-day slots
     const allDayDto = {
       providerId: providerId,
       date: this.data.date,
-      numberOfSlots: this.numberOfSlots,
+      workingStartTime: workingStartDate,
+      workingEndTime: workingEndDate,
+      numberOfSlots: this.slotConfigurationMode === 'slots' ? this.numberOfSlots : undefined,
+      minutesPerSlot: this.slotConfigurationMode === 'minutes' ? this.minutesPerSlot : undefined,
+      breakTime: this.breakTime, // Include the configurable break time
       autoDistribute: this.autoDistribute,
       // Only include slots array when not auto-distributing
       ...(this.autoDistribute === false && {
@@ -401,11 +557,37 @@ export class AvailabilityDialogComponent {
       },
       error: (error) => {
         console.error('Failed to create all-day slots:', error);
-        this.snackbarService.showError('Failed to create all-day slots: ' + error.message);
+        this.snackbarService.showError('Failed to create all-day slots: ' + (error.message || 'Unknown error'));
       }
     });
   }
-        this.snackbarService.showError('Failed to create all-day slots: ' + error.message);
+
+  /**
+   * Create multiple slots in bulk
+   * @param providerId The provider ID
+   */
+  createBulkSlots(providerId: string): void {
+    // Prepare the bulk creation DTO
+    const bulkDto: CreateBulkAvailabilityDto = {
+      providerId: providerId,
+      type: this.isRecurring ? 'recurring' : 'one_off',
+      dayOfWeek: this.isRecurring ? this.availability.dayOfWeek : undefined,
+      date: this.dateRangeMode === 'single' ? this.availability.date : undefined,
+      startDate: this.startDate || undefined,
+      endDate: this.endDate || undefined,
+      quantity: this.quantity,
+      skipConflicts: this.skipConflicts
+    };
+
+    this.availabilityService.createBulkAvailability(bulkDto).subscribe({
+      next: (createdSlots) => {
+        console.log('Created bulk slots:', createdSlots);
+        // Close the dialog with the result
+        this.dialogRef.close(createdSlots);
+      },
+      error: (error) => {
+        console.error('Failed to create bulk slots:', error);
+        this.snackbarService.showError('Failed to create bulk slots: ' + (error.message || 'Unknown error'));
       }
     });
   }

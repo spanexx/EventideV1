@@ -1,0 +1,62 @@
+description = "Execute comprehensive testing suite and validation. This is the sixth step in the Spec-Driven Development lifecycle."
+
+prompt = """
+
+Execute comprehensive testing suite and validation.
+
+This is the sixth step in the Spec-Driven Development lifecycle.
+
+Given the testing context provided as an argument, do this:
+
+1. Run `scripts/setup-testing.sh --json` from repo root and parse FEATURE_DIR, TEST_SCOPE, and TEST_RESULTS_FILE. All paths must be absolute.
+
+2. Load and analyze the test requirements:
+   - Read the feature specification and acceptance criteria
+   - Review test scenarios from quickstart.md
+   - Check existing test files and coverage
+   - Identify test gaps and requirements
+
+3. Execute comprehensive testing protocol:
+   - **Unit Tests**: 
+     * Run individual component tests
+     * Verify function and method behavior
+     * Check edge cases and error handling
+     * Validate business logic
+   
+   - **Integration Tests**:
+     * Test component interactions
+     * Verify API endpoints and responses
+     * Check database operations
+     * Test external service integrations
+   
+   - **End-to-End Tests**:
+     * Test complete user workflows
+     * Verify feature functionality
+     * Check cross-browser compatibility
+     * Test performance under load
+   
+   - **Security Tests**:
+     * Test authentication and authorization
+     * Check input validation
+     * Test for common vulnerabilities
+     * Verify data protection
+
+4. Generate test report:
+   - Use `/templates/test-template.md` as the base structure
+   - Document test results by category
+   - Include coverage metrics and statistics
+   - List failed tests with detailed error information
+   - Provide recommendations for test improvements
+
+5. Create test artifacts:
+   - Generate test coverage reports
+   - Create performance benchmarks
+   - Document test scenarios and cases
+   - Update test documentation
+
+6. Save test results to TEST_RESULTS_FILE with comprehensive analysis.
+
+7. Report completion with test summary, coverage metrics, and pass/fail status.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

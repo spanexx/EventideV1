@@ -1,9 +1,10 @@
 :host {
   display: block;
-  background-color: var(--dialog);
-  color: var(--dialog-foreground);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xl);
+  background-color: var(--card);
+  color: var(--foreground);
+  border-radius: 22px; // More iOS-like rounded corners
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
 }
 
 .mat-mdc-dialog-title {
@@ -11,11 +12,12 @@
   font-weight: var(--font-weight-bold);
   padding: var(--spacing-lg) var(--spacing-xl);
   border-bottom: 1px solid var(--border);
-  background-color: var(--muted);
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background-color: var(--background);
+  border-radius: 22px 22px 0 0;
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+  margin: 0;
 }
 
 .availability-form {
@@ -31,15 +33,16 @@
   gap: var(--spacing-lg);
 }
 
-// All-day slot configuration
+// All-day slot configuration with iOS-like styling
 .all-day-config {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-md);
   padding: var(--spacing-lg);
-  background-color: var(--muted);
-  border-radius: var(--radius-md);
+  background-color: var(--background);
+  border-radius: 16px;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
 }
 
 .slot-preview {
@@ -65,8 +68,9 @@
   gap: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--card);
-  border-radius: var(--radius-sm);
+  border-radius: 12px;
   border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
   
   .slot-number {
     font-weight: var(--font-weight-bold);
@@ -101,9 +105,12 @@
   width: 100%;
 }
 
-// Improve date picker for mobile
+// Improve date picker for mobile with iOS-like styling
 @media (max-width: 768px) {
   .mat-datepicker-content {
+    border-radius: 22px;
+    overflow: hidden;
+    
     .mat-calendar {
       width: 300px;
       height: 350px;
@@ -124,36 +131,73 @@
   padding: var(--spacing-lg) var(--spacing-xl);
   justify-content: flex-end;
   border-top: 1px solid var(--border);
-  background-color: var(--muted);
-  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background-color: var(--background);
+  border-radius: 0 0 22px 22px;
   gap: var(--spacing-md);
 }
 
-.mat-mdc-button, .mat-mdc-raised-button {
+.mat-mdc-button {
   font-weight: var(--font-weight-medium);
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   padding: var(--spacing-sm) var(--spacing-lg);
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-sm);
+  background: var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-xs);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  &:hover {
+    background: color-mix(in srgb, var(--primary) 5%, var(--card));
+    border-color: var(--primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  
+  .mat-icon {
+    margin-right: var(--spacing-sm);
+  }
 }
 
 .mat-mdc-raised-button.mat-primary {
   background-color: var(--primary);
   color: var(--primary-foreground);
-  transition: all 0.3s ease;
+  border: none;
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     background-color: color-mix(in srgb, var(--primary) 90%, black);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
     transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
   }
 }
 
+.mat-mdc-fab {
+  border-radius: 50%;
+  box-shadow: var(--shadow-lg);
+  
+  &:hover {
+    box-shadow: var(--shadow-xl);
+    transform: scale(1.05);
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+// Error styling
 .error-snackbar {
-  background-color: #f44336;
-  color: white;
+  background-color: var(--color-error);
+  color: var(--primary-foreground);
   font-weight: var(--font-weight-medium);
+  border-radius: 12px;
 }
 
 

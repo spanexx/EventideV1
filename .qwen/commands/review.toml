@@ -1,0 +1,62 @@
+description = "Conduct comprehensive code review and quality assessment. This is the fifth step in the Spec-Driven Development lifecycle."
+
+prompt = """
+
+Conduct comprehensive code review and quality assessment.
+
+This is the fifth step in the Spec-Driven Development lifecycle.
+
+Given the review context provided as an argument, do this:
+
+1. Run `scripts/setup-review.sh --json` from repo root and parse FEATURE_DIR, REVIEW_SCOPE, and OUTPUT_FILE. All paths must be absolute.
+
+2. Load and analyze the implementation:
+   - Read the feature specification and implementation plan
+   - Review all modified and new files
+   - Check test coverage and quality
+   - Analyze code structure and patterns
+
+3. Execute comprehensive review protocol:
+   - **Code Quality Review**: 
+     * Check coding standards and conventions
+     * Review code organization and structure
+     * Analyze complexity and maintainability
+     * Verify proper error handling
+   
+   - **Security Review**:
+     * Check for security vulnerabilities
+     * Review input validation and sanitization
+     * Analyze authentication and authorization
+     * Check for sensitive data exposure
+   
+   - **Performance Review**:
+     * Identify performance bottlenecks
+     * Review database queries and caching
+     * Analyze memory usage and optimization
+     * Check for scalability issues
+   
+   - **Test Coverage Review**:
+     * Verify test completeness
+     * Check test quality and reliability
+     * Analyze edge cases and error scenarios
+     * Review integration test coverage
+
+4. Generate review report:
+   - Use `/templates/review-template.md` as the base structure
+   - Document findings by category (quality, security, performance, tests)
+   - Provide specific recommendations for improvements
+   - Include code examples and suggested fixes
+   - Rate overall quality and readiness
+
+5. Create action items:
+   - List critical issues that must be fixed
+   - Identify recommended improvements
+   - Suggest optimizations and enhancements
+   - Document best practices and patterns
+
+6. Save review results to OUTPUT_FILE with detailed findings and recommendations.
+
+7. Report completion with review summary, critical issues count, and overall quality rating.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""

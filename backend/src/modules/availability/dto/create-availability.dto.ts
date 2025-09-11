@@ -56,4 +56,19 @@ export class CreateAvailabilityDto {
   @IsOptional()
   @IsString()
   bookingId?: string;
+
+  @ApiPropertyOptional({ description: 'Idempotency key to prevent duplicate creations' })
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
+
+  @ApiPropertyOptional({ description: 'If true, replace conflicting slots instead of failing' })
+  @IsOptional()
+  @IsBoolean()
+  replaceConflicts?: boolean;
+
+  @ApiPropertyOptional({ description: 'If true, validate only and do not create' })
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
 }

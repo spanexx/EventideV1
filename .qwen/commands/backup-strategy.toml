@@ -1,0 +1,47 @@
+description = "Execute backup and recovery operations. This command handles backup operations following the project's backup strategy and best practices."
+
+prompt = """
+
+Execute backup and recovery operations.
+
+This command handles backup operations following the project's backup strategy and best practices.
+
+Given the backup request provided as an argument, do this:
+
+1. Run `scripts/backup-strategy.sh --json "{{args}}"` from repo root and parse JSON for BACKUP_TYPE, BACKUP_SCOPE, RETENTION_PERIOD, and STORAGE_LOCATION. All file paths must be absolute.
+
+2. Based on the backup type, execute the appropriate backup operation:
+   - **create-backup**: Create full system backup
+   - **incremental-backup**: Create incremental backup
+   - **database-backup**: Backup database only
+   - **file-backup**: Backup application files
+   - **restore-backup**: Restore from backup
+   - **verify-backup**: Verify backup integrity
+   - **cleanup-backups**: Clean up old backups
+
+3. For each backup operation, follow the backup protocol:
+   - **Pre-backup Checks**: Verify system status and available space
+   - **Backup Execution**: Create backup with appropriate compression
+   - **Integrity Verification**: Verify backup integrity and completeness
+   - **Storage Management**: Store backup in appropriate location
+   - **Cleanup**: Remove old backups based on retention policy
+
+4. Enforce backup best practices:
+   - Follow 3-2-1 backup rule
+   - Encrypt sensitive backups
+   - Test restore procedures regularly
+   - Monitor backup success rates
+   - Use appropriate compression
+   - Store backups offsite
+
+5. Generate backup report:
+   - Document backup creation process
+   - Report backup size and location
+   - List backup verification results
+   - Provide restore instructions
+   - Include retention policy information
+
+6. Report completion with backup type, success status, and backup details.
+
+Use absolute paths with the repository root for all file operations to avoid path issues.
+"""
