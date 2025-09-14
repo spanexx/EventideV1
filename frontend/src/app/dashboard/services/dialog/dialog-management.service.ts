@@ -46,6 +46,7 @@ export class DialogManagementService {
    * @returns The dialog reference
    */
   openAvailabilityDialog(data: any): any {
+    console.log('Opening availability dialog with data:', data);
     return this.dialog.open(AvailabilityDialogComponent, {
       width: '400px',
       data: data

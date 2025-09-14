@@ -5,7 +5,6 @@ import { map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { Availability } from '../models/availability.models';
 import { EventInput } from '@fullcalendar/core';
-import { createDateRangeWithBuffer } from '../utils/timezone.utils';
 
 export interface AllDaySlot {
   startTime: Date;
@@ -61,16 +60,23 @@ export class AvailabilityService {
   constructor(private http: HttpClient) { }
 
   getAvailability(providerId: string, date: Date): Observable<Availability[]> {
-    // Calculate start and end dates for the week with proper timezone handling
-    const { startDate, endDate } = createDateRangeWithBuffer(date, 1);
+    // Calculate start and end dates for the week
+    const startDate = new Date(date);
+    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start of week (Sunday)
     
-    // Ensure dates are properly normalized
-    startDate.setHours(0, 0, 0, 0);
-    endDate.setHours(23, 59, 59, 999);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6); // End of week (Saturday)
+
+    // Fix timezone handling by using date objects with proper timezone
+    const startOfDay = new Date(startDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(endDate);
+    endOfDay.setHours(23, 59, 59, 999);
 
     let params = new HttpParams();
-    params = params.append('startDate', startDate.toISOString());
-    params = params.append('endDate', endDate.toISOString());
+    params = params.append('startDate', startOfDay.toISOString());
+    params = params.append('endDate', endOfDay.toISOString());
 
     return this.http.get<any[]>(`${this.API_URL}/${providerId}`, { params }).pipe(
       map(availability => availability.map(slot => ({

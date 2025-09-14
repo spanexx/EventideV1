@@ -1,113 +1,57 @@
-# Availability Module Implementation Plan
+# Implementation Plan: Fix Timezone Handling for One-Off Availability Slots
 
-## Overview
-This document outlines the implementation plan for the Availability module in the Eventide backend. The module will provide REST APIs for managing provider availability slots, supporting both recurring and one-off availability patterns.
+## Problem Statement
+One-off availability slots disappear from the UI after refresh while recurring slots display correctly. The root cause is a timezone handling mismatch between frontend and backend when filtering one-off slots by date.
 
-## Requirements Analysis
+## Root Cause Analysis
+The issue occurs in the `findByProviderAndDateRange` method in `availability.service.ts`. The current implementation:
+1. Constructs date queries using raw Date objects without timezone normalization
+2. Uses date-only comparisons that don't account for timezone differences
+3. Does not properly handle the start/end of day boundaries in different timezones
 
-Based on the Event.md documentation and frontend components, the availability module needs to support:
+## Solution Overview
+1. Normalize all date handling to use consistent timezone-aware date objects
+2. Modify the backend query logic to properly handle timezone conversions
+3. Update the frontend to send timezone-aware date parameters
+4. Ensure both one-off and recurring slots are handled consistently
 
-1. **Smart Calendar Management**: Providers can define recurring and one-off availability in flexible time blocks
-2. **Real-time Availability**: Utilizes WebSockets to ensure that calendar slots are updated live across all clients
-3. **Variable Appointment Durations**: Guests can choose from a list of appointment lengths set by the provider
-4. **Transactional Integrity**: Guarantees that appointment slots cannot be booked by multiple users simultaneously
+## Detailed Implementation Steps
 
-## Technical Design
+### Backend Changes (Node.js/NestJS)
 
-### Data Model
-The availability data model should support:
-- Provider identification
-- Date/time information (supporting both recurring and one-off patterns)
-- Duration information
-- Booking status
-- Recurrence patterns
+1. **Update the findByProviderAndDateRange method**:
+   - Implement proper timezone normalization for date parameters
+   - Adjust date queries to handle timezone differences correctly
+   - Ensure one-off slots are filtered using timezone-aware date ranges
 
-### API Endpoints
-The following REST endpoints will be implemented:
-- GET /availability/:providerId - Get availability slots for a provider
-- POST /availability - Create new availability slots
-- PUT /availability/:id - Update an existing availability slot
-- DELETE /availability/:id - Delete an availability slot
+2. **Add timezone utilities**:
+   - Create helper functions for timezone conversion
+   - Implement consistent date normalization across the service
 
-### Business Logic
-- Conflict detection for overlapping slots
-- Validation of time ranges
-- Support for recurring patterns
-- Integration with real-time updates via WebSockets
+### Frontend Changes (Angular)
 
-## Implementation Steps
+1. **Update the getAvailability method**:
+   - Send timezone-aware date parameters to the backend
+   - Ensure date ranges account for user's local timezone
 
-1. **Create Data Models**
-   - Define the Availability schema using Mongoose
-   - Implement proper indexing for performance
-   - Add validation rules
+2. **Add timezone handling utilities**:
+   - Create helper functions for timezone conversion
+   - Implement consistent date formatting for API requests
 
-2. **Create Module Structure**
-   - Set up the availability module directory structure
-   - Configure module dependencies
-   - Register the module in the main app module
+## Testing Plan
+1. Test with different timezones (UTC, EST, PST, etc.)
+2. Verify one-off slots display correctly after refresh
+3. Ensure recurring slots continue to work as expected
+4. Test edge cases around day boundaries
+5. Validate performance impact is minimal
 
-3. **Implement Service Layer**
-   - Create the availability service with CRUD operations
-   - Implement business logic for conflict detection
-   - Add caching for performance optimization
+## Rollback Plan
+1. Revert the changes to availability.service.ts
+2. Restore the original frontend date handling
+3. Clear any cached data that might be affected
 
-4. **Create Controller**
-   - Implement REST endpoints
-   - Add proper error handling
-   - Implement request validation
-
-5. **Add Real-time Updates**
-   - Integrate with WebSocket gateway
-   - Notify clients of availability changes
-
-6. **Testing**
-   - Write unit tests for service methods
-   - Create integration tests for API endpoints
-   - Test conflict detection scenarios
-
-7. **Documentation**
-   - Document API endpoints
-   - Provide usage examples
-   - Update README if necessary
-
-## Module Structure
-```
-src/modules/availability/
-├── availability.module.ts
-├── availability.controller.ts
-├── availability.service.ts
-├── availability.schema.ts
-├── dto/
-│   ├── create-availability.dto.ts
-│   ├── update-availability.dto.ts
-│   └── get-availability.dto.ts
-├── interfaces/
-│   └── availability.interface.ts
-└── availability.service.spec.ts
-```
-
-## Dependencies
-- Mongoose for MongoDB integration
-- NestJS core modules
-- Validation pipes
-- WebSocket gateway for real-time updates
-- Cache manager for performance optimization
-
-## Performance Considerations
-- Implement caching for frequently accessed availability data
-- Use proper database indexing for provider-based queries
-- Optimize aggregation pipelines for complex availability calculations
-- Implement pagination for large datasets
-
-## Security Considerations
-- Validate provider ownership of availability slots
-- Implement proper authentication guards
-- Sanitize input data
-- Rate limit API endpoints to prevent abuse
-
-## Future Enhancements
-- Support for more complex recurrence patterns
-- Integration with Google Calendar/iCal
-- Availability analytics and reporting
-- Timezone-aware scheduling
+## Success Criteria
+1. One-off availability slots persist in the UI after refresh
+2. Recurring slots continue to display correctly
+3. No performance degradation
+4. All existing functionality remains intact

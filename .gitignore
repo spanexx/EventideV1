@@ -51,7 +51,7 @@ frontend/logs/
 frontend/*.log
 
 
-# prompt.prepare
+prompt.prepare
 # Task Management MCP Database
 tskdb_stdio*
 
@@ -61,8 +61,14 @@ tskdb.json
 # Private/secret files
 GEMINI.md
 QWEN.md
-# prompt.prepare
+prompt.prepare
 tskdb_stdio-default.json
-# commands/
+commands/
 commands-accessible
 Event.md
+
+test*
+
+.qwen*
+
+.tskdb_backup*

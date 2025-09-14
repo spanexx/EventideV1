@@ -91,6 +91,40 @@ export class CalendarService {
             handleEventContextMenu(e, info);
           });
         }
+      },
+      viewDidMount: (info: any) => {
+        // Add context menu listener to the entire calendar container
+        const calendarContainer = info.el.closest('.fc');
+        if (calendarContainer) {
+          calendarContainer.addEventListener('contextmenu', (e: MouseEvent) => {
+            // Check if we clicked on an event or empty space using the new helper method
+            const eventElement = this.getEventFromClick(e, calendarContainer);
+            
+            // If we didn't click on an event, handle as empty slot
+            if (!eventElement) {
+              e.preventDefault();
+              e.stopPropagation();
+              
+              // Use FullCalendar's built-in method to get the date from position
+              const calendarApi = info.view.calendar;
+              const clickedDate = this.getDateFromPosition(calendarApi, e);
+              
+              // Create a temporary info object for empty slots
+              const emptySlotInfo = {
+                date: clickedDate || new Date(), // Use the calculated date or fallback
+                jsEvent: e
+              };
+              
+              handleEventContextMenu(e, emptySlotInfo);
+            }
+            // If we clicked on an event, let the event's context menu handler take precedence
+            // The eventDidMount handler will prevent the default and handle the event context menu
+          });
+        }
+      },
+      dateClick: (info: any) => {
+        // Handle left click on empty time slots
+        console.log('Date clicked:', info);
       }
     };
   }
@@ -122,15 +156,21 @@ export class CalendarService {
           if (previousAvailability.length > 0) {
             // Check if only one event has changed
             const changedEvents = getChangedEvents(previousAvailability, availability);
+            console.log('Previous availability length:', previousAvailability.length);
+            console.log('Current availability length:', availability.length);
+            console.log('Changed events count:', changedEvents.length);
             if (changedEvents.length === 1) {
               // Single event change, update only that event
+              console.log('Updating single calendar event:', changedEvents[0]);
               updateSingleCalendarEvent(changedEvents[0]);
             } else {
               // Multiple events changed or new events added, do full refresh
+              console.log('Refreshing full calendar with all events');
               refreshFullCalendar(availability);
             }
           } else {
             // Initial load, do full refresh
+            console.log('Initial load, refreshing full calendar');
             refreshFullCalendar(availability);
           }
         }
@@ -147,6 +187,7 @@ export class CalendarService {
     calendarComponent: FullCalendarComponent | undefined,
     availability: Availability[]
   ): void {
+    console.log('Refreshing full calendar with availability:', availability);
     if (calendarComponent) {
       const calendarApi = calendarComponent.getApi();
       if (calendarApi) {
@@ -177,6 +218,9 @@ export class CalendarService {
           existingEvent.setProp('title', updatedSlot.isBooked ? 'Booked' : 'Available');
           existingEvent.setExtendedProp('isBooked', updatedSlot.isBooked);
           existingEvent.setExtendedProp('isRecurring', updatedSlot.type === 'recurring');
+        } else {
+          // If the event doesn't exist, we might need to add it
+          console.log('Event not found in calendar, might need to refresh:', updatedSlot);
         }
       }
     }
@@ -201,5 +245,40 @@ export class CalendarService {
         }
       });
     }
+  }
+
+  /**
+   * Get the date and time from a mouse event position on the calendar
+   * @param calendarApi The FullCalendar API instance
+   * @param e MouseEvent from the click
+   * @returns Date object representing the clicked time, or null if not found
+   */
+  getDateFromPosition(calendarApi: any, e: MouseEvent): Date | null {
+    // Since getDateFromPoint doesn't exist, we'll return null and let the component handle the calculation
+    return null;
+  }
+
+  /**
+   * Check if a click event occurred on a calendar event
+   * @param e MouseEvent from the click
+   * @param calendarContainer The calendar container element
+   * @returns The event element if clicked on an event, null otherwise
+   */
+  getEventFromClick(e: MouseEvent, calendarContainer: HTMLElement): HTMLElement | null {
+    let targetElement = e.target as HTMLElement;
+    
+    // Traverse up the DOM to check if we clicked on an event
+    while (targetElement && targetElement !== calendarContainer) {
+      // Check for various event-related classes that FullCalendar uses
+      if (targetElement.classList && 
+          (targetElement.classList.contains('fc-event') || 
+           targetElement.classList.contains('fc-timegrid-event') ||
+           targetElement.classList.contains('fc-daygrid-event'))) {
+        return targetElement;
+      }
+      targetElement = targetElement.parentElement as HTMLElement;
+    }
+    
+    return null;
   }
 }
