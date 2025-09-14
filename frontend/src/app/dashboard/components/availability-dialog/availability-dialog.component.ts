@@ -62,6 +62,10 @@ export class AvailabilityDialogComponent {
   isRecurring!: boolean;
   user$: Observable<User | null>;
   
+  // Custom duration properties
+  customDuration: number | null = null;
+  standardDurations = [15, 30, 45, 60, 90, 120];
+  
   // Enhanced all-day slot properties
   numberOfSlots: number = 1;
   minutesPerSlot: number = 60;
@@ -159,6 +163,9 @@ export class AvailabilityDialogComponent {
       
       // Calculate duration in minutes
       const duration = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
+      if (!this.standardDurations.includes(duration)) {
+        this.customDuration = duration;
+      }
       
       this.availability = {
         id: '',

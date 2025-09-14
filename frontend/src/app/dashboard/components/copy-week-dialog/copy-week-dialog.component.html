@@ -14,6 +14,13 @@
       <mat-datepicker-toggle matSuffix [for]="targetPicker"></mat-datepicker-toggle>
       <mat-datepicker #targetPicker></mat-datepicker>
     </mat-form-field>
+
+    <h3 class="conflict-resolution-title">Conflict Resolution</h3>
+    <mat-radio-group [(ngModel)]="conflictResolution" name="conflictResolution" class="conflict-resolution-group">
+      <mat-radio-button value="skip">Skip conflicting slots</mat-radio-button>
+      <mat-radio-button value="replace">Replace conflicting slots</mat-radio-button>
+    </mat-radio-group>
+
   </form>
 </mat-dialog-content>
 <mat-dialog-actions align="end">

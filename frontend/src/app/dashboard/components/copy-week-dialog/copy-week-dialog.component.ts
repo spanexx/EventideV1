@@ -7,7 +7,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
 import { FormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common'; // Added CommonModule back
+import { MatRadioModule } from '@angular/material/radio'; // Added MatRadioModule
 
 @Component({
   selector: 'app-copy-week-dialog',
@@ -21,7 +22,8 @@ import { CommonModule } from '@angular/common';
     MatIconModule,
     MatDatepickerModule,
     MatNativeDateModule,
-    FormsModule
+    FormsModule,
+    MatRadioModule // Added MatRadioModule to imports array
   ],
   templateUrl: './copy-week-dialog.component.html',
   styleUrl: './copy-week-dialog.component.scss'
@@ -29,6 +31,7 @@ import { CommonModule } from '@angular/common';
 export class CopyWeekDialogComponent {
   sourceWeek: Date = new Date();
   targetWeek: Date = new Date();
+  conflictResolution: 'skip' | 'replace' = 'skip'; // Added conflictResolution property
 
   constructor(
     public dialogRef: MatDialogRef<CopyWeekDialogComponent>,
@@ -47,7 +50,8 @@ export class CopyWeekDialogComponent {
     // The actual copying is handled in the availability component
     this.dialogRef.close({
       sourceWeek: this.sourceWeek,
-      targetWeek: this.targetWeek
+      targetWeek: this.targetWeek,
+      conflictResolution: this.conflictResolution // Added conflictResolution to result
     });
   }
 }

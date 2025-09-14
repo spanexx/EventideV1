@@ -141,6 +141,7 @@
     <mat-form-field appearance="outline" *ngIf="!data.allDay && !isBulkCreation">
       <mat-label>Duration</mat-label>
       <mat-select [value]="availability.duration" (selectionChange)="onDurationChange($event)" name="duration">
+        <mat-option *ngIf="customDuration" [value]="customDuration">{{ customDuration }} minutes (Custom)</mat-option>
         <mat-option [value]="15">15 minutes</mat-option>
         <mat-option [value]="30">30 minutes</mat-option>
         <mat-option [value]="45">45 minutes</mat-option>
