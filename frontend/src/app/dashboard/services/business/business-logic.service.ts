@@ -1,23 +1,45 @@
 import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
-import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
-import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
-import { getStartOfWeek, getEndOfWeek, addDays, formatDateAsYYYYMMDD } from '../../utils/dashboard.utils';
+import { Observable } from 'rxjs';
 import { take } from 'rxjs/operators';
 import { BehaviorSubject } from 'rxjs';
+import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
+import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
+import { getStartOfWeek, getEndOfWeek, addDays, formatDateAsYYYYMMDD, calculateDurationInMinutes } from '../../utils/dashboard.utils';
 import { AvailabilityService, CreateBulkAvailabilityDto } from '../availability.service';
 import { DialogManagementService } from '../dialog/dialog-management.service';
+import { CalendarOperationsService } from '../calendar/calendar-operations.service';
+import { SnackbarService } from '../../../shared/services/snackbar.service';
+import { DateSelectArg } from '@fullcalendar/core';
+import { Availability } from '../../models/availability.models';
+import { DialogDataService } from '../dialog/dialog-data.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class BusinessLogicService {
-  constructor(private store: Store, private availabilityHttp: AvailabilityService, private dialogService: DialogManagementService) {}
+  constructor(
+    private store: Store,
+    private availabilityHttp: AvailabilityService,
+    private dialogService: DialogManagementService,
+    private calendarService: CalendarOperationsService,
+    private dialogDataService: DialogDataService
+  ) {}
   // Summary state for UI banner
   summary$ = new BehaviorSubject<{ created: number; skipped: number } | null>(null);
 
   clearSummary(): void {
     this.summary$.next(null);
+  }
+
+  /**
+   * Calculate duration in minutes between two dates
+   * @param start Start date
+   * @param end End date
+   * @returns Duration in minutes
+   */
+  calculateDurationInMinutes(start: Date, end: Date): number {
+    return calculateDurationInMinutes(start, end);
   }
 
   /**
@@ -37,12 +59,170 @@ export class BusinessLogicService {
   }
 
   /**
+   * Handle date selection for creating new availability slots
+   * @param selectInfo The date selection information
+   * @param availability$ Observable of availability data
+   * @param dialogService Dialog management service
+   * @param calendarService Calendar operations service
+   * @param snackbarService Snackbar service for notifications
+   */
+  handleDateSelection(
+    selectInfo: DateSelectArg,
+    availability$: Observable<Availability[]>,
+    dialogService: DialogManagementService,
+    calendarService: CalendarOperationsService,
+    snackbarService: SnackbarService
+  ): void {
+    // Handle date selection for creating new availability slots
+    // Check if a dialog is already open
+    if (dialogService.isAvailabilityDialogOpen()) {
+      dialogService.focusExistingAvailabilityDialog();
+      return;
+    }
+    
+    // Prevent event propagation
+    if (selectInfo.jsEvent) {
+      selectInfo.jsEvent.preventDefault();
+      selectInfo.jsEvent.stopPropagation();
+    }
+    
+    // Check if the selected date is in the past
+    if (calendarService.isDateInPast(selectInfo.start)) {
+      snackbarService.showError('Cannot create availability for past dates');
+      return;
+    }
+    
+    // Check if there's existing availability for this date
+    calendarService.hasExistingAvailability(availability$, selectInfo.start).subscribe(hasExistingAvailability => {
+      if (hasExistingAvailability) {
+        // Show a confirmation dialog to ask if they want to proceed
+        const dialogRef = dialogService.openConfirmationDialog({
+          title: 'Existing Availability',
+          message: 'There is already availability set for this date. Do you want to create additional slots?',
+          confirmText: 'Continue',
+          cancelText: 'Cancel'
+        });
+        
+        dialogRef.afterClosed().subscribe((result: any) => {
+          if (result) {
+            // Proceed with opening the availability dialog
+            this.openAvailabilityDialog(selectInfo, dialogService);
+          }
+        });
+      } else {
+        // No existing availability, proceed with opening the dialog
+        this.openAvailabilityDialog(selectInfo, dialogService);
+      }
+    });
+  }
+
+  /**
+   * Open the availability dialog with the provided selection info
+   * @param selectInfo The date selection information
+   * @param dialogService Dialog management service
+   */
+  private openAvailabilityDialog(selectInfo: DateSelectArg, dialogService: DialogManagementService) {
+    console.log('Opening new availability dialog for date selection');
+    const dialogRef = dialogService.openAvailabilityDialog({
+      availability: null, 
+      date: selectInfo.start,
+      startDate: selectInfo.start,
+      endDate: selectInfo.end,
+      allDay: selectInfo.allDay
+    });
+
+    // Note: The component that calls this method should handle the afterClosed subscription
+    // to dispatch the create action and refresh the calendar
+  }
+
+  /**
+   * Render event content for the calendar
+   * @param eventInfo The event information
+   * @returns The rendered event content
+   */
+  renderEventContent(eventInfo: any) {
+    // Calculate duration in minutes
+    const start = new Date(eventInfo.event.start);
+    const end = new Date(eventInfo.event.end);
+    const duration = this.calculateDurationInMinutes(start, end);
+    
+    // Check if it's a recurring event
+    const isRecurring = eventInfo.event.extendedProps?.isRecurring || false;
+    const isBooked = eventInfo.event.extendedProps?.isBooked || false;
+    
+    // Create tooltip content
+    const tooltipText = `${eventInfo.event.title}
+${start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+Duration: ${duration} minutes
+${isRecurring ? 'Recurring' : 'One-time'}${isBooked ? ' (Booked)' : ''}`;
+    
+    return {
+      html: `
+        <div class="fc-event-main-frame" title="${tooltipText}">
+          <div class="fc-event-time">${eventInfo.timeText}</div>
+          <div class="fc-event-title-container">
+            <div class="fc-event-title">${eventInfo.event.title}</div>
+            <div class="fc-event-details">
+              <span class="fc-event-duration">${duration} min</span>
+              ${isRecurring ? '<span class="fc-event-recurring">🔁</span>' : ''}
+            </div>
+          </div>
+        </div>
+      `
+    };
+  }
+
+  /**
+   * Handle day cell rendering to provide visual feedback for dates with existing availability
+   * @param info Information about the day cell being rendered
+   * @param availability$ Observable of availability data
+   * @param calendarService Calendar operations service
+   */
+  handleDayCellRender(
+    info: any, 
+    availability$: Observable<Availability[]>,
+    calendarService: CalendarOperationsService
+  ): void {
+    // Get the date for this cell
+    const cellDate = new Date(info.date);
+    cellDate.setHours(0, 0, 0, 0);
+    
+    // Check if there's existing availability for this date
+    availability$.subscribe((availability: Availability[]) => {
+      const hasAvailability = availability.some(slot => {
+        if (!slot.date && slot.startTime) {
+          // For slots with only startTime, check if it's on the same date
+          const slotDate = new Date(slot.startTime);
+          slotDate.setHours(0, 0, 0, 0);
+          return slotDate.getTime() === cellDate.getTime();
+        } else if (slot.date) {
+          // For slots with a date field, check if it matches
+          const slotDate = new Date(slot.date);
+          slotDate.setHours(0, 0, 0, 0);
+          return slotDate.getTime() === cellDate.getTime();
+        }
+        return false;
+      });
+      
+      // Add a class to indicate existing availability
+      if (hasAvailability) {
+        info.el.classList.add('has-availability');
+      }
+      
+      // Check if the date is in the past
+      if (calendarService.isDateInPast(cellDate)) {
+        info.el.classList.add('past-date');
+      }
+    });
+  }
+
+  /**
    * Copy week schedule from source to target week
    * @param sourceWeek The source week date
    * @param targetWeek The target week date
    * @param availability$ Observable of availability data
    */
-  copyWeekSchedule(sourceWeek: Date, targetWeek: Date, availability$: any): void {
+  copyWeekSchedule(sourceWeek: Date, targetWeek: Date, availability$: Observable<Availability[]>): void {
     // Get the start and end dates for the source week
     const sourceStart = getStartOfWeek(sourceWeek);
     const sourceEnd = getEndOfWeek(sourceWeek);
@@ -64,7 +244,7 @@ export class BusinessLogicService {
         }));
         
         // Get the source week's availability and validate bulk creation for the target week
-        availability$.pipe(take(1)).subscribe((availability: any[]) => {
+        availability$.pipe(take(1)).subscribe((availability: Availability[]) => {
           // Filter for slots in the source week
           const sourceWeekSlots = availability.filter(slot => {
             const slotDate = new Date(slot.date || slot.startTime);

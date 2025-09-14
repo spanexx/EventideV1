@@ -97,6 +97,7 @@ export class AvailabilityDialogComponent {
     private availabilityService: AvailabilityService,
     private snackbarService: SnackbarService
   ) {
+    console.log('AvailabilityDialogComponent received data:', data);
     this.isNew = !data.availability;
     this.user$ = this.store.pipe(select(AuthSelectors.selectUser));
     
@@ -121,6 +122,10 @@ export class AvailabilityDialogComponent {
       // Ensure date is a Date object if it exists
       if (this.availability.date && !(this.availability.date instanceof Date)) {
         this.availability.date = new Date(this.availability.date);
+      }
+      // If date is missing but startTime exists, use startTime's date
+      if (!this.availability.date && this.availability.startTime) {
+        this.availability.date = new Date(this.availability.startTime);
       }
       // Ensure dayOfWeek is a number if it exists
       if (this.availability.dayOfWeek && typeof this.availability.dayOfWeek === 'string') {
@@ -473,6 +478,9 @@ export class AvailabilityDialogComponent {
           const newEndDate = new Date(this.availability.date);
           newEndDate.setHours(this.availability.endTime.getHours(), this.availability.endTime.getMinutes(), 0, 0);
           this.availability.endTime = newEndDate;
+        } else if (!this.isRecurring && !this.availability.date && this.availability.startTime) {
+          // If date is missing but startTime exists, use startTime's date
+          this.availability.date = new Date(this.availability.startTime);
         }
         
         // Log the availability data after processing
@@ -491,6 +499,20 @@ export class AvailabilityDialogComponent {
         
         // Close the dialog with the result
         this.dialogRef.close(this.availability);
+        
+        // If this is a new availability slot, refresh the calendar after a short delay
+        // to ensure the store has been updated
+        if (this.isNew) {
+          const userId = user.id;
+          const refreshDate = this.availability.date || new Date(this.availability.startTime);
+          setTimeout(() => {
+            // Dispatch loadAvailability to refresh the calendar
+            this.store.dispatch(AvailabilityActions.loadAvailability({ 
+              providerId: userId, 
+              date: refreshDate
+            }));
+          }, 100);
+        }
       } else {
         console.error('No user found, cannot save availability');
         this.snackbarService.showError('No user found, please log in again');
@@ -554,6 +576,15 @@ export class AvailabilityDialogComponent {
         console.log('Created all-day slots:', createdSlots);
         // Close the dialog with the result
         this.dialogRef.close(createdSlots);
+        
+        // Refresh the calendar after a short delay to ensure the store has been updated
+        setTimeout(() => {
+          // Dispatch loadAvailability to refresh the calendar
+          this.store.dispatch(AvailabilityActions.loadAvailability({ 
+            providerId: providerId, 
+            date: this.data.date
+          }));
+        }, 100);
       },
       error: (error) => {
         console.error('Failed to create all-day slots:', error);
@@ -584,6 +615,17 @@ export class AvailabilityDialogComponent {
         console.log('Created bulk slots:', createdSlots);
         // Close the dialog with the result
         this.dialogRef.close(createdSlots);
+        
+        // Refresh the calendar after a short delay to ensure the store has been updated
+        // Use the start date or today as the refresh date
+        const refreshDate = this.startDate || new Date();
+        setTimeout(() => {
+          // Dispatch loadAvailability to refresh the calendar
+          this.store.dispatch(AvailabilityActions.loadAvailability({ 
+            providerId: providerId, 
+            date: refreshDate
+          }));
+        }, 100);
       },
       error: (error) => {
         console.error('Failed to create bulk slots:', error);

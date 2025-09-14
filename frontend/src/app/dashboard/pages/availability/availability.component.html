@@ -10,9 +10,6 @@
       <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>
-      <button mat-icon-button (click)="copyWeekSchedule()" matTooltip="Copy Week">
-        <mat-icon>content_copy</mat-icon>
-      </button>
       <div class="history-controls">
         <button mat-icon-button (click)="undo()" [disabled]="!canUndo()" matTooltip="Undo last action">
           <mat-icon>undo</mat-icon>
@@ -21,6 +18,7 @@
           <mat-icon>redo</mat-icon>
         </button>
       </div>
+      
     </div>
   </div>
 
@@ -49,11 +47,12 @@
   
   <!-- Context Menu -->
   <mat-menu #contextMenu="matMenu" class="iphone-context-menu">
-    <button mat-menu-item (click)="editSlot()">
+    <button mat-menu-item (click)="editSlot(contextMenuTrigger.menuData?.slot)">
       <mat-icon>edit</mat-icon>
       <span>Edit</span>
     </button>
-    <button mat-menu-item (click)="deleteSlot()">
+    
+    <button mat-menu-item (click)="deleteSlot(contextMenuTrigger.menuData?.slot)">
       <mat-icon>delete</mat-icon>
       <span>Delete</span>
     </button>

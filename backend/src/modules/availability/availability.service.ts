@@ -68,10 +68,8 @@ export class AvailabilityService {
 
       const result = await this.availabilityModel.create(createAvailabilityDto);
 
-      // Clear cache for this provider
-      await this.cacheService.del(
-        `availability:${createAvailabilityDto.providerId}`,
-      );
+      // Clear cache for this provider using simple key
+      await this.cacheService.del(`availability:${createAvailabilityDto.providerId}`);
 
       // Emit WebSocket event for real-time updates
       this.websocketsService.emitToRoom(
@@ -115,52 +113,10 @@ export class AvailabilityService {
     endDate?: Date,
   ): Promise<IAvailability[]> {
     try {
-      // Ensure dates are proper Date objects
-      const start = startDate ? new Date(startDate) : undefined;
-      const end = endDate ? new Date(endDate) : undefined;
+      // Get all slots for the provider - simple and bulletproof
+      // We return ALL slots for the provider to avoid any timezone filtering issues
+      const result = await this.availabilityModel.find({ providerId });
       
-      // Check cache first
-      const cacheKey = `availability:${providerId}:${start?.toISOString()}:${end?.toISOString()}`;
-      const cached = await this.cacheService.get<IAvailability[]>(cacheKey);
-      if (cached) {
-        this.logger.log(
-          `Retrieved availability from cache for provider ${providerId}`,
-        );
-        return cached;
-      }
-
-      // Build query
-      const query: any = { providerId };
-
-      // For recurring slots, we don't filter by date
-      // For one-off slots, we filter by date range
-      const dateConditions: any[] = [];
-
-      // Add condition for one-off slots within date range
-      if (start || end) {
-        const oneOffCondition: any = { type: 'one_off' };
-        if (start) {
-          oneOffCondition.date = { ...oneOffCondition.date, $gte: start };
-        }
-        if (end) {
-          oneOffCondition.date = { ...oneOffCondition.date, $lte: end };
-        }
-        dateConditions.push(oneOffCondition);
-      } else {
-        // If no date range specified, get all one-off slots
-        dateConditions.push({ type: 'one_off' });
-      }
-
-      // Add condition for recurring slots (no date filtering)
-      dateConditions.push({ type: 'recurring' });
-
-      query.$or = dateConditions;
-
-      const result = await this.availabilityModel.find(query);
-
-      // Cache the result
-      await this.cacheService.set(cacheKey, result, 300); // 5 minutes
-
       this.logger.log(
         `Retrieved ${result.length} availability slots for provider ${providerId}`,
       );

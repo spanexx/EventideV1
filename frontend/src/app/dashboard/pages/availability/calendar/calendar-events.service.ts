@@ -21,13 +21,11 @@ export class CalendarEventsService {
    * Handle event click for editing availability slots
    * @param clickInfo The event click information
    * @param availability$ Observable of availability data
-   * @param selectedSlot The currently selected slot
    * @returns Observable that emits the selected slot or null
    */
   handleEventClick(
     clickInfo: any, 
-    availability$: Observable<Availability[]>,
-    selectedSlot: Availability | null
+    availability$: Observable<Availability[]>
   ): Observable<Availability | null> {
     return new Observable(observer => {
       // Use take(1) to automatically unsubscribe after the first emission

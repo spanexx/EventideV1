@@ -23,6 +23,7 @@ import { HistoryManagementService } from '../../services/history/history-managem
 import { KeyboardShortcutService } from '../../services/keyboard/keyboard-shortcut.service';
 import { DialogDataService } from '../../services/dialog/dialog-data.service';
 import { BusinessLogicService } from '../../services/business/business-logic.service';
+import { AvailabilityClipboardService } from '../../services/clipboard/availability-clipboard.service';
 import { calculateDurationInMinutes } from '../../utils/dashboard.utils';
 import { renderEventContent, handleDayCellRender } from '../../utils/calendar-rendering.utils';
 import { CalendarService } from './calendar/calendar.service';
@@ -51,11 +52,11 @@ export class AvailabilityComponent implements OnInit {
   
   contextMenuPosition = { x: 0, y: 0 };
   
+  selectedSlot: Availability | null = null;
   availability$: Observable<Availability[]>;
   loading$: Observable<boolean>;
   error$: Observable<string | null>;
   summary$!: Observable<{ created: number; skipped: number } | null>;
-  selectedSlot: Availability | null = null;
   
   // History management
   private history: Availability[][] = [];
@@ -80,7 +81,8 @@ export class AvailabilityComponent implements OnInit {
     private dialogDataService: DialogDataService,
     private businessLogicService: BusinessLogicService,
     private calendarManager: CalendarService,
-    private calendarEvents: CalendarEventsService
+    private calendarEvents: CalendarEventsService,
+    private clipboardService: AvailabilityClipboardService
   ) {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
@@ -191,10 +193,11 @@ export class AvailabilityComponent implements OnInit {
 
   handleEventClick(clickInfo: EventClickArg) {
     // Handle event click for editing availability slots
-    this.calendarEvents.handleEventClick(clickInfo, this.availability$, this.selectedSlot).subscribe(slot => {
+    this.calendarEvents.handleEventClick(clickInfo, this.availability$).subscribe(slot => {
       if (slot) {
-        // Store the selected slot
+        // Set the selected slot for copy/paste operations
         this.selectedSlot = slot;
+        
         // Prevent edits/deletes for past-day slots
         const slotDay = new Date(slot.startTime);
         slotDay.setHours(0,0,0,0);
@@ -208,7 +211,7 @@ export class AvailabilityComponent implements OnInit {
             this.snackbarService.showError('This slot is in the past and cannot be modified.');
             return;
           }
-          this.showContextMenu(clickInfo.jsEvent);
+          this.showContextMenu(clickInfo.jsEvent, slot);
         } 
         // Check if it's a Ctrl/Meta click (alternative delete)
         else if (clickInfo.jsEvent.ctrlKey || clickInfo.jsEvent.metaKey) {
@@ -224,22 +227,33 @@ export class AvailabilityComponent implements OnInit {
             this.snackbarService.showError('This slot is in the past and cannot be modified.');
           } else {
             // Edit the slot
-            this.editSlot();
+            this.editSlot(slot);
           }
         }
       }
     });
   }
 
-  handleEventContextMenu(e: MouseEvent, info: any) {
-    // Select the slot based on the event id
-    this.availability$.subscribe(av => {
-      const slot = av.find(a => a.id === info.event.id);
-      if (slot) {
-        this.selectedSlot = slot;
-        this.showContextMenu(e);
-      }
-    }).unsubscribe();
+  handleEventContextMenu(event: MouseEvent, info: any) {
+    // Prevent the browser's default context menu
+    event.preventDefault();
+    
+    // Check if we clicked on an event or empty space
+    const eventElement = event.target as HTMLElement;
+    const isEventClick = eventElement.closest('.fc-event') !== null;
+    
+    if (isEventClick) {
+      // Clicked on an event, find the slot
+      this.availability$.pipe(take(1)).subscribe(av => {
+        const slot = av.find(a => a.id === info.event.id);
+        if (slot) {
+          this.showContextMenu(event, slot);
+        }
+      });
+    } else {
+      // Clicked on empty space
+      this.showContextMenu(event);
+    }
   }
 
   handleEvents(events: EventApi[]) {
@@ -393,6 +407,17 @@ export class AvailabilityComponent implements OnInit {
       return;
     }
     
+    // Ctrl/Cmd + C - Copy selected slot
+    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+      event.preventDefault();
+      if (this.selectedSlot) {
+        this.copySlots([this.selectedSlot]);
+      } else {
+        this.snackbarService.showError('No slot selected to copy');
+      }
+      return;
+    }
+    
     // R - Refresh
     if (this.keyboardShortcutService.isRefreshShortcut(event)) {
       event.preventDefault();
@@ -400,12 +425,8 @@ export class AvailabilityComponent implements OnInit {
       return;
     }
     
-    // C - Copy week
-    if (this.keyboardShortcutService.isCopyWeekShortcut(event)) {
-      event.preventDefault();
-      this.copyWeekSchedule();
-      return;
-    }
+    
+    
     
     // A - Add availability
     if (this.keyboardShortcutService.isAddAvailabilityShortcut(event)) {
@@ -461,15 +482,7 @@ export class AvailabilityComponent implements OnInit {
     });
   }
 
-  copyWeekSchedule(): void {
-    const dialogRef = this.dialogService.openCopyWeekDialog(this.dialogDataService.prepareCopyWeekDialogData());
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      if (result) {
-        this.businessLogicService.copyWeekSchedule(result.sourceWeek, result.targetWeek, this.availability$);
-      }
-    });
-  }
+  
 
   openDatePicker(): void {
     const dialogRef = this.dialogService.openDatePickerDialog(
@@ -495,7 +508,7 @@ export class AvailabilityComponent implements OnInit {
     handleDayCellRender(info, this.availability$, this.calendarService.isDateInPast.bind(this.calendarService));
   }
 
-  showContextMenu(event: MouseEvent) {
+  showContextMenu(event: MouseEvent, slot?: Availability) {
     // Prevent the browser's default context menu
     event.preventDefault();
     
@@ -503,49 +516,65 @@ export class AvailabilityComponent implements OnInit {
     this.contextMenuPosition.x = event.clientX;
     this.contextMenuPosition.y = event.clientY;
     
+    // Set the selected slot for copy/paste operations
+    if (slot) {
+      this.selectedSlot = slot;
+      this.contextMenuTrigger.menuData = { slot };
+    } else {
+      this.selectedSlot = null;
+    }
+    
     // Open the context menu at the mouse position
     this.calendarManager.openContextMenuAtPosition(this.contextMenuTrigger, event);
   }
 
-  editSlot() {
-    if (this.selectedSlot) {
-      // Check if a dialog is already open
-      if (this.dialogService.isAvailabilityDialogOpen()) {
-        this.dialogService.focusExistingAvailabilityDialog();
-        return;
-      }
-      
-      console.log('Opening edit availability dialog for slot:', this.selectedSlot);
-      const dialogRef = this.dialogService.openAvailabilityDialog({
-        availability: this.selectedSlot, 
-        date: this.selectedSlot.date
-      });
-
-      dialogRef.afterClosed().subscribe((result: any) => {
-        console.log('Dialog closed with result:', result);
-        if (result) {
-          // The dialog component will dispatch the update action
-          // No additional action needed here
-        }
-      });
+  editSlot(slot: Availability) {
+    // Check if a dialog is already open
+    if (this.dialogService.isAvailabilityDialogOpen()) {
+      this.dialogService.focusExistingAvailabilityDialog();
+      return;
     }
+    
+    console.log('Opening edit availability dialog for slot:', slot);
+    const dialogRef = this.dialogService.openAvailabilityDialog({
+      availability: slot, 
+      date: slot.date
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      console.log('Dialog closed with result:', result);
+      if (result) {
+        // The dialog component will dispatch the update action
+        // No additional action needed here
+      }
+    });
   }
 
-  deleteSlot() {
-    if (this.selectedSlot) {
-      const dialogRef = this.dialogService.openConfirmationDialog({
-        title: 'Delete Availability Slot',
-        message: 'Are you sure you want to delete this availability slot? This action cannot be undone.',
-        confirmText: 'Delete',
-        cancelText: 'Cancel'
-      });
+  /**
+   * Copy an availability slot to the clipboard
+   * @param slot The slot to copy
+   */
+  copySlots(slots: Availability[]): void {
+    this.clipboardService.copySlots(slots);
+    this.snackbarService.showSuccess('Slots copied to clipboard');
+    console.log('Copied slots:', slots);
+  }
 
-      dialogRef.afterClosed().subscribe((result: any) => {
-        if (result) {
-          this.store.dispatch(AvailabilityActions.deleteAvailability({ id: this.selectedSlot!.id }));
-        }
-      });
-    }
+  
+
+  deleteSlot(slot: Availability) {
+    const dialogRef = this.dialogService.openConfirmationDialog({
+      title: 'Delete Availability Slot',
+      message: 'Are you sure you want to delete this availability slot? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        this.store.dispatch(AvailabilityActions.deleteAvailability({ id: slot.id }));
+      }
+    });
   }
 
   /**
@@ -581,6 +610,8 @@ export class AvailabilityComponent implements OnInit {
       }
     });
   }
+
+  
 
   /**
    * Open the availability dialog with the provided selection info

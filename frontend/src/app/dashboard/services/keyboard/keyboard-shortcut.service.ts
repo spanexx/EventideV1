@@ -57,6 +57,24 @@ export class KeyboardShortcutService {
   }
 
   /**
+   * Check if it's a copy slot shortcut (Ctrl+C)
+   * @param event The keyboard event
+   * @returns True if it's a copy slot shortcut, false otherwise
+   */
+  isCopySlotShortcut(event: KeyboardEvent): boolean {
+    return (event.ctrlKey || event.metaKey) && event.key === 'c' && !event.shiftKey;
+  }
+
+  /**
+   * Check if it's a paste slot shortcut (Ctrl+V)
+   * @param event The keyboard event
+   * @returns True if it's a paste slot shortcut, false otherwise
+   */
+  isPasteSlotShortcut(event: KeyboardEvent): boolean {
+    return (event.ctrlKey || event.metaKey) && event.key === 'v' && !event.shiftKey;
+  }
+
+  /**
    * Check if it's an add availability shortcut (A)
    * @param event The keyboard event
    * @returns True if it's an add availability shortcut, false otherwise

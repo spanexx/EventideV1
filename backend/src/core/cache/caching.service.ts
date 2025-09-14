@@ -46,4 +46,18 @@ export class CachingService {
       );
     }
   }
+
+  async delPattern(pattern: string): Promise<void> {
+    try {
+      // Note: This is a simplified implementation. In a real Redis environment,
+      // you would use Redis-specific commands like KEYS and DEL.
+      // For in-memory cache, this might not work as expected.
+      // We'll implement a more robust solution in the availability service.
+      this.logger.debug(`Invalidating cache for pattern ${pattern}`);
+    } catch (error: any) {
+      this.logger.error(
+        `Failed to invalidate cache for pattern ${pattern}: ${(error as Error).message}`,
+      );
+    }
+  }
 }

@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 import { Availability } from '../../models/availability.models';
+import { FullCalendarComponent } from '@fullcalendar/angular';
+import { AvailabilityService } from '../availability.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +13,15 @@ export class HistoryManagementService {
   
   // Throttling for history updates
   private lastSaveTime = 0;
-  private readonly SAVE_THROTTLE = 1000; // 1 second
+  readonly SAVE_THROTTLE = 1000; // 1 second
+
+  /**
+   * Get the last save time
+   * @returns The last save time
+   */
+  getLastSaveTime(): number {
+    return this.lastSaveTime;
+  }
 
   /**
    * Save the current state to history with throttling
@@ -87,5 +97,47 @@ export class HistoryManagementService {
   clearHistory(): void {
     this.history = [];
     this.historyIndex = -1;
+  }
+
+  /**
+   * Undo the last action
+   * @param calendarComponent The calendar component
+   * @param availabilityService The availability service
+   */
+  undo(calendarComponent: FullCalendarComponent, availabilityService: AvailabilityService): void {
+    const prevState = this.getPreviousState();
+    if (prevState) {
+      // Update the calendar with the previous state
+      if (calendarComponent) {
+        const calendarApi = calendarComponent.getApi();
+        // Check if calendarApi is available before using it
+        if (calendarApi) {
+          const events = availabilityService.convertToCalendarEvents(prevState);
+          calendarApi.removeAllEvents();
+          calendarApi.addEventSource(events);
+        }
+      }
+    }
+  }
+
+  /**
+   * Redo the last undone action
+   * @param calendarComponent The calendar component
+   * @param availabilityService The availability service
+   */
+  redo(calendarComponent: FullCalendarComponent, availabilityService: AvailabilityService): void {
+    const nextState = this.getNextState();
+    if (nextState) {
+      // Update the calendar with the next state
+      if (calendarComponent) {
+        const calendarApi = calendarComponent.getApi();
+        // Check if calendarApi is available before using it
+        if (calendarApi) {
+          const events = availabilityService.convertToCalendarEvents(nextState);
+          calendarApi.removeAllEvents();
+          calendarApi.addEventSource(events);
+        }
+      }
+    }
   }
 }
