@@ -188,6 +188,16 @@ export class AvailabilityService {
     );
   }
 
+  /**
+   * Copy week availability slots.
+   * This method reuses the createBulkAvailability endpoint with conflict resolution.
+   * @param dto - Data for copying week availability.
+   * @returns Observable of the operation result.
+   */
+  copyWeek(dto: CreateBulkAvailabilityDto): Observable<any> {
+    return this.createBulkAvailability(dto);
+  }
+
   validateAvailability(payload: CreateBulkAvailabilityDto): Observable<BulkValidationResponse> {
     return this.http.post<any>(`${this.API_URL}/validate`, payload).pipe(
       map(res => ({

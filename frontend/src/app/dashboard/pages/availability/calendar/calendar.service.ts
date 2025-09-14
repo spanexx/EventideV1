@@ -100,23 +100,6 @@ export class CalendarService {
             // Check if we clicked on an event or empty space using the new helper method
             const eventElement = this.getEventFromClick(e, calendarContainer);
             
-            // If we didn't click on an event, handle as empty slot
-            if (!eventElement) {
-              e.preventDefault();
-              e.stopPropagation();
-              
-              // Use FullCalendar's built-in method to get the date from position
-              const calendarApi = info.view.calendar;
-              const clickedDate = this.getDateFromPosition(calendarApi, e);
-              
-              // Create a temporary info object for empty slots
-              const emptySlotInfo = {
-                date: clickedDate || new Date(), // Use the calculated date or fallback
-                jsEvent: e
-              };
-              
-              handleEventContextMenu(e, emptySlotInfo);
-            }
             // If we clicked on an event, let the event's context menu handler take precedence
             // The eventDidMount handler will prevent the default and handle the event context menu
           });

@@ -23,3 +23,24 @@ export interface Metrics {
   cancellations: number;
   occupancyRate: number;
 }
+
+export interface BulkSlotConfig {
+  startTime: Date;
+  endTime: Date;
+  duration: number;
+}
+
+export interface CreateBulkAvailabilityDto {
+  providerId: string;
+  type?: 'recurring' | 'one_off';
+  dayOfWeek?: number;
+  date?: Date;
+  startDate?: Date;
+  endDate?: Date;
+  quantity?: number;
+  slots?: BulkSlotConfig[];
+  skipConflicts?: boolean;
+  replaceConflicts?: boolean;
+  dryRun?: boolean;
+  idempotencyKey?: string;
+}

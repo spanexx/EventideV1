@@ -10,6 +10,9 @@
       <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
       </button>
+      <button mat-icon-button (click)="openCopyWeekDialog()" matTooltip="Copy week schedule">
+        <mat-icon>content_copy</mat-icon>
+      </button>
       <div class="history-controls">
         <button mat-icon-button (click)="undo()" [disabled]="!canUndo()" matTooltip="Undo last action">
           <mat-icon>undo</mat-icon>

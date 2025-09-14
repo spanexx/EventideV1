@@ -611,6 +611,89 @@ export class AvailabilityComponent implements OnInit {
     });
   }
 
+  openCopyWeekDialog(): void {
+    const dialogRef = this.dialogService.openCopyWeekDialog();
+
+    dialogRef.afterClosed().subscribe((result: { sourceWeek: Date, targetWeek: Date, conflictResolution: 'skip' | 'replace' }) => {
+      if (result) {
+        this.handleCopyWeek(result);
+      }
+    });
+  }
+
+  private handleCopyWeek(result: { sourceWeek: Date, targetWeek: Date, conflictResolution: 'skip' | 'replace' }): void {
+    const { sourceWeek, targetWeek, conflictResolution } = result;
+
+    // 1. Get user ID
+    this.store.select(AuthSelectors.selectUserId).pipe(take(1)).subscribe(userId => {
+      if (!userId) {
+        this.snackbarService.showError('User not found. Please log in again.');
+        return;
+      }
+
+      // 2. Get current availability
+      this.availability$.pipe(take(1)).subscribe(availability => {
+        
+        // 3. Filter slots from source week
+        const sourceStartDate = new Date(sourceWeek);
+        sourceStartDate.setDate(sourceStartDate.getDate() - sourceStartDate.getDay()); // Start of the week (Sunday)
+        sourceStartDate.setHours(0, 0, 0, 0);
+
+        const sourceEndDate = new Date(sourceStartDate);
+        sourceEndDate.setDate(sourceEndDate.getDate() + 7); // End of the week (next Sunday)
+
+        const sourceSlots = availability.filter(slot => {
+          const slotDate = new Date(slot.startTime);
+          return slotDate >= sourceStartDate && slotDate < sourceEndDate;
+        });
+
+        if (sourceSlots.length === 0) {
+          this.snackbarService.showInfo('No availability slots found in the source week to copy.');
+          return;
+        }
+
+        // 4. Calculate date offset
+        const targetStartDate = new Date(targetWeek);
+        targetStartDate.setDate(targetStartDate.getDate() - targetStartDate.getDay()); // Start of the target week (Sunday)
+        targetStartDate.setHours(0, 0, 0, 0);
+        
+        const dateOffset = targetStartDate.getTime() - sourceStartDate.getTime();
+
+        // 5. Create new slots for target week
+        const newSlots = sourceSlots.map(slot => {
+          const newStartTime = new Date(new Date(slot.startTime).getTime() + dateOffset);
+          const newEndTime = new Date(new Date(slot.endTime).getTime() + dateOffset);
+          
+          return {
+            ...slot,
+            startTime: newStartTime,
+            endTime: newEndTime,
+            date: newStartTime, // Ensure date is updated
+            id: undefined, // Remove id to create new slot
+            isBooked: false // Copied slots should not be booked
+          };
+        });
+
+        // 6. Call the service
+        this.availabilityService.copyWeek({
+          providerId: userId,
+          slots: newSlots,
+          skipConflicts: conflictResolution === 'skip',
+          replaceConflicts: conflictResolution === 'replace'
+        }).subscribe({
+          next: (response) => {
+            this.snackbarService.showSuccess(`Successfully copied ${response.created.length} slots. ${response.conflicts.length} conflicts were handled.`);
+            // Refresh calendar
+            this.store.dispatch(AvailabilityActions.loadAvailability({ providerId: userId, date: targetStartDate }));
+          },
+          error: (error) => {
+            this.snackbarService.showError('Failed to copy week: ' + error.message);
+          }
+        });
+      });
+    });
+  }
+
   
 
   /**
