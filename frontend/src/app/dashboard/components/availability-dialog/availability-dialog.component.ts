@@ -21,6 +21,8 @@ import { AvailabilityService, CreateBulkAvailabilityDto } from '../../services/a
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import { User } from '../../../services/auth.service';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
+import { PendingChangesService } from '../../services/pending-changes/pending-changes.service';
+import { Change } from '../../services/pending-changes/pending-changes.interface';
 
 interface AllDaySlot {
   startTime: Date;
@@ -99,7 +101,8 @@ export class AvailabilityDialogComponent {
     },
     private store: Store,
     private availabilityService: AvailabilityService,
-    private snackbarService: SnackbarService
+    private snackbarService: SnackbarService,
+    private pendingChangesService: PendingChangesService
   ) {
     console.log('AvailabilityDialogComponent received data:', data);
     this.isNew = !data.availability;
@@ -425,7 +428,14 @@ export class AvailabilityDialogComponent {
         if (user) {
           const confirmed = confirm('Are you sure you want to delete this availability slot?');
           if (confirmed) {
-            this.store.dispatch(AvailabilityActions.deleteAvailability({ id: this.availability.id }));
+            // Instead of directly dispatching delete action, add to pending changes
+            const change: Change = {
+              id: `delete-${this.availability.id}-${Date.now()}`,
+              type: 'delete',
+              entityId: this.availability.id,
+              timestamp: new Date()
+            };
+            this.pendingChangesService.addChange(change);
             this.dialogRef.close({ deleted: true, id: this.availability.id });
           }
         }
@@ -461,14 +471,14 @@ export class AvailabilityDialogComponent {
         
         // Handle bulk creation
         if (this.isBulkCreation) {
-          this.createBulkSlots(user.id);
+          this.createBulkSlotsPendingChanges(user.id);
           return;
         }
         
         // Handle all-day slots differently
         if (this.data.allDay) {
           // For all-day slots, we need to create multiple slots based on the configuration
-          this.createAllDaySlots(user.id);
+          this.createAllDaySlotsPendingChanges(user.id);
           return;
         }
         
@@ -493,33 +503,39 @@ export class AvailabilityDialogComponent {
         // Log the availability data after processing
         console.log('Processed availability data:', this.availability);
         
-        // Conflict checking is done on the backend
-        // Dispatch the action to create or update the availability slot
+        // Instead of directly creating/updating, add to pending changes
         if (this.isNew) {
-          // For new availability slots, we should not send an empty id field
+          // For new availability slots, create a change record
           const { id, ...newAvailability } = this.availability;
-          this.store.dispatch(AvailabilityActions.createAvailability({ availability: newAvailability as any }));
+          // Generate a temporary ID for the new slot
+          const tempId = `temp-${Date.now()}-${Math.random()}`;
+          const slotWithId = { ...newAvailability, id: tempId };
+          
+          const change: Change = {
+            id: `create-${Date.now()}-${Math.random()}`,
+            type: 'create',
+            entity: slotWithId as Availability,
+            timestamp: new Date()
+          };
+          this.pendingChangesService.addChange(change);
+          
+          // Close the dialog with the result
+          this.dialogRef.close(slotWithId);
         } else {
-          // For updates, we should send the complete availability object including the id
-          this.store.dispatch(AvailabilityActions.updateAvailability({ availability: this.availability }));
+          // For updates, create an update change record
+          const change: Change = {
+            id: `update-${this.availability.id}-${Date.now()}`,
+            type: 'update',
+            entityId: this.availability.id,
+            entity: this.availability,
+            timestamp: new Date()
+          };
+          this.pendingChangesService.addChange(change);
+          
+          // Close the dialog with the result
+          this.dialogRef.close(this.availability);
         }
         
-        // Close the dialog with the result
-        this.dialogRef.close(this.availability);
-        
-        // If this is a new availability slot, refresh the calendar after a short delay
-        // to ensure the store has been updated
-        if (this.isNew) {
-          const userId = user.id;
-          const refreshDate = this.availability.date || new Date(this.availability.startTime);
-          setTimeout(() => {
-            // Dispatch loadAvailability to refresh the calendar
-            this.store.dispatch(AvailabilityActions.loadAvailability({ 
-              providerId: userId, 
-              date: refreshDate
-            }));
-          }, 100);
-        }
       } else {
         console.error('No user found, cannot save availability');
         this.snackbarService.showError('No user found, please log in again');
@@ -541,6 +557,134 @@ export class AvailabilityDialogComponent {
   }
 
   /**
+   * Create multiple slots for all-day availability using pending changes
+   * @param providerId The provider ID
+   */
+  createAllDaySlotsPendingChanges(providerId: string): void {
+    // Calculate the slots based on the current configuration
+    this.updateSlotPreview();
+    
+    // Add each slot to pending changes
+    const slots = this.slotPreview.map(slot => {
+      const tempId = `temp-${Date.now()}-${Math.random()}`;
+      return {
+        id: tempId,
+        providerId: providerId,
+        type: this.isRecurring ? 'recurring' : 'one_off',
+        date: this.isRecurring ? undefined : this.data.date,
+        dayOfWeek: this.isRecurring ? this.availability.dayOfWeek : undefined,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+        duration: slot.duration,
+        isBooked: false
+      } as Availability;
+    });
+    
+    // Add each slot as a separate pending change
+    slots.forEach(slot => {
+      const change: Change = {
+        id: `create-${Date.now()}-${Math.random()}`,
+        type: 'create',
+        entity: slot,
+        timestamp: new Date()
+      };
+      this.pendingChangesService.addChange(change);
+    });
+    
+    console.log('Added all-day slots to pending changes:', slots);
+    
+    // Close the dialog with the result
+    this.dialogRef.close(slots);
+  }
+
+  /**
+   * Create multiple slots in bulk using pending changes
+   * @param providerId The provider ID
+   */
+  createBulkSlotsPendingChanges(providerId: string): void {
+    // Generate bulk slots based on the configuration
+    const slots = this.generateBulkSlots(providerId);
+    
+    // Add each slot as a separate pending change
+    slots.forEach(slot => {
+      const change: Change = {
+        id: `create-${Date.now()}-${Math.random()}`,
+        type: 'create',
+        entity: slot,
+        timestamp: new Date()
+      };
+      this.pendingChangesService.addChange(change);
+    });
+    
+    console.log('Added bulk slots to pending changes:', slots);
+    
+    // Close the dialog with the result
+    this.dialogRef.close(slots);
+  }
+
+  /**
+   * Generate bulk slots based on the current configuration
+   * @param providerId The provider ID
+   * @returns Array of availability slots
+   */
+  private generateBulkSlots(providerId: string): Availability[] {
+    const slots: Availability[] = [];
+    
+    // Use the existing logic from createBulkSlots but don't make HTTP calls
+    if (this.dateRangeMode === 'single') {
+      // Single date
+      for (let i = 0; i < this.quantity; i++) {
+        const tempId = `temp-${Date.now()}-${Math.random()}-${i}`;
+        const slot: Availability = {
+          id: tempId,
+          providerId: providerId,
+          type: this.isRecurring ? 'recurring' : 'one_off',
+          date: this.isRecurring ? undefined : this.availability.date,
+          dayOfWeek: this.isRecurring ? this.availability.dayOfWeek : undefined,
+          startTime: this.availability.startTime,
+          endTime: this.availability.endTime,
+          duration: this.availability.duration,
+          isBooked: false
+        };
+        slots.push(slot);
+      }
+    } else if (this.dateRangeMode === 'range' && this.startDate && this.endDate) {
+      // Date range - create one slot per day
+      const currentDate = new Date(this.startDate);
+      
+      while (currentDate <= this.endDate) {
+        const tempId = `temp-${Date.now()}-${Math.random()}-${currentDate.getTime()}`;
+        
+        // Set start and end times for this date
+        const startDateTime = new Date(currentDate);
+        startDateTime.setHours(this.availability.startTime.getHours(), this.availability.startTime.getMinutes(), 0, 0);
+        
+        const endDateTime = new Date(currentDate);
+        endDateTime.setHours(this.availability.endTime.getHours(), this.availability.endTime.getMinutes(), 0, 0);
+        
+        const slot: Availability = {
+          id: tempId,
+          providerId: providerId,
+          type: 'one_off',
+          date: new Date(currentDate),
+          startTime: startDateTime,
+          endTime: endDateTime,
+          duration: this.availability.duration,
+          isBooked: false
+        };
+        slots.push(slot);
+        
+        // Move to next day
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+    
+    return slots;
+  }
+
+  /**
+   * @deprecated This method directly creates slots in the database, bypassing pending changes.
+   * Use createAllDaySlotsPendingChanges() instead.
    * Create multiple slots for all-day availability
    * @param providerId The provider ID
    */
@@ -601,6 +745,8 @@ export class AvailabilityDialogComponent {
   }
 
   /**
+   * @deprecated This method directly creates slots in the database, bypassing pending changes.
+   * Use createBulkSlotsPendingChanges() instead.
    * Create multiple slots in bulk
    * @param providerId The provider ID
    */

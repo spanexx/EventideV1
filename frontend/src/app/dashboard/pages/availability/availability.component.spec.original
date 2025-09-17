@@ -13,12 +13,6 @@ import { BusinessLogicService } from '../../services/business/business-logic.ser
 import { CalendarService } from './calendar/calendar.service';
 import { CalendarEventsService } from './calendar/calendar-events.service';
 import { AvailabilityService } from '../../services/availability.service';
-import { PendingChangesService } from '../../services/pending-changes';
-import { ChangesSynchronizerService } from '../../services/pending-changes';
-import { DragResizeService } from '../../services/pending-changes';
-import { AvailabilityEventHandlerService } from '../../services/availability/availability-event-handler.service';
-import { AvailabilityUiService } from '../../services/availability/availability-ui.service';
-import { AvailabilityDialogCoordinatorService } from '../../services/availability/availability-dialog-coordinator.service';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
 import { Availability } from '../../models/availability.models';
@@ -39,12 +33,6 @@ describe('AvailabilityComponent', () => {
   let mockCalendarManager: jasmine.SpyObj<CalendarService>;
   let mockCalendarEvents: jasmine.SpyObj<CalendarEventsService>;
   let mockClipboardService: jasmine.SpyObj<AvailabilityClipboardService>;
-  let mockPendingChangesService: jasmine.SpyObj<PendingChangesService>;
-  let mockChangesSynchronizerService: jasmine.SpyObj<ChangesSynchronizerService>;
-  let mockDragResizeService: jasmine.SpyObj<DragResizeService>;
-  let mockEventHandlerService: jasmine.SpyObj<AvailabilityEventHandlerService>;
-  let mockUiService: jasmine.SpyObj<AvailabilityUiService>;
-  let mockDialogCoordinatorService: jasmine.SpyObj<AvailabilityDialogCoordinatorService>;
 
   const mockAvailability: Availability = {
     id: '1',
@@ -92,19 +80,11 @@ describe('AvailabilityComponent', () => {
     mockClipboardService = jasmine.createSpyObj('AvailabilityClipboardService', [
       'copySlots'
     ]);
-    mockPendingChangesService = jasmine.createSpyObj('PendingChangesService', ['pendingChanges$', 'getPendingChanges', 'saveChanges', 'hasPendingChanges', 'discardChanges']);
-    mockChangesSynchronizerService = jasmine.createSpyObj('ChangesSynchronizerService', ['saveChanges']);
-    mockDragResizeService = jasmine.createSpyObj('DragResizeService', ['handleEventResize', 'handleEventDrop']);
-    mockEventHandlerService = jasmine.createSpyObj('AvailabilityEventHandlerService', ['handleDateSelect', 'handleEventClick', 'handleEventContextMenu', 'handleEventResize', 'handleEventDrop']);
-    mockUiService = jasmine.createSpyObj('AvailabilityUiService', ['refreshAvailability', 'dismissSummary', 'openDatePicker', 'copySlots', 'navigateCalendar', 'changeView', 'isViewActive']);
-    mockDialogCoordinatorService = jasmine.createSpyObj('AvailabilityDialogCoordinatorService', ['addAvailability', 'editSlot', 'deleteSlot', 'openCopyWeekDialog', 'openDatePicker', 'openAvailabilityDialog']);
 
     // Set up default return values
     mockStore.select.and.returnValue(of([]));
     mockCalendarManager.initializeCalendarOptions.and.returnValue({});
     Object.defineProperty(mockBusinessLogicService, 'summary$', { value: of(null) });
-    mockPendingChangesService.pendingChanges$ = of({ changes: [], originalState: [], currentState: [], hasUnsavedChanges: false });
-    mockPendingChangesService.getPendingChanges.and.returnValue([]);
 
     await TestBed.configureTestingModule({
       imports: [AvailabilityComponent],
@@ -120,13 +100,7 @@ describe('AvailabilityComponent', () => {
         { provide: BusinessLogicService, useValue: mockBusinessLogicService },
         { provide: CalendarService, useValue: mockCalendarManager },
         { provide: CalendarEventsService, useValue: mockCalendarEvents },
-        { provide: AvailabilityClipboardService, useValue: mockClipboardService },
-        { provide: PendingChangesService, useValue: mockPendingChangesService },
-        { provide: ChangesSynchronizerService, useValue: mockChangesSynchronizerService },
-        { provide: DragResizeService, useValue: mockDragResizeService },
-        { provide: AvailabilityEventHandlerService, useValue: mockEventHandlerService },
-        { provide: AvailabilityUiService, useValue: mockUiService },
-        { provide: AvailabilityDialogCoordinatorService, useValue: mockDialogCoordinatorService }
+        { provide: AvailabilityClipboardService, useValue: mockClipboardService }
       ]
     }).compileComponents();
 
@@ -143,92 +117,12 @@ describe('AvailabilityComponent', () => {
     it('should copy a slot to the clipboard service', () => {
       component.copySlots([mockAvailability]);
       
-      expect(mockUiService.copySlots).toHaveBeenCalledWith([mockAvailability], mockClipboardService);
+      expect(mockClipboardService.copySlots).toHaveBeenCalledWith([mockAvailability]);
       expect(mockSnackbarService.showSuccess).toHaveBeenCalledWith('Slots copied to clipboard');
     });
   });
 
-  describe('Event Handlers', () => {
-    it('should delegate handleDateSelect to the event handler service', () => {
-      const mockSelectInfo = {};
-      component.handleDateSelect(mockSelectInfo as any);
-      
-      expect(mockEventHandlerService.handleDateSelect).toHaveBeenCalledWith(mockSelectInfo, jasmine.any(Object));
-    });
-
-    it('should delegate handleEventClick to the event handler service', () => {
-      const mockClickInfo = {};
-      component.handleEventClick(mockClickInfo as any);
-      
-      expect(mockEventHandlerService.handleEventClick).toHaveBeenCalledWith(mockClickInfo, jasmine.any(Object));
-    });
-  });
-
-  describe('UI Operations', () => {
-    it('should delegate refreshAvailability to the UI service', () => {
-      component.refreshAvailability();
-      
-      expect(mockUiService.refreshAvailability).toHaveBeenCalled();
-    });
-
-    it('should delegate dismissSummary to the UI service', () => {
-      component.dismissSummary();
-      
-      expect(mockUiService.dismissSummary).toHaveBeenCalled();
-    });
-
-    it('should delegate openDatePicker to the UI service', () => {
-      component.openDatePicker();
-      
-      expect(mockUiService.openDatePicker).toHaveBeenCalledWith(component.calendarComponent);
-    });
-
-    it('should delegate navigateCalendar to the UI service', () => {
-      component.navigateCalendar('prev');
-      
-      expect(mockUiService.navigateCalendar).toHaveBeenCalledWith(component.calendarComponent, 'prev');
-    });
-
-    it('should delegate changeView to the UI service', () => {
-      component.changeView('timeGridWeek');
-      
-      expect(mockUiService.changeView).toHaveBeenCalledWith(component.calendarComponent, 'timeGridWeek');
-    });
-
-    it('should delegate isViewActive to the UI service', () => {
-      mockUiService.isViewActive.and.returnValue(true);
-      const result = component.isViewActive('timeGridWeek');
-      
-      expect(mockUiService.isViewActive).toHaveBeenCalledWith(component.calendarComponent, 'timeGridWeek');
-      expect(result).toBe(true);
-    });
-  });
-
-  describe('Dialog Operations', () => {
-    it('should delegate editSlot to the dialog coordinator service', () => {
-      component.editSlot(mockAvailability);
-      
-      expect(mockDialogCoordinatorService.editSlot).toHaveBeenCalledWith(mockAvailability);
-    });
-
-    it('should delegate deleteSlot to the dialog coordinator service', () => {
-      component.deleteSlot(mockAvailability);
-      
-      expect(mockDialogCoordinatorService.deleteSlot).toHaveBeenCalledWith(mockAvailability);
-    });
-
-    it('should delegate addAvailability to the dialog coordinator service', () => {
-      component.addAvailability();
-      
-      expect(mockDialogCoordinatorService.addAvailability).toHaveBeenCalled();
-    });
-
-    it('should delegate openCopyWeekDialog to the dialog coordinator service', () => {
-      component.openCopyWeekDialog();
-      
-      expect(mockDialogCoordinatorService.openCopyWeekDialog).toHaveBeenCalled();
-    });
-  });
+  
 
   describe('Keyboard Shortcuts', () => {
     it('should handle copy shortcut (Ctrl+C)', () => {

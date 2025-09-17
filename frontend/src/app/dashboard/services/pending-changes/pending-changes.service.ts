@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Availability } from '../../models/availability.models';
 import { Change, PendingChangesState } from './pending-changes.interface';
 
@@ -25,7 +26,7 @@ export class PendingChangesService {
     this.pendingChangesState = {
       changes: [],
       originalState: [...originalState],
-      currentState: [...originalState],
+      currentState: [...originalState], // Initialize current state with original state
       hasUnsavedChanges: false
     };
     this.pendingChangesSubject.next(this.pendingChangesState);
@@ -38,6 +39,14 @@ export class PendingChangesService {
   addChange(change: Change): void {
     this.pendingChangesState.changes.push(change);
     this.pendingChangesState.hasUnsavedChanges = true;
+    
+    // Automatically update the current state by reapplying all changes
+    const previousCurrentState = [...this.pendingChangesState.currentState];
+    this.pendingChangesState.currentState = this.applyChangesToState(
+      this.pendingChangesState.originalState,
+      this.pendingChangesState.changes
+    );
+    
     this.pendingChangesSubject.next(this.pendingChangesState);
   }
 
@@ -130,6 +139,16 @@ export class PendingChangesService {
   }
   
   /**
+   * Get an observable of the current state (with pending changes applied)
+   * @returns Observable of the current availability state
+   */
+  getCurrentState$(): Observable<Availability[]> {
+    return this.pendingChangesSubject.pipe(
+      map((state: PendingChangesState) => state.currentState)
+    );
+  }
+  
+  /**
    * Restore the pending changes state from a snapshot
    * @param changes The changes to restore
    */
@@ -161,7 +180,7 @@ export class PendingChangesService {
     let currentState = [...originalState];
     
     // Apply each pending change
-    pendingChanges.forEach(change => {
+    pendingChanges.forEach((change, index) => {
       switch (change.type) {
         case 'create':
           // For create operations, add the new slot if entity exists

@@ -64,6 +64,12 @@ QWEN.md
 prompt.prepare
 tskdb_stdio-default.json
 commands/
+scripts/
+templates/
+eventide/
+memory/
+scripts-accessible
+commands/
 commands-accessible
 Event.md
 
