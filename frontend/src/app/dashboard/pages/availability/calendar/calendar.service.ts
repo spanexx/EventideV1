@@ -142,13 +142,18 @@ export class CalendarService {
             console.log('Previous availability length:', previousAvailability.length);
             console.log('Current availability length:', availability.length);
             console.log('Changed events count:', changedEvents.length);
-            if (changedEvents.length === 1) {
-              // Single event change, update only that event
+            
+            // Check if any of the changed events are new (have temp IDs)
+            const hasNewEvents = changedEvents.some(event => event.id.startsWith('temp-'));
+            console.log('Has new events (temp IDs):', hasNewEvents);
+            
+            if (changedEvents.length === 1 && !hasNewEvents) {
+              // Single event change and not a new event, update only that event
               console.log('Updating single calendar event:', changedEvents[0]);
               updateSingleCalendarEvent(changedEvents[0]);
             } else {
               // Multiple events changed or new events added, do full refresh
-              console.log('Refreshing full calendar with all events');
+              console.log('Refreshing full calendar with all events (reason: multiple changes or new events)');
               refreshFullCalendar(availability);
             }
           } else {
@@ -176,7 +181,9 @@ export class CalendarService {
       if (calendarApi) {
         const events = this.availabilityService.convertToCalendarEvents(availability);
         calendarApi.removeAllEvents();
-        calendarApi.addEventSource(events);
+        events.forEach(event => {
+          calendarApi.addEvent(event);
+        });
       }
     }
   }
@@ -202,8 +209,11 @@ export class CalendarService {
           existingEvent.setExtendedProp('isBooked', updatedSlot.isBooked);
           existingEvent.setExtendedProp('isRecurring', updatedSlot.type === 'recurring');
         } else {
-          // If the event doesn't exist, we might need to add it
-          console.log('Event not found in calendar, might need to refresh:', updatedSlot);
+          // If the event doesn't exist, add it as a new event
+          const newEvent = this.availabilityService.convertToCalendarEvents([updatedSlot])[0];
+          if (newEvent) {
+            calendarApi.addEvent(newEvent);
+          }
         }
       }
     }
