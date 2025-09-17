@@ -19,7 +19,6 @@ import { CommonModule } from '@angular/common';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
 import { DialogManagementService } from '../../services/dialog/dialog-management.service';
 import { CalendarOperationsService } from '../../services/calendar/calendar-operations.service';
-import { HistoryManagementService } from '../../services/history/history-management.service';
 import { KeyboardShortcutService } from '../../services/keyboard/keyboard-shortcut.service';
 import { DialogDataService } from '../../services/dialog/dialog-data.service';
 import { BusinessLogicService } from '../../services/business/business-logic.service';
@@ -29,6 +28,14 @@ import { renderEventContent, handleDayCellRender } from '../../utils/calendar-re
 import { CalendarService } from './calendar/calendar.service';
 import { CalendarEventsService } from './calendar/calendar-events.service';
 import { take } from 'rxjs/operators';
+
+// Import our new pending changes services
+import { 
+  PendingChangesService, 
+  ChangesSynchronizerService, 
+  DragResizeService,
+  Change
+} from '../../services/pending-changes';
 
 @Component({
   selector: 'app-availability',
@@ -58,14 +65,8 @@ export class AvailabilityComponent implements OnInit {
   error$: Observable<string | null>;
   summary$!: Observable<{ created: number; skipped: number } | null>;
   
-  // History management
-  private history: Availability[][] = [];
-  private historyIndex = -1;
-  private readonly MAX_HISTORY = 50;
-  
-  // Throttling for history updates
-  private lastHistorySaveTime = 0;
-  private readonly HISTORY_SAVE_THROTTLE = 1000; // 1 second
+  // We're now using the PendingChangesService for state management
+  pendingChangesCount: number = 0;
 
   calendarOptions: any;
 
@@ -76,13 +77,16 @@ export class AvailabilityComponent implements OnInit {
     private snackbarService: SnackbarService,
     private dialogService: DialogManagementService,
     private calendarService: CalendarOperationsService,
-    private historyService: HistoryManagementService,
     private keyboardShortcutService: KeyboardShortcutService,
     private dialogDataService: DialogDataService,
     private businessLogicService: BusinessLogicService,
     private calendarManager: CalendarService,
     private calendarEvents: CalendarEventsService,
-    private clipboardService: AvailabilityClipboardService
+    private clipboardService: AvailabilityClipboardService,
+    // Inject our new services
+    private pendingChangesService: PendingChangesService,
+    private changesSynchronizerService: ChangesSynchronizerService,
+    private dragResizeService: DragResizeService
   ) {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
@@ -104,9 +108,15 @@ export class AvailabilityComponent implements OnInit {
     this.summary$ = this.businessLogicService.summary$;
   }
 
+
   ngOnInit(): void {
     // Load availability data
     const today = new Date();
+    
+    // Subscribe to pending changes to update the count
+    this.pendingChangesService.pendingChanges$.subscribe(state => {
+      this.pendingChangesCount = state.changes.length;
+    });
     
     // Get the current user and load availability for that user
     this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
@@ -121,6 +131,11 @@ export class AvailabilityComponent implements OnInit {
     // Subscribe to availability updates and convert to calendar events
     let previousAvailability: Availability[] = [];
     this.availability$.subscribe(availability => {
+      // Initialize the pending changes service with the original state
+      if (previousAvailability.length === 0) {
+        this.pendingChangesService.initialize(availability);
+      }
+      
       // Update the calendar with the new availability data
       this.calendarManager.updateCalendarWithAvailability(
         this.calendarComponent,
@@ -133,9 +148,6 @@ export class AvailabilityComponent implements OnInit {
       
       // Save previous state for comparison
       previousAvailability = [...availability];
-      
-      // Save to history for undo/redo functionality with throttling
-      this.saveHistoryWithThrottling(availability);
     });
     
     // Subscribe to error updates and show snackbar notifications
@@ -219,7 +231,15 @@ export class AvailabilityComponent implements OnInit {
             this.snackbarService.showError('This slot is in the past and cannot be modified.');
           } else {
             if (confirm('Are you sure you want to delete this availability slot?')) {
-              this.store.dispatch(AvailabilityActions.deleteAvailability({ id: slot.id }));
+              // Instead of directly deleting, add to pending changes
+              const change: Change = {
+                id: `delete-${slot.id}-${Date.now()}`,
+                type: 'delete',
+                entityId: slot.id,
+                // For delete operations, we typically don't need the full entity
+                timestamp: new Date()
+              };
+              this.pendingChangesService.addChange(change);
             }
           }
         } else {
@@ -264,17 +284,17 @@ export class AvailabilityComponent implements OnInit {
   }
 
   handleEventResize(resizeInfo: any) {
-    // Log performance metrics and handle event resize
-    this.calendarEvents.handleCalendarEvent('resize', resizeInfo, (info) => 
-      this.calendarEvents.handleEventResize(info, this.availability$, calculateDurationInMinutes)
-    );
+    // Use our new drag resize service instead of the old one
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.dragResizeService.handleEventResize(resizeInfo, availability);
+    });
   }
 
   handleEventDrop(dropInfo: any) {
-    // Log performance metrics and handle event drop
-    this.calendarEvents.handleCalendarEvent('drop', dropInfo, (info) => 
-      this.calendarEvents.handleEventDrop(info, this.availability$)
-    );
+    // Use our new drag resize service instead of the old one
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.dragResizeService.handleEventDrop(dropInfo, availability);
+    });
   }
 
   // Calendar update methods
@@ -293,35 +313,6 @@ export class AvailabilityComponent implements OnInit {
 
   dismissSummary(): void {
     this.businessLogicService.clearSummary();
-  }
-
-  /**
-   * Save to history with throttling to prevent excessive memory usage during drag operations
-   * @param availability The current availability state
-   */
-  private saveHistoryWithThrottling(availability: Availability[]): void {
-    const currentTime = Date.now();
-    // Only save to history if enough time has passed since the last save
-    if (currentTime - this.lastHistorySaveTime > this.HISTORY_SAVE_THROTTLE) {
-      this.historyService.saveToHistory(availability);
-      this.lastHistorySaveTime = currentTime;
-    }
-  }
-
-  undo(): void {
-    const prevState = this.historyService.getPreviousState();
-    if (prevState) {
-      // Update the calendar with the previous state
-      if (this.calendarComponent) {
-        const calendarApi = this.calendarComponent.getApi();
-        // Check if calendarApi is available before using it
-        if (calendarApi) {
-          const events = this.availabilityService.convertToCalendarEvents(prevState);
-          calendarApi.removeAllEvents();
-          calendarApi.addEventSource(events);
-        }
-      }
-    }
   }
 
   /**
@@ -352,30 +343,6 @@ export class AvailabilityComponent implements OnInit {
     return changed;
   }
 
-  redo(): void {
-    const nextState = this.historyService.getNextState();
-    if (nextState) {
-      // Update the calendar with the next state
-      if (this.calendarComponent) {
-        const calendarApi = this.calendarComponent.getApi();
-        // Check if calendarApi is available before using it
-        if (calendarApi) {
-          const events = this.availabilityService.convertToCalendarEvents(nextState);
-          calendarApi.removeAllEvents();
-          calendarApi.addEventSource(events);
-        }
-      }
-    }
-  }
-
-  canUndo(): boolean {
-    return this.historyService.canUndo();
-  }
-
-  canRedo(): boolean {
-    return this.historyService.canRedo();
-  }
-
   // Keyboard shortcuts
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
@@ -393,17 +360,10 @@ export class AvailabilityComponent implements OnInit {
    * @param event KeyboardEvent to handle
    */
   private handleKeyboardShortcut(event: KeyboardEvent): void {
-    // Ctrl/Cmd + Z - Undo
-    if (this.keyboardShortcutService.isUndoShortcut(event)) {
+    // Ctrl/Cmd + S - Save
+    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault();
-      this.undo();
-      return;
-    }
-    
-    // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y - Redo
-    if (this.keyboardShortcutService.isRedoShortcut(event)) {
-      event.preventDefault();
-      this.redo();
+      this.saveChanges();
       return;
     }
     
@@ -424,9 +384,6 @@ export class AvailabilityComponent implements OnInit {
       this.refreshAvailability();
       return;
     }
-    
-    
-    
     
     // A - Add availability
     if (this.keyboardShortcutService.isAddAvailabilityShortcut(event)) {
@@ -544,8 +501,18 @@ export class AvailabilityComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result: any) => {
       console.log('Dialog closed with result:', result);
       if (result) {
-        // The dialog component will dispatch the update action
-        // No additional action needed here
+        // Instead of directly updating, add to pending changes
+        if (result.id) {
+          const change: Change = {
+            id: `update-${result.id}-${Date.now()}`,
+            type: 'update',
+            entityId: result.id,
+            entity: result,
+            previousEntity: slot,
+            timestamp: new Date()
+          };
+          this.pendingChangesService.addChange(change);
+        }
       }
     });
   }
@@ -572,7 +539,15 @@ export class AvailabilityComponent implements OnInit {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
-        this.store.dispatch(AvailabilityActions.deleteAvailability({ id: slot.id }));
+        // Instead of directly deleting, add to pending changes
+        const change: Change = {
+          id: `delete-${slot.id}-${Date.now()}`,
+          type: 'delete',
+          entityId: slot.id,
+          // For delete operations, we typically don't need the full entity
+          timestamp: new Date()
+        };
+        this.pendingChangesService.addChange(change);
       }
     });
   }
@@ -664,32 +639,30 @@ export class AvailabilityComponent implements OnInit {
           const newStartTime = new Date(new Date(slot.startTime).getTime() + dateOffset);
           const newEndTime = new Date(new Date(slot.endTime).getTime() + dateOffset);
           
-          return {
+          // Create a new object without the id property for new slots
+          const { id, ...newSlot } = {
             ...slot,
             startTime: newStartTime,
             endTime: newEndTime,
             date: newStartTime, // Ensure date is updated
-            id: undefined, // Remove id to create new slot
             isBooked: false // Copied slots should not be booked
           };
+          
+          return newSlot as Availability;
         });
 
-        // 6. Call the service
-        this.availabilityService.copyWeek({
-          providerId: userId,
-          slots: newSlots,
-          skipConflicts: conflictResolution === 'skip',
-          replaceConflicts: conflictResolution === 'replace'
-        }).subscribe({
-          next: (response) => {
-            this.snackbarService.showSuccess(`Successfully copied ${response.created.length} slots. ${response.conflicts.length} conflicts were handled.`);
-            // Refresh calendar
-            this.store.dispatch(AvailabilityActions.loadAvailability({ providerId: userId, date: targetStartDate }));
-          },
-          error: (error) => {
-            this.snackbarService.showError('Failed to copy week: ' + error.message);
-          }
+        // 6. Instead of directly calling the service, add to pending changes
+        newSlots.forEach(slot => {
+          const change: Change = {
+            id: `create-${Date.now()}-${Math.random()}`,
+            type: 'create',
+            entity: slot,
+            timestamp: new Date()
+          };
+          this.pendingChangesService.addChange(change);
         });
+
+        this.snackbarService.showSuccess(`Copied ${newSlots.length} slots to pending changes. Click Save to apply.`);
       });
     });
   }
@@ -713,9 +686,131 @@ export class AvailabilityComponent implements OnInit {
     dialogRef.afterClosed().subscribe((result: any) => {
       console.log('Dialog closed with result:', result);
       if (result) {
-        // The dialog component will dispatch the create action
-        // No additional action needed here
+        // Instead of directly creating, add to pending changes
+        if (Array.isArray(result)) {
+          result.forEach(slot => {
+            const change: Change = {
+              id: `create-${Date.now()}-${Math.random()}`,
+              type: 'create',
+              entity: slot,
+              timestamp: new Date()
+            };
+            this.pendingChangesService.addChange(change);
+          });
+        } else {
+          const change: Change = {
+            id: `create-${Date.now()}-${Math.random()}`,
+            type: 'create',
+            entity: result,
+            timestamp: new Date()
+          };
+          this.pendingChangesService.addChange(change);
+        }
       }
     });
+  }
+
+  /**
+   * Save all pending changes
+   */
+  saveChanges(): void {
+    const changes = this.pendingChangesService.getPendingChanges();
+    
+    if (changes.length === 0) {
+      this.snackbarService.showInfo('No changes to save');
+      return;
+    }
+    
+    this.changesSynchronizerService.saveChanges(changes).subscribe(result => {
+      if (result.success) {
+        this.snackbarService.showSuccess(result.message);
+        // Clear pending changes
+        this.pendingChangesService.saveChanges();
+        // Refresh the calendar
+        this.refreshAvailability();
+      } else {
+        this.snackbarService.showError(result.message);
+        // Show failed changes if any
+        if (result.failed.length > 0) {
+          console.error('Failed changes:', result.failed);
+        }
+      }
+    });
+  }
+
+  /**
+   * Discard all pending changes
+   */
+  discardChanges(): void {
+    if (!this.pendingChangesService.hasPendingChanges()) {
+      this.snackbarService.showInfo('No changes to discard');
+      return;
+    }
+    
+    const dialogRef = this.dialogService.openConfirmationDialog({
+      title: 'Discard Changes',
+      message: 'Are you sure you want to discard all pending changes? This action cannot be undone.',
+      confirmText: 'Discard',
+      cancelText: 'Cancel'
+    });
+
+    dialogRef.afterClosed().subscribe((result: any) => {
+      if (result) {
+        const originalState = this.pendingChangesService.discardChanges();
+        this.refreshFullCalendar(originalState);
+        this.snackbarService.showSuccess('Changes discarded');
+      }
+    });
+  }
+
+  /**
+   * Navigate the calendar
+   * @param direction Direction to navigate ('prev', 'next', 'today')
+   */
+  navigateCalendar(direction: 'prev' | 'next' | 'today'): void {
+    if (this.calendarComponent) {
+      const calendarApi = this.calendarComponent.getApi();
+      if (calendarApi) {
+        switch (direction) {
+          case 'prev':
+            calendarApi.prev();
+            break;
+          case 'next':
+            calendarApi.next();
+            break;
+          case 'today':
+            calendarApi.today();
+            break;
+        }
+      }
+    }
+  }
+
+  /**
+   * Change the calendar view
+   * @param view The view to change to
+   */
+  changeView(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): void {
+    if (this.calendarComponent) {
+      const calendarApi = this.calendarComponent.getApi();
+      if (calendarApi) {
+        calendarApi.changeView(view);
+      }
+    }
+  }
+
+  /**
+   * Check if a view is active
+   * @param view The view to check
+   * @returns True if the view is active, false otherwise
+   */
+  isViewActive(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): boolean {
+    if (this.calendarComponent) {
+      const calendarApi = this.calendarComponent.getApi();
+      if (calendarApi) {
+        return calendarApi.view.type === view;
+      }
+    }
+    return false;
   }
 }

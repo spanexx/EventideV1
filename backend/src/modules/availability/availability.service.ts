@@ -112,13 +112,26 @@ export class AvailabilityService {
     startDate?: Date,
     endDate?: Date,
   ): Promise<IAvailability[]> {
+    const cacheKey = `availability:${providerId}`;
+
     try {
-      // Get all slots for the provider - simple and bulletproof
-      // We return ALL slots for the provider to avoid any timezone filtering issues
+      // 1. Try to get the result from the cache first
+      const cachedAvailabilities = await this.cacheService.get<IAvailability[]>(cacheKey);
+      if (cachedAvailabilities) {
+        this.logger.debug(`Cache HIT for key: ${cacheKey}`);
+        return cachedAvailabilities;
+      }
+
+      this.logger.debug(`Cache MISS for key: ${cacheKey}. Fetching from DB.`);
+
+      // 2. If cache miss, fetch from the database
       const result = await this.availabilityModel.find({ providerId });
-      
+
+      // 3. Store the database result in the cache for future requests
+      await this.cacheService.set(cacheKey, result);
+
       this.logger.log(
-        `Retrieved ${result.length} availability slots for provider ${providerId}`,
+        `Retrieved ${result.length} availability slots for provider ${providerId} from DB and cached result.`,
       );
       return result;
     } catch (error) {
