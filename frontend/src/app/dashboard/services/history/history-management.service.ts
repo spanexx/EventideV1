@@ -76,6 +76,14 @@ export class HistoryManagementService {
   }
 
   /**
+   * Get the current history length
+   * @returns The number of states in history
+   */
+  getHistoryLength(): number {
+    return this.history.length;
+  }
+
+  /**
    * Check if we can undo (go back in history)
    * @returns True if we can undo, false otherwise
    */

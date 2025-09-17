@@ -7,7 +7,6 @@ import { AvailabilityClipboardService } from '../../services/clipboard/availabil
 import { SnackbarService } from '../../../shared/services/snackbar.service';
 import { DialogManagementService } from '../../services/dialog/dialog-management.service';
 import { CalendarOperationsService } from '../../services/calendar/calendar-operations.service';
-import { HistoryManagementService } from '../../services/history/history-management.service';
 import { KeyboardShortcutService } from '../../services/keyboard/keyboard-shortcut.service';
 import { DialogDataService } from '../../services/dialog/dialog-data.service';
 import { BusinessLogicService } from '../../services/business/business-logic.service';
@@ -27,7 +26,7 @@ describe('AvailabilityComponent', () => {
   let mockSnackbarService: jasmine.SpyObj<SnackbarService>;
   let mockDialogService: jasmine.SpyObj<DialogManagementService>;
   let mockCalendarService: jasmine.SpyObj<CalendarOperationsService>;
-  let mockHistoryService: jasmine.SpyObj<HistoryManagementService>;
+  let mockHistoryService: any;
   let mockKeyboardShortcutService: jasmine.SpyObj<KeyboardShortcutService>;
   let mockDialogDataService: jasmine.SpyObj<DialogDataService>;
   let mockBusinessLogicService: jasmine.SpyObj<BusinessLogicService>;
@@ -67,8 +66,6 @@ describe('AvailabilityComponent', () => {
     ]);
     mockKeyboardShortcutService = jasmine.createSpyObj('KeyboardShortcutService', [
       'isCalendarFocused',
-      'isUndoShortcut',
-      'isRedoShortcut',
       'isRefreshShortcut',
       'isCopyWeekShortcut',
       'isAddAvailabilityShortcut',
@@ -98,7 +95,6 @@ describe('AvailabilityComponent', () => {
         { provide: SnackbarService, useValue: mockSnackbarService },
         { provide: DialogManagementService, useValue: mockDialogService },
         { provide: CalendarOperationsService, useValue: mockCalendarService },
-        { provide: HistoryManagementService, useValue: mockHistoryService },
         { provide: KeyboardShortcutService, useValue: mockKeyboardShortcutService },
         { provide: DialogDataService, useValue: mockDialogDataService },
         { provide: BusinessLogicService, useValue: mockBusinessLogicService },
