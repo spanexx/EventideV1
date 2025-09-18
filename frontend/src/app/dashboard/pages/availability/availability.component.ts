@@ -44,6 +44,9 @@ import {
   AvailabilityDialogCoordinatorService
 } from '../../services/availability';
 
+// Import the new undo/redo system
+import { UndoRedoCoordinatorService } from '../../services/undo-redo';
+
 @Component({
   selector: 'app-availability',
   standalone: true,
@@ -74,6 +77,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   
   // We're now using the PendingChangesService for state management
   pendingChangesCount: number = 0;
+  
+  // Undo/redo state for UI binding
+  canUndo: boolean = false;
+  canRedo: boolean = false;
+  undoDescription: string | null = null;
+  redoDescription: string | null = null;
 
   calendarOptions: any;
 
@@ -98,7 +107,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private eventHandlerService: AvailabilityEventHandlerService,
     private uiService: AvailabilityUiService,
     private dialogCoordinatorService: AvailabilityDialogCoordinatorService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    // Inject the undo/redo coordinator service
+    private undoRedoService: UndoRedoCoordinatorService
   ) {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
@@ -129,6 +140,27 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.pendingChangesService.pendingChanges$.subscribe(state => {
       this.pendingChangesCount = state.changes.length;
       // Trigger change detection to avoid ExpressionChangedAfterItHasBeenCheckedError
+      this.cdr.detectChanges();
+    });
+    
+    // Subscribe to undo/redo state for UI binding
+    this.undoRedoService.canUndo$.subscribe(canUndo => {
+      this.canUndo = canUndo;
+      this.cdr.detectChanges();
+    });
+    
+    this.undoRedoService.canRedo$.subscribe(canRedo => {
+      this.canRedo = canRedo;
+      this.cdr.detectChanges();
+    });
+    
+    this.undoRedoService.undoDescription$.subscribe(description => {
+      this.undoDescription = description;
+      this.cdr.detectChanges();
+    });
+    
+    this.undoRedoService.redoDescription$.subscribe(description => {
+      this.redoDescription = description;
       this.cdr.detectChanges();
     });
     
@@ -304,6 +336,20 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param event KeyboardEvent to handle
    */
   private handleKeyboardShortcut(event: KeyboardEvent): void {
+    // Ctrl/Cmd + Z - Undo
+    if (this.keyboardShortcutService.isUndoShortcut(event)) {
+      event.preventDefault();
+      this.undoRedoService.handleUndoShortcut(event);
+      return;
+    }
+    
+    // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y - Redo
+    if (this.keyboardShortcutService.isRedoShortcut(event)) {
+      event.preventDefault();
+      this.undoRedoService.handleRedoShortcut(event);
+      return;
+    }
+    
     // Ctrl/Cmd + S - Save
     if ((event.ctrlKey || event.metaKey) && event.key === 's') {
       event.preventDefault();
@@ -471,6 +517,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         this.snackbarService.showSuccess(result.message);
         // Clear pending changes
         this.pendingChangesService.saveChanges();
+        // Clear undo/redo stack since changes are now committed
+        this.undoRedoService.onChangesSaved();
         // Refresh the calendar
         this.refreshAvailability();
       } else {
@@ -502,10 +550,26 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
         const originalState = this.pendingChangesService.discardChanges();
+        // Clear undo/redo stack since all changes are reverted
+        this.undoRedoService.onChangesDiscarded();
         this.refreshFullCalendar(originalState);
         this.snackbarService.showSuccess('Changes discarded');
       }
     });
+  }
+
+  /**
+   * Execute undo operation
+   */
+  undo(): void {
+    this.undoRedoService.undo();
+  }
+
+  /**
+   * Execute redo operation
+   */
+  redo(): void {
+    this.undoRedoService.redo();
   }
 
   /**
