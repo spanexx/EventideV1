@@ -1,12 +1,9 @@
 <div class="availability-container">
   <div class="page-header">
     <h1 class="page-title">Availability Management</h1>
-    <p class="page-description">Set your available hours for bookings</p>
+    <p class="page-description">Set your available hours for bookings</p><span>Your Schedule</span>
   </div>
   
-  <div class="availability-header">
-    <h2>Your Schedule</h2>
-  </div>
 
   <div class="summary-banner" *ngIf="summary$ | async as summary">
     <span>{{ summary.created }} created<span *ngIf="summary.skipped">, {{ summary.skipped }} skipped</span>.</span>
@@ -35,6 +32,13 @@
           <span class="pending-label">pending changes</span>
         </div>
         <div class="pending-changes-controls">
+          <button mat-icon-button (click)="undo()" matTooltip="Undo" [disabled]="!canUndo">
+            <mat-icon>undo</mat-icon>
+          </button>
+          <button mat-icon-button (click)="redo()" matTooltip="Redo" [disabled]="!canRedo">
+            <mat-icon>redo</mat-icon>
+          </button>
+          <div class="separator"></div>
           <button mat-icon-button (click)="saveChanges()" matTooltip="Save all changes" [disabled]="pendingChangesCount === 0">
             <mat-icon>save</mat-icon>
           </button>

@@ -61,18 +61,11 @@ tskdb.json
 # Private/secret files
 GEMINI.md
 QWEN.md
-prompt.prepare
 tskdb_stdio-default.json
 commands/
-scripts/
-templates/
-eventide/
-memory/
-scripts-accessible
-commands/
-commands-accessible
+prompt.prepare
 Event.md
-
+backend/scripts/
 test*
 
 .qwen*
