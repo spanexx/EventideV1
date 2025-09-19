@@ -9,19 +9,14 @@ import { DialogManagementService } from '../../services/dialog/dialog-management
 import { CalendarOperationsService } from '../../services/calendar/calendar-operations.service';
 import { KeyboardShortcutService } from '../../services/keyboard/keyboard-shortcut.service';
 import { DialogDataService } from '../../services/dialog/dialog-data.service';
-import { BusinessLogicService } from '../../services/business/business-logic.service';
 import { CalendarService } from './calendar/calendar.service';
 import { CalendarEventsService } from './calendar/calendar-events.service';
 import { AvailabilityService } from '../../services/availability.service';
-import { PendingChangesService } from '../../services/pending-changes';
-import { ChangesSynchronizerService } from '../../services/pending-changes';
-import { DragResizeService } from '../../services/pending-changes';
-import { AvailabilityEventHandlerService } from '../../services/availability/availability-event-handler.service';
-import { AvailabilityUiService } from '../../services/availability/availability-ui.service';
-import { AvailabilityDialogCoordinatorService } from '../../services/availability/availability-dialog-coordinator.service';
-import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
-import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
+import { PendingChangesService, ChangesSynchronizerService, DragResizeService } from '../../services/pending-changes';
+import { AvailabilityEventHandlerService, AvailabilityUiService, AvailabilityDialogCoordinatorService, AvailabilityStateService } from '../../services/availability';
+import { UndoRedoCoordinatorService } from '../../services/undo-redo';
 import { Availability } from '../../models/availability.models';
+import { mockAvailabilityStateService } from '../../services/availability/availability-state.service.spec';
 
 describe('AvailabilityComponent', () => {
   let component: AvailabilityComponent;
@@ -32,10 +27,8 @@ describe('AvailabilityComponent', () => {
   let mockSnackbarService: jasmine.SpyObj<SnackbarService>;
   let mockDialogService: jasmine.SpyObj<DialogManagementService>;
   let mockCalendarService: jasmine.SpyObj<CalendarOperationsService>;
-  let mockHistoryService: any;
   let mockKeyboardShortcutService: jasmine.SpyObj<KeyboardShortcutService>;
   let mockDialogDataService: jasmine.SpyObj<DialogDataService>;
-  let mockBusinessLogicService: jasmine.SpyObj<BusinessLogicService>;
   let mockCalendarManager: jasmine.SpyObj<CalendarService>;
   let mockCalendarEvents: jasmine.SpyObj<CalendarEventsService>;
   let mockClipboardService: jasmine.SpyObj<AvailabilityClipboardService>;
@@ -45,6 +38,7 @@ describe('AvailabilityComponent', () => {
   let mockEventHandlerService: jasmine.SpyObj<AvailabilityEventHandlerService>;
   let mockUiService: jasmine.SpyObj<AvailabilityUiService>;
   let mockDialogCoordinatorService: jasmine.SpyObj<AvailabilityDialogCoordinatorService>;
+  let mockUndoRedoService: jasmine.SpyObj<UndoRedoCoordinatorService>;
 
   const mockAvailability: Availability = {
     id: '1',
@@ -57,54 +51,27 @@ describe('AvailabilityComponent', () => {
   };
 
   beforeEach(async () => {
-    // Create spy objects for all services
     mockStore = jasmine.createSpyObj('Store', ['select', 'dispatch']);
     mockDialog = jasmine.createSpyObj('MatDialog', ['open']);
     mockAvailabilityService = jasmine.createSpyObj('AvailabilityService', ['convertToCalendarEvents']);
-    mockSnackbarService = jasmine.createSpyObj('SnackbarService', ['showSuccess', 'showError']);
-    mockDialogService = jasmine.createSpyObj('DialogManagementService', [
-      'isAvailabilityDialogOpen',
-      'focusExistingAvailabilityDialog',
-      'openAvailabilityDialog',
-      'openConfirmationDialog'
-    ]);
+    mockSnackbarService = jasmine.createSpyObj('SnackbarService', ['showSuccess', 'showError', 'showInfo']);
+    mockDialogService = jasmine.createSpyObj('DialogManagementService', ['openConfirmationDialog', 'openAvailabilityDialog']);
     mockCalendarService = jasmine.createSpyObj('CalendarOperationsService', ['isDateInPast', 'hasExistingAvailability']);
-    mockHistoryService = jasmine.createSpyObj('HistoryManagementService', [
-      'saveToHistory',
-      'getPreviousState',
-      'getNextState',
-      'canUndo',
-      'canRedo'
-    ]);
-    mockKeyboardShortcutService = jasmine.createSpyObj('KeyboardShortcutService', [
-      'isCalendarFocused',
-      'isRefreshShortcut',
-      'isCopyWeekShortcut',
-      'isAddAvailabilityShortcut',
-      'isF5RefreshShortcut',
-      'isAvailabilityDialogOpen',
-      'focusExistingAvailabilityDialog'
-    ]);
+    mockKeyboardShortcutService = jasmine.createSpyObj('KeyboardShortcutService', ['isCalendarFocused', 'isUndoShortcut', 'isRedoShortcut', 'isRefreshShortcut', 'isF5RefreshShortcut', 'isAddAvailabilityShortcut', 'isAvailabilityDialogOpen', 'focusExistingAvailabilityDialog']);
     mockDialogDataService = jasmine.createSpyObj('DialogDataService', ['prepareAvailabilityDialogData']);
-    mockBusinessLogicService = jasmine.createSpyObj('BusinessLogicService', ['summary$', 'refreshAvailability', 'clearSummary']);
-    mockCalendarManager = jasmine.createSpyObj('CalendarService', ['initializeCalendarOptions']);
+    mockCalendarManager = jasmine.createSpyObj('CalendarService', ['initializeCalendarOptions', 'updateCalendarWithAvailability', 'refreshFullCalendar', 'updateSingleCalendarEvent', 'openContextMenuAtPosition', 'isDateInPast']);
     mockCalendarEvents = jasmine.createSpyObj('CalendarEventsService', ['handleEventClick']);
-    mockClipboardService = jasmine.createSpyObj('AvailabilityClipboardService', [
-      'copySlots'
-    ]);
-    mockPendingChangesService = jasmine.createSpyObj('PendingChangesService', ['pendingChanges$', 'getPendingChanges', 'saveChanges', 'hasPendingChanges', 'discardChanges']);
+    mockClipboardService = jasmine.createSpyObj('AvailabilityClipboardService', ['copySlots']);
+    mockPendingChangesService = jasmine.createSpyObj('PendingChangesService', ['initialize', 'getCurrentState$', 'getPendingChanges', 'saveChanges', 'hasPendingChanges', 'discardChanges']);
     mockChangesSynchronizerService = jasmine.createSpyObj('ChangesSynchronizerService', ['saveChanges']);
     mockDragResizeService = jasmine.createSpyObj('DragResizeService', ['handleEventResize', 'handleEventDrop']);
-    mockEventHandlerService = jasmine.createSpyObj('AvailabilityEventHandlerService', ['handleDateSelect', 'handleEventClick', 'handleEventContextMenu', 'handleEventResize', 'handleEventDrop']);
+    mockEventHandlerService = jasmine.createSpyObj('AvailabilityEventHandlerService', ['handleDateSelect', 'handleEventClick', 'handleEventContextMenu']);
     mockUiService = jasmine.createSpyObj('AvailabilityUiService', ['refreshAvailability', 'dismissSummary', 'openDatePicker', 'copySlots', 'navigateCalendar', 'changeView', 'isViewActive']);
-    mockDialogCoordinatorService = jasmine.createSpyObj('AvailabilityDialogCoordinatorService', ['addAvailability', 'editSlot', 'deleteSlot', 'openCopyWeekDialog', 'openDatePicker', 'openAvailabilityDialog']);
+    mockDialogCoordinatorService = jasmine.createSpyObj('AvailabilityDialogCoordinatorService', ['addAvailability', 'editSlot', 'deleteSlot', 'openCopyWeekDialog']);
+    mockUndoRedoService = jasmine.createSpyObj('UndoRedoCoordinatorService', ['handleUndoShortcut', 'handleRedoShortcut', 'onChangesSaved', 'onChangesDiscarded', 'undo', 'redo']);
 
-    // Set up default return values
-    mockStore.select.and.returnValue(of([]));
-    mockCalendarManager.initializeCalendarOptions.and.returnValue({});
-    Object.defineProperty(mockBusinessLogicService, 'summary$', { value: of(null) });
-    mockPendingChangesService.pendingChanges$ = of({ changes: [], originalState: [], currentState: [], hasUnsavedChanges: false });
-    mockPendingChangesService.getPendingChanges.and.returnValue([]);
+    mockStore.select.and.returnValue(of('user1'));
+    mockPendingChangesService.getCurrentState$.and.returnValue(of([mockAvailability]));
 
     await TestBed.configureTestingModule({
       imports: [AvailabilityComponent],
@@ -117,7 +84,6 @@ describe('AvailabilityComponent', () => {
         { provide: CalendarOperationsService, useValue: mockCalendarService },
         { provide: KeyboardShortcutService, useValue: mockKeyboardShortcutService },
         { provide: DialogDataService, useValue: mockDialogDataService },
-        { provide: BusinessLogicService, useValue: mockBusinessLogicService },
         { provide: CalendarService, useValue: mockCalendarManager },
         { provide: CalendarEventsService, useValue: mockCalendarEvents },
         { provide: AvailabilityClipboardService, useValue: mockClipboardService },
@@ -126,7 +92,9 @@ describe('AvailabilityComponent', () => {
         { provide: DragResizeService, useValue: mockDragResizeService },
         { provide: AvailabilityEventHandlerService, useValue: mockEventHandlerService },
         { provide: AvailabilityUiService, useValue: mockUiService },
-        { provide: AvailabilityDialogCoordinatorService, useValue: mockDialogCoordinatorService }
+        { provide: AvailabilityDialogCoordinatorService, useValue: mockDialogCoordinatorService },
+        { provide: UndoRedoCoordinatorService, useValue: mockUndoRedoService },
+        { provide: AvailabilityStateService, useValue: mockAvailabilityStateService }
       ]
     }).compileComponents();
 
