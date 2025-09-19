@@ -1,6 +1,6 @@
 import { Component, OnInit, AfterViewInit, ViewChild, HostListener, ChangeDetectorRef } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { Observable, BehaviorSubject } from 'rxjs';
+import { Observable, BehaviorSubject, Subscription } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
 import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import { FullCalendarModule } from '@fullcalendar/angular';
@@ -23,7 +23,6 @@ import { CalendarOperationsService } from '../../services/calendar/calendar-oper
 import { KeyboardShortcutService } from '../../services/keyboard/keyboard-shortcut.service';
 import { DialogDataService } from '../../services/dialog/dialog-data.service';
 import { BusinessLogicService } from '../../services/business/business-logic.service';
-import { AvailabilityClipboardService } from '../../services/clipboard/availability-clipboard.service';
 import { calculateDurationInMinutes } from '../../utils/dashboard.utils';
 import { renderEventContent, handleDayCellRender } from '../../utils/calendar-rendering.utils';
 import { CalendarService } from './calendar/calendar.service';
@@ -42,7 +41,12 @@ import {
 import { 
   AvailabilityEventHandlerService,
   AvailabilityUiService,
-  AvailabilityDialogCoordinatorService
+  AvailabilityDialogCoordinatorService,
+  SmartCalendarOperationsService,
+  AvailabilityClipboardService,
+  AvailabilityCalendarOperationsService,
+  AvailabilityPendingChangesService,
+  AvailabilityKeyboardOperationsService
 } from '../../services/availability';
 
 // Import the new undo/redo system
@@ -145,7 +149,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private businessLogicService: BusinessLogicService,
     private calendarManager: CalendarService,
     private calendarEvents: CalendarEventsService,
-    private clipboardService: AvailabilityClipboardService,
     // Inject our new services
     private pendingChangesService: PendingChangesService,
     private changesSynchronizerService: ChangesSynchronizerService,
@@ -154,6 +157,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private eventHandlerService: AvailabilityEventHandlerService,
     private uiService: AvailabilityUiService,
     private dialogCoordinatorService: AvailabilityDialogCoordinatorService,
+    private smartCalendarOperationsService: SmartCalendarOperationsService,
+    private availabilityClipboardService: AvailabilityClipboardService,
+    private availabilityCalendarOperationsService: AvailabilityCalendarOperationsService,
+    private availabilityPendingChangesService: AvailabilityPendingChangesService,
+    private availabilityKeyboardOperationsService: AvailabilityKeyboardOperationsService,
     private cdr: ChangeDetectorRef,
     // Inject the undo/redo coordinator service
     private undoRedoService: UndoRedoCoordinatorService,
@@ -315,17 +323,14 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   // Event handlers
   handleDateSelect(selectInfo: DateSelectArg) {
-    // Delegate to the event handler service
     this.eventHandlerService.handleDateSelect(selectInfo, this.availability$);
   }
 
   handleEventClick(clickInfo: EventClickArg) {
-    // Delegate to the event handler service
     this.eventHandlerService.handleEventClick(clickInfo, this.availability$);
   }
 
   handleEventContextMenu(event: MouseEvent, info: any) {
-    // Delegate to the event handler service
     this.eventHandlerService.handleEventContextMenu(event, info, this.availability$);
   }
 
@@ -337,14 +342,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   handleEventResize(resizeInfo: any) {
-    // Use our new drag resize service instead of the old one
     this.availability$.pipe(take(1)).subscribe(availability => {
       this.dragResizeService.handleEventResize(resizeInfo, availability);
     });
   }
 
   handleEventDrop(dropInfo: any) {
-    // Use our new drag resize service instead of the old one
     this.availability$.pipe(take(1)).subscribe(availability => {
       this.dragResizeService.handleEventDrop(dropInfo, availability);
     });
@@ -413,103 +416,30 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param event KeyboardEvent to handle
    */
   private handleKeyboardShortcut(event: KeyboardEvent): void {
-    // Ctrl/Cmd + Z - Undo
-    if (this.keyboardShortcutService.isUndoShortcut(event)) {
-      event.preventDefault();
-      this.undoRedoService.handleUndoShortcut(event);
-      return;
-    }
-    
-    // Ctrl/Cmd + Shift + Z or Ctrl/Cmd + Y - Redo
-    if (this.keyboardShortcutService.isRedoShortcut(event)) {
-      event.preventDefault();
-      this.undoRedoService.handleRedoShortcut(event);
-      return;
-    }
-    
-    // Ctrl/Cmd + S - Save
-    if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-      event.preventDefault();
-      this.saveChanges();
-      return;
-    }
-    
-    // Ctrl/Cmd + C - Copy selected slot
-    if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-      event.preventDefault();
-      if (this.selectedSlot) {
-        this.copySlots([this.selectedSlot]);
-      } else {
-        this.snackbarService.showError('No slot selected to copy');
-      }
-      return;
-    }
-    
-    // R - Refresh
-    if (this.keyboardShortcutService.isRefreshShortcut(event)) {
-      event.preventDefault();
-      this.refreshAvailability();
-      return;
-    }
-    
-    // A - Add availability
-    if (this.keyboardShortcutService.isAddAvailabilityShortcut(event)) {
-      event.preventDefault();
-      this.handleAddAvailabilityShortcut();
-      return;
-    }
-    
-    // F5 - Refresh (standard browser refresh)
-    if (this.keyboardShortcutService.isF5RefreshShortcut(event)) {
-      event.preventDefault();
-      this.refreshAvailability();
-      return;
-    }
+    this.availabilityKeyboardOperationsService.handleKeyboardShortcut(
+      event,
+      () => this.undo(),
+      () => this.redo(),
+      () => this.saveChanges(),
+      () => this.refreshAvailability(),
+      (slots) => this.copySlots(slots),
+      this.selectedSlot,
+      this.snackbarService,
+      () => this.addAvailability()
+    );
   }
 
   /**
    * Handle the add availability keyboard shortcut
    */
   private handleAddAvailabilityShortcut(): void {
-    // Check if a dialog is already open
-    if (this.keyboardShortcutService.isAvailabilityDialogOpen()) {
-      this.keyboardShortcutService.focusExistingAvailabilityDialog();
-      return;
-    }
-    
-    console.log('Opening new availability dialog via keyboard shortcut');
-    // Open the add availability dialog with today's date
-    const today = new Date();
-    const dialogRef = this.dialogService.openAvailabilityDialog(
-      this.dialogDataService.prepareAvailabilityDialogData(
-        null, 
-        today,
-        today,
-        new Date(today.getTime() + 60 * 60 * 1000) // Add 1 hour
-      )
-    );
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('Dialog closed with result:', result);
-      if (result) {
-        // Ensure calendar refreshes for the relevant week after creation
-        const fallback = new Date();
-        const targetDate: Date = Array.isArray(result) && result.length > 0
-          ? new Date(result[0].startTime || result[0].date || fallback)
-          : fallback;
-        this.store.select(AuthSelectors.selectUserId).pipe(take(1)).subscribe(userId => {
-          if (userId) {
-            this.store.dispatch(AvailabilityActions.loadAvailability({ providerId: userId, date: targetDate }));
-          }
-        });
-      }
-    });
+    this.availabilityKeyboardOperationsService.handleAddAvailabilityShortcut(this.snackbarService);
   }
 
   
 
   openDatePicker(): void {
-    this.uiService.openDatePicker(this.calendarComponent);
+    this.dialogCoordinatorService.openDatePicker();
   }
 
   renderEventContent(eventInfo: any) {
@@ -545,7 +475,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
 
   editSlot(slot: Availability) {
-    // Delegate to the dialog coordinator service
     this.dialogCoordinatorService.editSlot(slot);
   }
 
@@ -554,14 +483,13 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param slot The slot to copy
    */
   copySlots(slots: Availability[]): void {
-    this.uiService.copySlots(slots, this.clipboardService);
+    this.availabilityClipboardService.copySlots(slots);
     this.snackbarService.showSuccess('Slots copied to clipboard');
   }
 
   
 
   deleteSlot(slot: Availability) {
-    // Delegate to the dialog coordinator service
     this.dialogCoordinatorService.deleteSlot(slot);
   }
 
@@ -569,12 +497,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * Opens the availability dialog to add a new availability slot
    */
   addAvailability(): void {
-    // Delegate to the dialog coordinator service
     this.dialogCoordinatorService.addAvailability();
   }
 
   openCopyWeekDialog(): void {
-    // Delegate to the dialog coordinator service
     this.dialogCoordinatorService.openCopyWeekDialog(this.availability$, this.snackbarService);
   }
 
@@ -582,71 +508,28 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * Save all pending changes
    */
   saveChanges(): void {
-    const changes = this.pendingChangesService.getPendingChanges();
-    
-    if (changes.length === 0) {
-      this.snackbarService.showInfo('No changes to save');
-      return;
-    }
-    
-    this.changesSynchronizerService.saveChanges(changes).subscribe(result => {
-      if (result.success) {
-        this.snackbarService.showSuccess(result.message);
-        // Clear pending changes
-        this.pendingChangesService.saveChanges();
-        // Clear undo/redo stack since changes are now committed
-        this.undoRedoService.onChangesSaved();
-        // Refresh the calendar
-        this.refreshAvailability();
-      } else {
-        this.snackbarService.showError(result.message);
-        // Show failed changes if any
-        if (result.failed.length > 0) {
-          console.error('Failed changes:', result.failed);
-        }
-      }
-    });
+    this.availabilityPendingChangesService.saveChanges(() => this.refreshAvailability());
   }
 
   /**
    * Discard all pending changes
    */
   discardChanges(): void {
-    if (!this.pendingChangesService.hasPendingChanges()) {
-      this.snackbarService.showInfo('No changes to discard');
-      return;
-    }
-    
-    const dialogRef = this.dialogService.openConfirmationDialog({
-      title: 'Discard Changes',
-      message: 'Are you sure you want to discard all pending changes? This action cannot be undone.',
-      confirmText: 'Discard',
-      cancelText: 'Cancel'
-    });
-
-    dialogRef.afterClosed().subscribe((result: any) => {
-      if (result) {
-        const originalState = this.pendingChangesService.discardChanges();
-        // Clear undo/redo stack since all changes are reverted
-        this.undoRedoService.onChangesDiscarded();
-        this.refreshFullCalendar(originalState);
-        this.snackbarService.showSuccess('Changes discarded');
-      }
-    });
+    this.availabilityPendingChangesService.discardChanges((availability) => this.refreshFullCalendar(availability));
   }
 
   /**
    * Execute undo operation
    */
   undo(): void {
-    this.undoRedoService.undo();
+    this.availabilityPendingChangesService.undo();
   }
 
   /**
    * Execute redo operation
    */
   redo(): void {
-    this.undoRedoService.redo();
+    this.availabilityPendingChangesService.redo();
   }
 
   /**
@@ -654,10 +537,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param direction Direction to navigate ('prev', 'next', 'today')
    */
   navigateCalendar(direction: 'prev' | 'next' | 'today'): void {
-    this.uiService.navigateCalendar(this.calendarComponent, direction);
-    
-    // Update the calendar state service with the navigation
-    this.calendarStateService.navigate(direction);
+    this.availabilityCalendarOperationsService.navigateCalendar(this.calendarComponent, direction);
   }
 
   /**
@@ -665,23 +545,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param view The view to change to
    */
   changeView(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): void {
-    console.log(`[AvailabilityComponent] Changing calendar view to: ${view}`);
-    this.uiService.changeView(this.calendarComponent, view);
-    
-    // Update the calendar state service with the new view
-    this.calendarStateService.setView(view);
-    
-    // Update the smart calendar manager with the new view
-    const configUpdate: Partial<SmartCalendarConfig> = {
-      viewType: view,
-      contentDensity: 'medium',
-      adaptiveDisplay: true,
-      smartFiltering: true,
-      contextualInfo: true
-    };
-    
-    console.log('[AvailabilityComponent] Updating smart calendar manager with config:', configUpdate);
-    this.smartCalendarManager.updateConfig(configUpdate);
+    this.availabilityCalendarOperationsService.changeView(this.calendarComponent, view);
   }
 
   /**
@@ -690,39 +554,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @returns True if the view is active, false otherwise
    */
   isViewActive(view: CalendarView): boolean {
-    // Only check if we have a calendar component reference
-    if (this.calendarComponent) {
-      const calendarApi = this.calendarComponent.getApi();
-      if (calendarApi) {
-        const isActive = calendarApi.view.type === view;
-        // Only log when the view is actually active to reduce noise
-        if (isActive) {
-          // Use a more efficient approach - only update if the view has actually changed
-          if (this.currentActiveView !== view) {
-            this.currentActiveView = view;
-            console.log(`[AvailabilityComponent] View ${view} is active`);
-            
-            // Update smart calendar manager with current active view
-            const configUpdate: Partial<SmartCalendarConfig> = {
-              viewType: view,
-              contentDensity: 'medium',
-              adaptiveDisplay: true,
-              smartFiltering: true,
-              contextualInfo: true
-            };
-            
-            this.smartCalendarManager.updateConfig(configUpdate);
-          }
-        }
-        return isActive;
-      }
-    }
-    // Only log this warning occasionally to reduce noise
-    if (!this.hasLoggedCalendarWarning) {
-      console.warn('[AvailabilityComponent] Calendar component not yet available for view check');
-      this.hasLoggedCalendarWarning = true;
-    }
-    return false;
+    return this.availabilityCalendarOperationsService.isViewActive(
+      this.calendarComponent, 
+      view, 
+      this.currentActiveView, 
+      this.hasLoggedCalendarWarning
+    );
   }
 
   // Add properties to track state and reduce logging
@@ -734,69 +571,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param availability Current availability data
    */
   analyzeCalendarContent(availability: Availability[]): void {
-    console.log('[AvailabilityComponent] Starting calendar content analysis with data:', availability);
-    
-    if (availability && availability.length > 0) {
-      // Analyze the content using our content analyzer service
-      this.contentAnalyzer.analyzeContent(availability).subscribe(analysis => {
-        console.log('[AvailabilityComponent] Content analysis results received:', analysis);
-        
-        // Update metrics
-        const totalSlots = availability.length;
-        const bookedSlots = availability.filter(slot => slot.isBooked).length;
-        const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
-        
-        // Detect conflicts
-        const conflicts = this.contentAnalyzer.detectConflicts(availability);
-        
-        console.log(`[AvailabilityComponent] Calculated metrics - Total: ${totalSlots}, Booked: ${bookedSlots}, Occupancy: ${occupancyRate}%, Conflicts: ${conflicts.length}`);
-        
-        this.smartMetricsSubject.next({
-          totalSlots: totalSlots,
-          bookedSlots: bookedSlots,
-          expiredSlots: 0, // We would calculate this based on dates
-          upcomingSlots: 0, // We would calculate this based on dates
-          conflictingSlots: conflicts.length,
-          occupancyRate: occupancyRate
-        });
-        
-        // Update view recommendation from the analysis
-        if (analysis.viewOptimization.recommendedView) {
-          this.viewRecommendationSubject.next(analysis.viewOptimization.recommendedView);
-          console.log('[AvailabilityComponent] Updated view recommendation:', analysis.viewOptimization.recommendedView);
-        }
-        
-        // Also update the content insights
-        if (analysis.contentInsights) {
-          const insights = analysis.contentInsights;
-          const currentMetrics = this.smartMetricsSubject.value;
-          
-          // Create a new metrics object with updated values
-          const updatedMetrics: ContentMetrics = { ...currentMetrics };
-          
-          if (insights['totalSlots'] !== undefined) {
-            updatedMetrics.totalSlots = insights['totalSlots'];
-          }
-          if (insights['bookedSlots'] !== undefined) {
-            updatedMetrics.bookedSlots = insights['bookedSlots'];
-          }
-          if (insights['occupancyRate'] !== undefined) {
-            updatedMetrics.occupancyRate = insights['occupancyRate'];
-          }
-          if (insights['conflictingSlots'] !== undefined) {
-            updatedMetrics.conflictingSlots = insights['conflictingSlots'];
-          }
-          
-          console.log('[AvailabilityComponent] Updated metrics with content insights:', updatedMetrics);
-          this.smartMetricsSubject.next(updatedMetrics);
-        }
-        
-        this.snackbarService.showSuccess('Calendar analysis complete');
-      });
-    } else {
-      console.warn('[AvailabilityComponent] No availability data to analyze');
-      this.snackbarService.showInfo('No data to analyze');
-    }
+    this.smartCalendarOperationsService.analyzeCalendarContent(
+      availability,
+      this.smartMetricsSubject,
+      this.viewRecommendationSubject
+    );
   }
 
   /**
@@ -804,67 +583,23 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param availability Current availability data
    */
   getSmartRecommendations(availability: Availability[]): void {
-    console.log('[AvailabilityComponent] Generating smart recommendations with data:', availability);
-    
-    if (availability && availability.length > 0) {
-      // Generate recommendations using our smart calendar manager
-      this.smartCalendarManager.generateRecommendations().subscribe(recommendations => {
-        console.log('[AvailabilityComponent] Smart recommendations received:', recommendations);
-        this.smartRecommendationsSubject.next(recommendations);
-        
-        if (recommendations.length > 0) {
-          console.log(`[AvailabilityComponent] Found ${recommendations.length} recommendations`);
-          this.snackbarService.showInfo(`Found ${recommendations.length} recommendations`);
-        } else {
-          console.log('[AvailabilityComponent] No recommendations at this time');
-          this.snackbarService.showInfo('No recommendations at this time');
-        }
-      });
-    } else {
-      console.warn('[AvailabilityComponent] No availability data to generate recommendations from');
-      this.snackbarService.showInfo('No data to analyze for recommendations');
-    }
+    this.smartCalendarOperationsService.getSmartRecommendations(
+      availability,
+      this.smartRecommendationsSubject
+    );
   }
   
   /**
    * Performs a search on the calendar data using natural language processing
    */
   performSearch(query: string, availability: Availability[]): void {
-    console.log('[AvailabilityComponent] Performing search with query:', query);
-    
-    if (!query) {
-      this.snackbarService.showInfo('Please enter a search query');
-      return;
-    }
-    
-    // Perform the search using the smart content analyzer
-    const searchResults = this.contentAnalyzer.searchWithNLP(query, availability);
-    
-    console.log('[AvailabilityComponent] Search results count:', searchResults.length);
-    
-    // Update the calendar with search results
-    if (this.calendarComponent) {
-      this.refreshFullCalendar(searchResults);
-    }
-    
-    // Update metrics with search results
-    const totalSlots = searchResults.length;
-    const bookedSlots = searchResults.filter(slot => slot.isBooked).length;
-    const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
-    
-    // Detect conflicts in search results
-    const conflicts = this.contentAnalyzer.detectConflicts(searchResults);
-    
-    this.smartMetricsSubject.next({
-      totalSlots: totalSlots,
-      bookedSlots: bookedSlots,
-      expiredSlots: 0, // We would calculate this based on dates
-      upcomingSlots: 0, // We would calculate this based on dates
-      conflictingSlots: conflicts.length,
-      occupancyRate: occupancyRate
-    });
-    
-    this.snackbarService.showSuccess(`Found ${searchResults.length} matching slots`);
+    this.smartCalendarOperationsService.performSearch(
+      query,
+      availability,
+      (results) => this.refreshFullCalendar(results),
+      this.smartMetricsSubject,
+      this.contentAnalyzer
+    );
   }
   
   /**
@@ -888,132 +623,32 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * Apply filters to the calendar data
    */
   applyFilters(filters: FilterOptions): void {
-    console.log('[AvailabilityComponent] Applying filters:', filters);
-    
-    // Update current filters
-    this.currentFilters = { ...this.currentFilters, ...filters };
-    
-    // Apply filters to the availability data
-    this.availability$.pipe(take(1)).subscribe(availability => {
-      const filteredData = this.smartCalendarManager.applyFilters(availability, this.currentFilters);
-      console.log('[AvailabilityComponent] Filtered data count:', filteredData.length);
-      
-      // Update the calendar with filtered data
-      if (this.calendarComponent) {
-        this.refreshFullCalendar(filteredData);
-      }
-      
-      // Update metrics with filtered data
-      const totalSlots = filteredData.length;
-      const bookedSlots = filteredData.filter(slot => slot.isBooked).length;
-      const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
-      
-      // Detect conflicts in filtered data
-      const conflicts = this.contentAnalyzer.detectConflicts(filteredData);
-      
-      this.smartMetricsSubject.next({
-        totalSlots: totalSlots,
-        bookedSlots: bookedSlots,
-        expiredSlots: 0, // We would calculate this based on dates
-        upcomingSlots: 0, // We would calculate this based on dates
-        conflictingSlots: conflicts.length,
-        occupancyRate: occupancyRate
-      });
-      
-      this.snackbarService.showSuccess(`Filtered to ${filteredData.length} slots`);
-    });
+    this.smartCalendarOperationsService.applyFilters(
+      filters,
+      this.currentFilters,
+      this.availability$,
+      (results) => this.refreshFullCalendar(results),
+      this.smartMetricsSubject,
+      this.smartCalendarManager,
+      this.contentAnalyzer
+    );
   }
 
   /**
    * Initialize the smart calendar features
    */
   private initializeSmartCalendar(): void {
-    console.log('[AvailabilityComponent] Initializing smart calendar features');
-    
-    // Track if we've already processed the initial availability data
-    let hasProcessedInitialData = false;
-    
-    // Subscribe to availability updates to trigger smart calendar analysis
-    this.availability$.subscribe(availability => {
-      console.log(`[AvailabilityComponent] Availability updated - triggering smart calendar analysis (${availability.length} slots)`);
-      
-      // Update smart calendar metrics
-      if (availability && availability.length > 0) {
-        // Only process if this is new data or we haven't processed initial data yet
-        if (!hasProcessedInitialData || availability.length !== this.previousAvailabilityLength) {
-          hasProcessedInitialData = true;
-          this.previousAvailabilityLength = availability.length;
-          
-          const totalSlots = availability.length;
-          const bookedSlots = availability.filter(slot => slot.isBooked).length;
-          const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
-          
-          // Detect conflicts
-          const conflicts = this.contentAnalyzer.detectConflicts(availability);
-          
-          // Update metrics subject for UI display
-          this.smartMetricsSubject.next({
-            totalSlots: totalSlots,
-            bookedSlots: bookedSlots,
-            expiredSlots: 0, // We would calculate this based on dates
-            upcomingSlots: 0, // We would calculate this based on dates
-            conflictingSlots: conflicts.length,
-            occupancyRate: occupancyRate
-          });
-          
-          // Only log when we have meaningful data
-          if (totalSlots > 0) {
-            console.log('[AvailabilityComponent] Updated smart metrics:', {
-              totalSlots: totalSlots,
-              bookedSlots: bookedSlots,
-              conflictingSlots: conflicts.length,
-              occupancyRate: occupancyRate
-            });
-          }
-          
-          // Debounce the content analysis to prevent too many rapid calls
-          clearTimeout(this.analysisTimeout);
-          this.analysisTimeout = setTimeout(() => {
-            // Analyze content to get view recommendations
-            this.contentAnalyzer.analyzeContent(availability).subscribe(analysis => {
-              // Only log when we have meaningful data
-              if (availability.length > 0) {
-                console.log('[AvailabilityComponent] Content analysis results:', analysis);
-                
-                // Update view recommendation from the analysis
-                if (analysis.viewOptimization.recommendedView) {
-                  this.viewRecommendationSubject.next(analysis.viewOptimization.recommendedView);
-                  // Only log when the recommendation changes
-                  if (this.previousRecommendedView !== analysis.viewOptimization.recommendedView) {
-                    this.previousRecommendedView = analysis.viewOptimization.recommendedView;
-                    console.log('[AvailabilityComponent] Updated view recommendation:', analysis.viewOptimization.recommendedView);
-                  }
-                }
-              }
-            });
-          }, 300); // Debounce for 300ms
-        }
-      }
-    });
-    
-    // Subscribe to smart calendar manager configuration changes
-    this.smartCalendarManager.config$.subscribe(config => {
-      // Only log when there are actual changes
-      if (JSON.stringify(config) !== JSON.stringify(this.previousConfig)) {
-        this.previousConfig = {...config};
-        console.log('[AvailabilityComponent] Smart calendar configuration updated:', config);
-      }
-      // Handle configuration changes if needed
-    });
-    
-    // Subscribe to smart calendar manager metrics changes
-    this.smartCalendarManager.metrics$.subscribe(metrics => {
-      // Only log when there are actual changes
-      if (JSON.stringify(metrics) !== JSON.stringify(this.previousMetrics)) {
-        this.previousMetrics = {...metrics};
-        console.log('[AvailabilityComponent] Smart calendar metrics updated:', metrics);
-      }
-      // Handle metrics changes if needed
-    });
+    // Initialize smart calendar features using our new service
+    this.smartCalendarOperationsService.initializeSmartCalendar(
+      this.availability$,
+      this.smartMetricsSubject,
+      this.viewRecommendationSubject,
+      this.previousAvailabilityLength,
+      this.previousRecommendedView,
+      this.previousConfig,
+      this.previousMetrics,
+      this.analysisTimeout,
+      this.contentAnalyzer
+    );
   }
 }
