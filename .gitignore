@@ -27,8 +27,8 @@ build/
 
 # Documentation
 # docs/
-# *.md
-# logger
+*.md
+logger
 
 # Temporary files
 tmp/
