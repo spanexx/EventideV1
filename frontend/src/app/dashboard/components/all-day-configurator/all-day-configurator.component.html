@@ -1,0 +1,56 @@
+<div class="all-day-configurator">
+    <mat-expansion-panel>
+        <mat-expansion-panel-header>
+            <mat-panel-title>
+                All-day Slot Configuration
+            </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <div class="form-group">
+            <label>Day Start Time:</label>
+            <input type="time" [(ngModel)]="dayStartTime" (change)="onDayTimeChange($event)">
+        </div>
+
+        <div class="form-group">
+            <label>Day End Time:</label>
+            <input type="time" [(ngModel)]="dayEndTime" (change)="onDayTimeChange($event)">
+        </div>
+
+        <mat-radio-group [(ngModel)]="slotConfigurationMode" (change)="onSlotConfigurationModeChange($event)">
+            <mat-radio-button value="slots">By Number of Slots</mat-radio-button>
+            <mat-radio-button value="minutes">By Minutes per Slot</mat-radio-button>
+        </mat-radio-group>
+
+        <div *ngIf="slotConfigurationMode === 'slots'">
+            <mat-form-field>
+                <mat-label>Number of Slots</mat-label>
+                <input matInput type="number" [(ngModel)]="numberOfSlots" (ngModelChange)="onNumberOfSlotsChange($event)">
+            </mat-form-field>
+        </div>
+
+        <div *ngIf="slotConfigurationMode === 'minutes'">
+            <mat-form-field>
+                <mat-label>Minutes per Slot</mat-label>
+                <input matInput type="number" [(ngModel)]="minutesPerSlot" (ngModelChange)="onMinutesPerSlotChange($event)">
+            </mat-form-field>
+        </div>
+
+        <mat-form-field>
+            <mat-label>Break Time (minutes)</mat-label>
+            <input matInput type="number" [(ngModel)]="breakTime" (ngModelChange)="updateSlotPreview()">
+        </mat-form-field>
+
+        <mat-checkbox [(ngModel)]="autoDistribute" (change)="onAutoDistributeChange($event)">
+            Auto-distribute slots evenly
+        </mat-checkbox>
+
+        <div class="slot-preview">
+            <h4>Slot Preview</h4>
+            <ul>
+                <li *ngFor="let slot of slotPreview">
+                    {{ slot.startTime | date:'shortTime' }} - {{ slot.endTime | date:'shortTime' }} ({{ slot.duration }} mins)
+                </li>
+            </ul>
+        </div>
+    </mat-expansion-panel>
+</div>
