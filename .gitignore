@@ -26,7 +26,7 @@ build/
 *.sqlite
 
 # Documentation
-# docs/
+docs/
 *.md
 logger
 
@@ -52,8 +52,6 @@ frontend/logs/
 frontend/*.log
 frontend/src/environments/*
 
-
-
 # Task Management MCP Database
 tskdb_stdio*
 
@@ -61,17 +59,25 @@ tskdb_stdio*
 tskdb.json
 
 # Private/secret files
-# GEMINI.md
-# QWEN.md
+GEMINI.md
+QWEN.md
 tskdb_stdio-default.json
-# commands/
-# prompt.prepare
-# Event.md
+commands/
+prompt.prepare
+Event.md
 backend/scripts/
 test*
-
+backend/browser-logs/*
+backend/backend-logs/*
 .qwen*
 
 .tskdb_backup*
 
 _summaries.txt
+
+# Additional ignored patterns
+docs/
+*.md
+logger
+backend/browser-logs/
+backend/backend-logs/
