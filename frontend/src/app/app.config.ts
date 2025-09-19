@@ -1,5 +1,7 @@
 import { ApplicationConfig, APP_INITIALIZER, inject, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { LogService } from './services/log.service';
+import { AIService } from './services/ai.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
@@ -21,13 +23,13 @@ import { AnalyticsEffects } from './analytics/store/effects/analytics.effects';
 import { analyticsReducer } from './analytics/store/reducers/analytics.reducer';
 import { availabilityReducer } from './dashboard/store-availability';
 import { AvailabilityEffects } from './dashboard/store-availability';
+import { calendarReducer } from './dashboard/store-calendar';
+import { CalendarEffects } from './dashboard/store-calendar';
 
 // Function to initialize the app with existing auth state
-function initializeAppFactory() {
-  return () => {
-    console.log('APP_INITIALIZER: Starting app initialization');
-    const authService = inject(AuthService);
-    const store = inject(Store);
+function initializeAppFactory(logService: LogService, authService: AuthService, store: Store) {
+  return () => logService.init().then(() => {
+    console.log('APP_INITIALIZER: LogService initialized');
     
     // Check if there's a valid token in localStorage
     console.log('APP_INITIALIZER: Checking if user is authenticated');
@@ -40,7 +42,7 @@ function initializeAppFactory() {
     }
     
     console.log('APP_INITIALIZER: App initialization complete');
-  };
+  });
 }
 
 export const appConfig: ApplicationConfig = {
@@ -55,13 +57,17 @@ export const appConfig: ApplicationConfig = {
       auth: authReducer,
       dashboard: dashboardReducer,
       analytics: analyticsReducer,
-      availability: availabilityReducer
+      availability: availabilityReducer,
+      calendar: calendarReducer
     }),
-    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects]),
+    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
+    LogService,
+    AIService,
     {
       provide: APP_INITIALIZER,
-      useFactory: initializeAppFactory,
+      useFactory: (logService: LogService, authService: AuthService, store: Store) => initializeAppFactory(logService, authService, store),
+      deps: [LogService, AuthService, Store],
       multi: true
     }
   ]

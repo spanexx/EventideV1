@@ -82,8 +82,7 @@ export class CalendarService {
       eventResizableFromStart: true,
       eventResize: handleEventResize,
       // Enable drag-to-move functionality
-      eventDrop: handleEventDrop
-      ,
+      eventDrop: handleEventDrop,
       eventDidMount: (info: any) => {
         if (info.el) {
           info.el.addEventListener('contextmenu', (e: MouseEvent) => {
@@ -104,10 +103,18 @@ export class CalendarService {
             // The eventDidMount handler will prevent the default and handle the event context menu
           });
         }
+        
+        // Update smart calendar information when view changes
+        this.updateSmartCalendarInfo(info);
       },
       dateClick: (info: any) => {
         // Handle left click on empty time slots
         console.log('Date clicked:', info);
+      },
+      // Add smart features to the calendar
+      viewSkeletonRender: (info: any) => {
+        // Add smart features when the view skeleton is rendered
+        this.addSmartFeatures(info);
       }
     };
   }
@@ -273,5 +280,38 @@ export class CalendarService {
     }
     
     return null;
+  }
+  
+  /**
+   * Update smart calendar information when view changes
+   * @param info ViewDidMount info
+   */
+  updateSmartCalendarInfo(info: any): void {
+    // This method will be called when the view is mounted
+    // We can use it to update smart calendar information
+    console.log('View mounted:', info);
+  }
+  
+  /**
+   * Add smart features to the calendar
+   * @param info ViewSkeletonRender info
+   */
+  addSmartFeatures(info: any): void {
+    // This method will be called when the view skeleton is rendered
+    // We can use it to add smart features to the calendar
+    console.log('View skeleton rendered:', info);
+  }
+  
+  /**
+   * Check if a date is in the past
+   * @param date Date to check
+   * @returns True if the date is in the past, false otherwise
+   */
+  isDateInPast(date: Date): boolean {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const checkDate = new Date(date);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate < today;
   }
 }

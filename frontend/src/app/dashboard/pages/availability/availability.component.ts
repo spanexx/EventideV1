@@ -1,6 +1,6 @@
 import { Component, OnInit, AfterViewInit, ViewChild, HostListener, ChangeDetectorRef } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, BehaviorSubject } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
 import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import { FullCalendarModule } from '@fullcalendar/angular';
@@ -13,6 +13,7 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
 import * as AvailabilitySelectors from '../../store-availability/selectors/availability.selectors';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
+import * as CalendarSelectors from '../../store-calendar/selectors/calendar.selectors';
 import { Availability } from '../../models/availability.models';
 import { AvailabilityService } from '../../services/availability.service';
 import { CommonModule } from '@angular/common';
@@ -47,6 +48,13 @@ import {
 // Import the new undo/redo system
 import { UndoRedoCoordinatorService } from '../../services/undo-redo';
 
+// Import our smart calendar services
+import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, CalendarView } from '../../services/smart-calendar-manager.service';
+import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services/smart-content-analyzer.service';
+
+// Import our new calendar state service
+import { CalendarStateService } from '../../services/calendar-state.service';
+
 @Component({
   selector: 'app-availability',
   standalone: true,
@@ -74,6 +82,23 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   loading$: Observable<boolean>;
   error$: Observable<string | null>;
   summary$!: Observable<{ created: number; skipped: number } | null>;
+  
+  // Smart calendar observables
+  private smartMetricsSubject = new BehaviorSubject<ContentMetrics>({
+    totalSlots: 0,
+    bookedSlots: 0,
+    expiredSlots: 0,
+    upcomingSlots: 0,
+    conflictingSlots: 0,
+    occupancyRate: 0
+  });
+  
+  private viewRecommendationSubject = new BehaviorSubject<string>('');
+  private smartRecommendationsSubject = new BehaviorSubject<any[]>([]);
+  
+  smartMetrics$ = this.smartMetricsSubject.asObservable();
+  viewRecommendation$ = this.viewRecommendationSubject.asObservable();
+  smartRecommendations$ = this.smartRecommendationsSubject.asObservable();
   
   // We're now using the PendingChangesService for state management
   pendingChangesCount: number = 0;
@@ -109,7 +134,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private dialogCoordinatorService: AvailabilityDialogCoordinatorService,
     private cdr: ChangeDetectorRef,
     // Inject the undo/redo coordinator service
-    private undoRedoService: UndoRedoCoordinatorService
+    private undoRedoService: UndoRedoCoordinatorService,
+    // Inject our smart calendar services
+    private smartCalendarManager: SmartCalendarManagerService,
+    private contentAnalyzer: SmartContentAnalyzerService,
+    // Inject our new calendar state service
+    private calendarStateService: CalendarStateService
   ) {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
@@ -164,6 +194,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.cdr.detectChanges();
     });
     
+    // Initialize smart calendar features
+    this.initializeSmartCalendar();
+    
     // Get the current user and load availability for that user
     this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
       if (userId) {
@@ -180,42 +213,64 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         this.snackbarService.showError('Error loading availability: ' + error);
       }
     });
+    
+    // Subscribe to calendar state changes and update smart calendar manager
+    this.store.select(CalendarSelectors.selectCurrentView).subscribe(currentView => {
+      this.smartCalendarManager.updateConfig({
+        viewType: currentView,
+        contentDensity: 'medium',
+        adaptiveDisplay: true,
+        smartFiltering: true,
+        contextualInfo: true
+      });
+    });
   }
 
   ngAfterViewInit(): void {
     // Wait for the view to be fully initialized before setting up calendar subscriptions
     // Use a small timeout to ensure FullCalendar is completely ready
     setTimeout(() => {
+      console.log('[AvailabilityComponent] Initializing calendar subscriptions');
       this.initializeCalendarSubscriptions();
+      
+      // Now that the calendar is initialized, reset the warning flag
+      this.hasLoggedCalendarWarning = false;
+      this.currentActiveView = null;
     }, 100);
   }
 
   private initializeCalendarSubscriptions(): void {
+    console.log('[AvailabilityComponent] Initializing calendar subscriptions');
+    
     // Subscribe to availability updates and initialize pending changes
     // Then subscribe to current state for calendar updates
     let isInitialized = false;
     let previousAvailability: Availability[] = [];
     
     this.availability$.subscribe(availability => {
+      console.log(`[AvailabilityComponent] Availability updated - ${availability.length} slots`);
+      
       // Initialize the pending changes service with the original state
       if (!isInitialized && availability.length >= 0) {
         this.pendingChangesService.initialize(availability);
         isInitialized = true;
         // Initialize the previous availability with the store data
         previousAvailability = [...availability];
-        console.log('Initialized pending changes with', availability.length, 'slots');
+        console.log('[AvailabilityComponent] Initialized pending changes with', availability.length, 'slots');
       } else if (isInitialized) {
         // If already initialized, update the original state when store changes
         // This happens when data is refreshed from server
         this.pendingChangesService.initialize(availability);
         previousAvailability = [...availability];
-        console.log('Updated original state with', availability.length, 'slots from store');
+        console.log('[AvailabilityComponent] Updated original state with', availability.length, 'slots from store');
       }
     });
     
     // Subscribe to pending changes current state for calendar updates
     // This includes both the original state and any pending changes
     this.pendingChangesService.getCurrentState$().subscribe(currentAvailability => {
+      console.log(`[AvailabilityComponent] Pending changes state updated - ${currentAvailability.length} slots`);
+      
       // Only update calendar if we have been initialized and calendar is available
       if (isInitialized && this.calendarComponent) {
         // Update the calendar with the current state (original + pending changes)
@@ -231,7 +286,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         // Update previous state for next comparison
         previousAvailability = [...currentAvailability];
       } else {
-        // Calendar component not yet initialized
+        console.log('[AvailabilityComponent] Calendar not yet initialized or calendar component not available');
       }
     });
   }
@@ -578,6 +633,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    */
   navigateCalendar(direction: 'prev' | 'next' | 'today'): void {
     this.uiService.navigateCalendar(this.calendarComponent, direction);
+    
+    // Update the calendar state service with the navigation
+    this.calendarStateService.navigate(direction);
   }
 
   /**
@@ -585,7 +643,23 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param view The view to change to
    */
   changeView(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): void {
+    console.log(`[AvailabilityComponent] Changing calendar view to: ${view}`);
     this.uiService.changeView(this.calendarComponent, view);
+    
+    // Update the calendar state service with the new view
+    this.calendarStateService.setView(view);
+    
+    // Update the smart calendar manager with the new view
+    const configUpdate: Partial<SmartCalendarConfig> = {
+      viewType: view,
+      contentDensity: 'medium',
+      adaptiveDisplay: true,
+      smartFiltering: true,
+      contextualInfo: true
+    };
+    
+    console.log('[AvailabilityComponent] Updating smart calendar manager with config:', configUpdate);
+    this.smartCalendarManager.updateConfig(configUpdate);
   }
 
   /**
@@ -593,7 +667,237 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param view The view to check
    * @returns True if the view is active, false otherwise
    */
-  isViewActive(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): boolean {
-    return this.uiService.isViewActive(this.calendarComponent, view);
+  isViewActive(view: CalendarView): boolean {
+    // Only check if we have a calendar component reference
+    if (this.calendarComponent) {
+      const calendarApi = this.calendarComponent.getApi();
+      if (calendarApi) {
+        const isActive = calendarApi.view.type === view;
+        // Only log when the view is actually active to reduce noise
+        if (isActive) {
+          // Use a more efficient approach - only update if the view has actually changed
+          if (this.currentActiveView !== view) {
+            this.currentActiveView = view;
+            console.log(`[AvailabilityComponent] View ${view} is active`);
+            
+            // Update smart calendar manager with current active view
+            const configUpdate: Partial<SmartCalendarConfig> = {
+              viewType: view,
+              contentDensity: 'medium',
+              adaptiveDisplay: true,
+              smartFiltering: true,
+              contextualInfo: true
+            };
+            
+            this.smartCalendarManager.updateConfig(configUpdate);
+          }
+        }
+        return isActive;
+      }
+    }
+    // Only log this warning occasionally to reduce noise
+    if (!this.hasLoggedCalendarWarning) {
+      console.warn('[AvailabilityComponent] Calendar component not yet available for view check');
+      this.hasLoggedCalendarWarning = true;
+    }
+    return false;
   }
+
+  // Add properties to track state and reduce logging
+  private currentActiveView: CalendarView | null = null;
+  private hasLoggedCalendarWarning = false;
+
+  /**
+   * Analyze calendar content using smart content analyzer
+   * @param availability Current availability data
+   */
+  analyzeCalendarContent(availability: Availability[]): void {
+    console.log('[AvailabilityComponent] Starting calendar content analysis with data:', availability);
+    
+    if (availability && availability.length > 0) {
+      // Analyze the content using our content analyzer service
+      this.contentAnalyzer.analyzeContent(availability).subscribe(analysis => {
+        console.log('[AvailabilityComponent] Content analysis results received:', analysis);
+        
+        // Update metrics
+        const totalSlots = availability.length;
+        const bookedSlots = availability.filter(slot => slot.isBooked).length;
+        const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
+        
+        console.log(`[AvailabilityComponent] Calculated metrics - Total: ${totalSlots}, Booked: ${bookedSlots}, Occupancy: ${occupancyRate}%`);
+        
+        this.smartMetricsSubject.next({
+          totalSlots: totalSlots,
+          bookedSlots: bookedSlots,
+          expiredSlots: 0, // We would calculate this based on dates
+          upcomingSlots: 0, // We would calculate this based on dates
+          conflictingSlots: 0, // We would calculate this based on overlapping slots
+          occupancyRate: occupancyRate
+        });
+        
+        // Update view recommendation from the analysis
+        if (analysis.viewOptimization.recommendedView) {
+          this.viewRecommendationSubject.next(analysis.viewOptimization.recommendedView);
+          console.log('[AvailabilityComponent] Updated view recommendation:', analysis.viewOptimization.recommendedView);
+        }
+        
+        // Also update the content insights
+        if (analysis.contentInsights) {
+          const insights = analysis.contentInsights;
+          const currentMetrics = this.smartMetricsSubject.value;
+          
+          // Create a new metrics object with updated values
+          const updatedMetrics: ContentMetrics = { ...currentMetrics };
+          
+          if (insights['totalSlots'] !== undefined) {
+            updatedMetrics.totalSlots = insights['totalSlots'];
+          }
+          if (insights['bookedSlots'] !== undefined) {
+            updatedMetrics.bookedSlots = insights['bookedSlots'];
+          }
+          if (insights['occupancyRate'] !== undefined) {
+            updatedMetrics.occupancyRate = insights['occupancyRate'];
+          }
+          
+          console.log('[AvailabilityComponent] Updated metrics with content insights:', updatedMetrics);
+          this.smartMetricsSubject.next(updatedMetrics);
+        }
+        
+        this.snackbarService.showSuccess('Calendar analysis complete');
+      });
+    } else {
+      console.warn('[AvailabilityComponent] No availability data to analyze');
+      this.snackbarService.showInfo('No data to analyze');
+    }
+  }
+
+  /**
+   * Get smart recommendations based on calendar content
+   * @param availability Current availability data
+   */
+  getSmartRecommendations(availability: Availability[]): void {
+    console.log('[AvailabilityComponent] Generating smart recommendations with data:', availability);
+    
+    if (availability && availability.length > 0) {
+      // Generate recommendations using our smart calendar manager
+      this.smartCalendarManager.generateRecommendations().subscribe(recommendations => {
+        console.log('[AvailabilityComponent] Smart recommendations received:', recommendations);
+        this.smartRecommendationsSubject.next(recommendations);
+        
+        if (recommendations.length > 0) {
+          console.log(`[AvailabilityComponent] Found ${recommendations.length} recommendations`);
+          this.snackbarService.showInfo(`Found ${recommendations.length} recommendations`);
+        } else {
+          console.log('[AvailabilityComponent] No recommendations at this time');
+          this.snackbarService.showInfo('No recommendations at this time');
+        }
+      });
+    } else {
+      console.warn('[AvailabilityComponent] No availability data to generate recommendations from');
+      this.snackbarService.showInfo('No data to analyze for recommendations');
+    }
+  }
+
+  /**
+   * Initialize the smart calendar features
+   */
+  private initializeSmartCalendar(): void {
+    console.log('[AvailabilityComponent] Initializing smart calendar features');
+    
+    // Track if we've already processed the initial availability data
+    let hasProcessedInitialData = false;
+    
+    // Subscribe to availability updates to trigger smart calendar analysis
+    this.availability$.subscribe(availability => {
+      console.log(`[AvailabilityComponent] Availability updated - triggering smart calendar analysis (${availability.length} slots)`);
+      
+      // Update smart calendar metrics
+      if (availability && availability.length > 0) {
+        // Only process if this is new data or we haven't processed initial data yet
+        if (!hasProcessedInitialData || availability.length !== this.previousAvailabilityLength) {
+          hasProcessedInitialData = true;
+          this.previousAvailabilityLength = availability.length;
+          
+          const totalSlots = availability.length;
+          const bookedSlots = availability.filter(slot => slot.isBooked).length;
+          const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
+          
+          // Update metrics subject for UI display
+          this.smartMetricsSubject.next({
+            totalSlots: totalSlots,
+            bookedSlots: bookedSlots,
+            expiredSlots: 0, // We would calculate this based on dates
+            upcomingSlots: 0, // We would calculate this based on dates
+            conflictingSlots: 0, // We would calculate this based on overlapping slots
+            occupancyRate: occupancyRate
+          });
+          
+          // Only log when we have meaningful data
+          if (totalSlots > 0) {
+            console.log('[AvailabilityComponent] Updated smart metrics:', {
+              totalSlots: totalSlots,
+              bookedSlots: bookedSlots,
+              occupancyRate: occupancyRate
+            });
+          }
+          
+          // Debounce the content analysis to prevent too many rapid calls
+          clearTimeout(this.analysisTimeout);
+          this.analysisTimeout = setTimeout(() => {
+            // Analyze content to get view recommendations
+            this.contentAnalyzer.analyzeContent(availability).subscribe(analysis => {
+              // Only log when we have meaningful data
+              if (availability.length > 0) {
+                console.log('[AvailabilityComponent] Content analysis results:', analysis);
+                
+                // Update view recommendation from the analysis
+                if (analysis.viewOptimization.recommendedView) {
+                  this.viewRecommendationSubject.next(analysis.viewOptimization.recommendedView);
+                  // Only log when the recommendation changes
+                  if (this.previousRecommendedView !== analysis.viewOptimization.recommendedView) {
+                    this.previousRecommendedView = analysis.viewOptimization.recommendedView;
+                    console.log('[AvailabilityComponent] Updated view recommendation:', analysis.viewOptimization.recommendedView);
+                  }
+                }
+              }
+            });
+          }, 300); // Debounce for 300ms
+        }
+      }
+    });
+    
+    // Subscribe to smart calendar manager configuration changes
+    this.smartCalendarManager.config$.subscribe(config => {
+      // Only log when there are actual changes
+      if (JSON.stringify(config) !== JSON.stringify(this.previousConfig)) {
+        this.previousConfig = {...config};
+        console.log('[AvailabilityComponent] Smart calendar configuration updated:', config);
+      }
+      // Handle configuration changes if needed
+    });
+    
+    // Subscribe to smart calendar manager metrics changes
+    this.smartCalendarManager.metrics$.subscribe(metrics => {
+      // Only log when there are actual changes
+      if (JSON.stringify(metrics) !== JSON.stringify(this.previousMetrics)) {
+        this.previousMetrics = {...metrics};
+        console.log('[AvailabilityComponent] Smart calendar metrics updated:', metrics);
+      }
+      // Handle metrics changes if needed
+    });
+  }
+
+  // Add variables to track previous state and debounce timeouts
+  private previousAvailabilityLength: number = -1;
+  private previousRecommendedView: CalendarView | null = null;
+  private previousConfig: Partial<SmartCalendarConfig> = {};
+  private previousMetrics: ContentMetrics = {
+    totalSlots: 0,
+    bookedSlots: 0,
+    expiredSlots: 0,
+    upcomingSlots: 0,
+    conflictingSlots: 0,
+    occupancyRate: 0
+  };
+  private analysisTimeout: any;
 }

@@ -28,6 +28,7 @@ build/
 # Documentation
 docs/
 *.md
+logger
 
 # Temporary files
 tmp/
@@ -49,6 +50,7 @@ frontend/dist/
 frontend/build/
 frontend/logs/
 frontend/*.log
+frontend/src/environments/*
 
 
 
