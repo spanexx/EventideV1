@@ -73,3 +73,5 @@ test*
 .qwen*
 
 .tskdb_backup*
+
+_summaries.txt
