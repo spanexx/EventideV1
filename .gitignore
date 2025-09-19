@@ -26,9 +26,9 @@ build/
 *.sqlite
 
 # Documentation
-docs/
-*.md
-logger
+# docs/
+# *.md
+# logger
 
 # Temporary files
 tmp/
@@ -61,12 +61,12 @@ tskdb_stdio*
 tskdb.json
 
 # Private/secret files
-GEMINI.md
-QWEN.md
+# GEMINI.md
+# QWEN.md
 tskdb_stdio-default.json
-commands/
-prompt.prepare
-Event.md
+# commands/
+# prompt.prepare
+# Event.md
 backend/scripts/
 test*
 

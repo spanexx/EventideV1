@@ -34,6 +34,8 @@ export class SmartCalendarComponent implements OnInit, OnDestroy, AfterViewInit 
   occupancyRate: number = 0;
   totalSlots: number = 0;
   bookedSlots: number = 0;
+  conflictingSlots: number = 0;
+  optimalBookingWindows: any[] = [];
   currentMonth: string = '';
   currentDateRange: string = '';
   
@@ -107,13 +109,20 @@ export class SmartCalendarComponent implements OnInit, OnDestroy, AfterViewInit 
     
     if (this.availability && this.availability.length > 0) {
       // Analyze the content using our content analyzer service
-      this.contentAnalyzer.analyzeContent(this.availability).subscribe(analysis => {
+      this.contentAnalyzer.analyzeContent(this.availability).subscribe((analysis: ContentAnalysisResult) => {
         this.logger.info('SmartCalendarComponent', 'Content analysis results received', analysis);
         // Update view recommendation based on analysis
         if (analysis.viewOptimization.recommendedView) {
           this.viewRecommendation = analysis.viewOptimization.recommendedView;
           this.logger.info('SmartCalendarComponent', 'Updated view recommendation', this.viewRecommendation);
         }
+        
+        // Update optimal booking windows
+        if (analysis.contentInsights.optimalBookingWindows) {
+          this.optimalBookingWindows = analysis.contentInsights.optimalBookingWindows;
+          this.logger.info('SmartCalendarComponent', 'Updated optimal booking windows', this.optimalBookingWindows);
+        }
+        
         // Handle analysis results
       });
     } else {
@@ -141,7 +150,7 @@ export class SmartCalendarComponent implements OnInit, OnDestroy, AfterViewInit 
    */
   generateRecommendations(): void {
     this.logger.info('SmartCalendarComponent', 'Generating smart recommendations');
-    this.smartCalendarManager.generateRecommendations().subscribe(recommendations => {
+    this.smartCalendarManager.generateRecommendations().subscribe((recommendations: any[]) => {
       this.logger.info('SmartCalendarComponent', 'Smart recommendations received', recommendations);
       
       if (recommendations.length > 0) {
@@ -165,10 +174,19 @@ export class SmartCalendarComponent implements OnInit, OnDestroy, AfterViewInit 
       this.bookedSlots = this.availability.filter(slot => slot.isBooked).length;
       this.occupancyRate = Math.round((this.bookedSlots / this.totalSlots) * 100);
       
+      // Detect conflicts
+      const conflicts = this.contentAnalyzer.detectConflicts(this.availability);
+      this.conflictingSlots = conflicts.length;
+      
+      // Identify optimal booking windows
+      this.optimalBookingWindows = this.contentAnalyzer.identifyOptimalBookingWindows(this.availability);
+      
       this.logger.info('SmartCalendarComponent', 'Calculated metrics', {
         totalSlots: this.totalSlots,
         bookedSlots: this.bookedSlots,
-        occupancyRate: this.occupancyRate
+        conflictingSlots: this.conflictingSlots,
+        occupancyRate: this.occupancyRate,
+        optimalBookingWindows: this.optimalBookingWindows
       });
       
       // Update the smart calendar manager with these metrics
@@ -177,7 +195,7 @@ export class SmartCalendarComponent implements OnInit, OnDestroy, AfterViewInit 
         bookedSlots: this.bookedSlots,
         expiredSlots: 0, // We would calculate this based on dates
         upcomingSlots: 0, // We would calculate this based on dates
-        conflictingSlots: 0, // We would calculate this based on overlapping slots
+        conflictingSlots: this.conflictingSlots,
         occupancyRate: this.occupancyRate
       });
     } else {

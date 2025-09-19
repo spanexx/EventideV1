@@ -4,6 +4,7 @@ import { BehaviorSubject, Observable, of } from 'rxjs';
 import { CalendarState } from '../models/calendar.models';
 import * as CalendarSelectors from '../store-calendar/selectors/calendar.selectors';
 import { SmartCalendarLoggerService } from './smart-calendar-logger.service';
+import { Availability } from '../models/availability.models';
 
 // Define interfaces based on the plan
 export interface SmartCalendarConfig {
@@ -50,7 +51,10 @@ export interface SmartRecommendations {
 }
 
 export interface FilterOptions {
-  // Define filter options structure
+  type?: 'booked' | 'available' | 'all';
+  dateRange?: { start: Date; end: Date };
+  minDuration?: number;
+  maxDuration?: number;
   [key: string]: any;
 }
 
@@ -77,6 +81,10 @@ export class SmartCalendarManagerService {
 
   config$ = this.configSubject.asObservable();
   metrics$ = this.metricsSubject.asObservable();
+  
+  // Add debouncing for analysis calls
+  private analysisDebounceTimeout: any = null;
+  private analysisDebounceDelay = 300; // 300ms debounce delay
 
   constructor(private store: Store, private logger: SmartCalendarLoggerService) { }
 
@@ -129,6 +137,26 @@ export class SmartCalendarManagerService {
       this.logger.info('SmartCalendarManagerService', 'Content analysis result', analysis);
       observer.next(analysis);
       observer.complete();
+    });
+  }
+  
+  /**
+   * Analyzes calendar content to provide intelligent insights with debouncing
+   */
+  analyzeContentDebounced(): Observable<ContentAnalysis> {
+    // Clear any existing timeout
+    if (this.analysisDebounceTimeout) {
+      clearTimeout(this.analysisDebounceTimeout);
+    }
+    
+    // Return a new observable that will emit after the debounce delay
+    return new Observable(observer => {
+      this.analysisDebounceTimeout = setTimeout(() => {
+        this.analyzeContent().subscribe(result => {
+          observer.next(result);
+          observer.complete();
+        });
+      }, this.analysisDebounceDelay);
     });
   }
 
@@ -256,10 +284,111 @@ export class SmartCalendarManagerService {
   }
   
   /**
+   * Applies filters to calendar data
+   */
+  applyFilters(calendarData: Availability[], filters: FilterOptions): Availability[] {
+    this.logger.info('SmartCalendarManagerService', 'Applying filters to calendar data', { filters });
+    
+    if (!Array.isArray(calendarData) || calendarData.length === 0) {
+      return [];
+    }
+    
+    let filteredData = [...calendarData];
+    
+    // Filter by type (booked/available)
+    if (filters.type && filters.type !== 'all') {
+      if (filters.type === 'booked') {
+        filteredData = filteredData.filter(slot => slot.isBooked);
+      } else if (filters.type === 'available') {
+        filteredData = filteredData.filter(slot => !slot.isBooked);
+      }
+    }
+    
+    // Filter by date range
+    if (filters.dateRange) {
+      filteredData = filteredData.filter(slot => {
+        const slotStart = new Date(slot.startTime);
+        const slotEnd = new Date(slot.endTime);
+        return slotStart >= filters.dateRange!.start && slotEnd <= filters.dateRange!.end;
+      });
+    }
+    
+    // Filter by minimum duration
+    if (filters.minDuration !== undefined) {
+      filteredData = filteredData.filter(slot => {
+        const duration = (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60); // in minutes
+        return duration >= filters.minDuration!;
+      });
+    }
+    
+    // Filter by maximum duration
+    if (filters.maxDuration !== undefined) {
+      filteredData = filteredData.filter(slot => {
+        const duration = (new Date(slot.endTime).getTime() - new Date(slot.startTime).getTime()) / (1000 * 60); // in minutes
+        return duration <= filters.maxDuration!;
+      });
+    }
+    
+    this.logger.info('SmartCalendarManagerService', 'Filtering completed', { 
+      originalCount: calendarData.length, 
+      filteredCount: filteredData.length 
+    });
+    
+    return filteredData;
+  }
+  
+  /**
+   * Performs a search on calendar data using natural language processing
+   */
+  searchWithNLP(query: string, calendarData: Availability[]): Availability[] {
+    this.logger.info('SmartCalendarManagerService', 'Performing NLP search', { query });
+    
+    if (!query || !Array.isArray(calendarData) || calendarData.length === 0) {
+      return [];
+    }
+    
+    // For now, we'll implement a simple search
+    // In a more advanced implementation, we would delegate to the SmartContentAnalyzerService
+    let filteredData = [...calendarData];
+    
+    // Convert query to lowercase for case-insensitive search
+    const lowerQuery = query.toLowerCase();
+    
+    // Simple search implementation
+    if (lowerQuery.includes('booked') || lowerQuery.includes('reserved')) {
+      filteredData = filteredData.filter(slot => slot.isBooked);
+    }
+    
+    if (lowerQuery.includes('available') || lowerQuery.includes('free')) {
+      filteredData = filteredData.filter(slot => !slot.isBooked);
+    }
+    
+    this.logger.info('SmartCalendarManagerService', 'NLP search completed', { 
+      query, 
+      resultCount: filteredData.length 
+    });
+    
+    return filteredData;
+  }
+  
+  /**
    * Determines the best view based on content metrics
    */
   determineBestView(metrics: ContentMetrics): CalendarView {
-    if (metrics.totalSlots > 50) {
+    // If we have a high number of conflicts, recommend day view for better conflict resolution
+    if (metrics.conflictingSlots > 5) {
+      return 'timeGridDay';
+    }
+    // If we have a high occupancy rate and many slots, recommend month view for overview
+    else if (metrics.occupancyRate > 80 && metrics.totalSlots > 30) {
+      return 'dayGridMonth';
+    }
+    // If we have peak hours with many bookings, recommend week view for better time grid visualization
+    else if (metrics.totalSlots > 20) {
+      return 'timeGridWeek';
+    }
+    // Default logic based on slot count
+    else if (metrics.totalSlots > 50) {
       return 'dayGridMonth';
     } else if (metrics.totalSlots > 10) {
       return 'timeGridWeek';

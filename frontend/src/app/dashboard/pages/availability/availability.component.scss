@@ -1137,15 +1137,17 @@
   }
 }
 
-@media (max-width: 360px) {
-  :host ::ng-deep .fc {
-    .fc-toolbar-title {
-      font-size: var(--font-size-base) !important;
-    }
-    
-    .fc-event {
-      padding: 1px 2px !important;
-      font-size: 0.5rem !important;
-    }
-  }
+.search-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  margin-right: 8px;
+  width: 200px;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #3f51b5;
+  box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
 }

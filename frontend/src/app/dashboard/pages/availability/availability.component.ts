@@ -49,11 +49,15 @@ import {
 import { UndoRedoCoordinatorService } from '../../services/undo-redo';
 
 // Import our smart calendar services
-import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, CalendarView } from '../../services/smart-calendar-manager.service';
+import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, CalendarView, FilterOptions } from '../../services/smart-calendar-manager.service';
 import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services/smart-content-analyzer.service';
 
 // Import our new calendar state service
 import { CalendarStateService } from '../../services/calendar-state.service';
+
+// Import the filter dialog component and module
+import { CalendarFilterDialogComponent } from '../../components/calendar-filter-dialog/calendar-filter-dialog.component';
+import { CalendarFilterDialogModule } from '../../components/calendar-filter-dialog/calendar-filter-dialog.module';
 
 @Component({
   selector: 'app-availability',
@@ -65,7 +69,8 @@ import { CalendarStateService } from '../../services/calendar-state.service';
     MatIconModule,
     MatMenuModule,
     MatProgressSpinnerModule,
-    MatTooltipModule
+    MatTooltipModule,
+    CalendarFilterDialogModule
   ],
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss'
@@ -110,6 +115,23 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   redoDescription: string | null = null;
 
   calendarOptions: any;
+  
+  // Add properties for filtering
+  private currentFilters: FilterOptions = { type: 'all' };
+  
+  // Add properties to track previous state and debounce timeouts
+  private previousAvailabilityLength: number = -1;
+  private previousRecommendedView: CalendarView | null = null;
+  private previousConfig: Partial<SmartCalendarConfig> = {};
+  private previousMetrics: ContentMetrics = {
+    totalSlots: 0,
+    bookedSlots: 0,
+    expiredSlots: 0,
+    upcomingSlots: 0,
+    conflictingSlots: 0,
+    occupancyRate: 0
+  };
+  private analysisTimeout: any;
 
   constructor(
     private store: Store,
@@ -724,14 +746,17 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
         const bookedSlots = availability.filter(slot => slot.isBooked).length;
         const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
         
-        console.log(`[AvailabilityComponent] Calculated metrics - Total: ${totalSlots}, Booked: ${bookedSlots}, Occupancy: ${occupancyRate}%`);
+        // Detect conflicts
+        const conflicts = this.contentAnalyzer.detectConflicts(availability);
+        
+        console.log(`[AvailabilityComponent] Calculated metrics - Total: ${totalSlots}, Booked: ${bookedSlots}, Occupancy: ${occupancyRate}%, Conflicts: ${conflicts.length}`);
         
         this.smartMetricsSubject.next({
           totalSlots: totalSlots,
           bookedSlots: bookedSlots,
           expiredSlots: 0, // We would calculate this based on dates
           upcomingSlots: 0, // We would calculate this based on dates
-          conflictingSlots: 0, // We would calculate this based on overlapping slots
+          conflictingSlots: conflicts.length,
           occupancyRate: occupancyRate
         });
         
@@ -757,6 +782,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           }
           if (insights['occupancyRate'] !== undefined) {
             updatedMetrics.occupancyRate = insights['occupancyRate'];
+          }
+          if (insights['conflictingSlots'] !== undefined) {
+            updatedMetrics.conflictingSlots = insights['conflictingSlots'];
           }
           
           console.log('[AvailabilityComponent] Updated metrics with content insights:', updatedMetrics);
@@ -797,6 +825,104 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.snackbarService.showInfo('No data to analyze for recommendations');
     }
   }
+  
+  /**
+   * Performs a search on the calendar data using natural language processing
+   */
+  performSearch(query: string, availability: Availability[]): void {
+    console.log('[AvailabilityComponent] Performing search with query:', query);
+    
+    if (!query) {
+      this.snackbarService.showInfo('Please enter a search query');
+      return;
+    }
+    
+    // Perform the search using the smart content analyzer
+    const searchResults = this.contentAnalyzer.searchWithNLP(query, availability);
+    
+    console.log('[AvailabilityComponent] Search results count:', searchResults.length);
+    
+    // Update the calendar with search results
+    if (this.calendarComponent) {
+      this.refreshFullCalendar(searchResults);
+    }
+    
+    // Update metrics with search results
+    const totalSlots = searchResults.length;
+    const bookedSlots = searchResults.filter(slot => slot.isBooked).length;
+    const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+    
+    // Detect conflicts in search results
+    const conflicts = this.contentAnalyzer.detectConflicts(searchResults);
+    
+    this.smartMetricsSubject.next({
+      totalSlots: totalSlots,
+      bookedSlots: bookedSlots,
+      expiredSlots: 0, // We would calculate this based on dates
+      upcomingSlots: 0, // We would calculate this based on dates
+      conflictingSlots: conflicts.length,
+      occupancyRate: occupancyRate
+    });
+    
+    this.snackbarService.showSuccess(`Found ${searchResults.length} matching slots`);
+  }
+  
+  /**
+   * Opens a filter dialog to configure calendar filters
+   */
+  openFilterDialog(): void {
+    const dialogRef = this.dialog.open(CalendarFilterDialogComponent, {
+      width: '500px',
+      data: { filters: this.currentFilters }
+    });
+
+    dialogRef.afterClosed().subscribe((result: FilterOptions) => {
+      if (result) {
+        this.applyFilters(result);
+        this.snackbarService.showSuccess('Filters applied successfully');
+      }
+    });
+  }
+
+  /**
+   * Apply filters to the calendar data
+   */
+  applyFilters(filters: FilterOptions): void {
+    console.log('[AvailabilityComponent] Applying filters:', filters);
+    
+    // Update current filters
+    this.currentFilters = { ...this.currentFilters, ...filters };
+    
+    // Apply filters to the availability data
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      const filteredData = this.smartCalendarManager.applyFilters(availability, this.currentFilters);
+      console.log('[AvailabilityComponent] Filtered data count:', filteredData.length);
+      
+      // Update the calendar with filtered data
+      if (this.calendarComponent) {
+        this.refreshFullCalendar(filteredData);
+      }
+      
+      // Update metrics with filtered data
+      const totalSlots = filteredData.length;
+      const bookedSlots = filteredData.filter(slot => slot.isBooked).length;
+      const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+      
+      // Detect conflicts in filtered data
+      const conflicts = this.contentAnalyzer.detectConflicts(filteredData);
+      
+      this.smartMetricsSubject.next({
+        totalSlots: totalSlots,
+        bookedSlots: bookedSlots,
+        expiredSlots: 0, // We would calculate this based on dates
+        upcomingSlots: 0, // We would calculate this based on dates
+        conflictingSlots: conflicts.length,
+        occupancyRate: occupancyRate
+      });
+      
+      this.snackbarService.showSuccess(`Filtered to ${filteredData.length} slots`);
+    });
+  }
 
   /**
    * Initialize the smart calendar features
@@ -822,13 +948,16 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
           const bookedSlots = availability.filter(slot => slot.isBooked).length;
           const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
           
+          // Detect conflicts
+          const conflicts = this.contentAnalyzer.detectConflicts(availability);
+          
           // Update metrics subject for UI display
           this.smartMetricsSubject.next({
             totalSlots: totalSlots,
             bookedSlots: bookedSlots,
             expiredSlots: 0, // We would calculate this based on dates
             upcomingSlots: 0, // We would calculate this based on dates
-            conflictingSlots: 0, // We would calculate this based on overlapping slots
+            conflictingSlots: conflicts.length,
             occupancyRate: occupancyRate
           });
           
@@ -837,6 +966,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
             console.log('[AvailabilityComponent] Updated smart metrics:', {
               totalSlots: totalSlots,
               bookedSlots: bookedSlots,
+              conflictingSlots: conflicts.length,
               occupancyRate: occupancyRate
             });
           }
@@ -886,18 +1016,4 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       // Handle metrics changes if needed
     });
   }
-
-  // Add variables to track previous state and debounce timeouts
-  private previousAvailabilityLength: number = -1;
-  private previousRecommendedView: CalendarView | null = null;
-  private previousConfig: Partial<SmartCalendarConfig> = {};
-  private previousMetrics: ContentMetrics = {
-    totalSlots: 0,
-    bookedSlots: 0,
-    expiredSlots: 0,
-    upcomingSlots: 0,
-    conflictingSlots: 0,
-    occupancyRate: 0
-  };
-  private analysisTimeout: any;
 }

@@ -1,7 +1,6 @@
 import { ApplicationConfig, APP_INITIALIZER, inject, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { LogService } from './services/log.service';
-import { AIService } from './services/ai.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideStore } from '@ngrx/store';
 import { provideEffects } from '@ngrx/effects';
@@ -63,7 +62,6 @@ export const appConfig: ApplicationConfig = {
     provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     LogService,
-    AIService,
     {
       provide: APP_INITIALIZER,
       useFactory: (logService: LogService, authService: AuthService, store: Store) => initializeAppFactory(logService, authService, store),
