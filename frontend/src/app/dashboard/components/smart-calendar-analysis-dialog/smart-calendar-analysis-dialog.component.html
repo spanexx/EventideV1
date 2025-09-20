@@ -1,0 +1,45 @@
+<h2 matDialogTitle>Calendar Analysis</h2>
+<div matDialogContent class="analysis-dialog-content">
+  <div class="calendar-metrics" *ngIf="data.metrics">
+    <div class="metric-card">
+      <mat-icon class="metric-icon">event</mat-icon>
+      <h3>Total Slots</h3>
+      <p>{{ data.metrics.totalSlots }}</p>
+    </div>
+    <div class="metric-card">
+      <mat-icon class="metric-icon">book</mat-icon>
+      <h3>Booked Slots</h3>
+      <p>{{ data.metrics.bookedSlots }}</p>
+    </div>
+    <div class="metric-card">
+      <mat-icon class="metric-icon">warning</mat-icon>
+      <h3>Conflicts</h3>
+      <p>{{ data.metrics.conflictingSlots }}</p>
+    </div>
+    <div class="metric-card">
+      <mat-icon class="metric-icon">percent</mat-icon>
+      <h3>Occupancy Rate</h3>
+      <p>{{ data.metrics.occupancyRate }}%</p>
+    </div>
+  </div>
+  
+  <div class="smart-insights">
+    <div class="insight-card" *ngIf="data.viewRecommendation">
+      <h3>View Recommendation</h3>
+      <p>Based on your content, we recommend using the <strong>{{ data.viewRecommendation }}</strong> view.</p>
+    </div>
+    
+    <div class="insight-card" *ngIf="data.occupancyRate < 30">
+      <h3>Low Occupancy Alert</h3>
+      <p>Your calendar occupancy is {{ data.occupancyRate }}%. Consider adding more availability slots.</p>
+    </div>
+    
+    <div class="insight-card" *ngIf="data.occupancyRate > 80">
+      <h3>High Occupancy Notice</h3>
+      <p>Your calendar occupancy is {{ data.occupancyRate }}%. You might want to add more capacity.</p>
+    </div>
+  </div>
+</div>
+<div matDialogActions align="end">
+  <button mat-button matDialogClose>Close</button>
+</div>

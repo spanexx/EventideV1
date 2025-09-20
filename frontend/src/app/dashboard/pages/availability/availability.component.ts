@@ -4,7 +4,7 @@ import { Observable, BehaviorSubject, Subscription } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
 import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import { FullCalendarModule } from '@fullcalendar/angular';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
@@ -59,9 +59,13 @@ import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../servic
 // Import our new calendar state service
 import { CalendarStateService } from '../../services/calendar-state.service';
 
-// Import the filter dialog component and module
-import { CalendarFilterDialogComponent } from '../../components/calendar-filter-dialog/calendar-filter-dialog.component';
+import { SmartCalendarAnalysisDialogComponent } from '../../components/smart-calendar-analysis-dialog/smart-calendar-analysis-dialog.component';
+import { SmartCalendarRecommendationsDialogComponent } from '../../components/smart-calendar-recommendations-dialog/smart-calendar-recommendations-dialog.component';
+
+// Import the new availability header component
+import { AvailabilityHeaderComponent } from './availability-header/availability-header';
 import { CalendarFilterDialogModule } from '../../components/calendar-filter-dialog/calendar-filter-dialog.module';
+import { CalendarFilterDialogComponent } from '../../components/calendar-filter-dialog/calendar-filter-dialog.component';
 
 @Component({
   selector: 'app-availability',
@@ -72,9 +76,11 @@ import { CalendarFilterDialogModule } from '../../components/calendar-filter-dia
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    MatDialogModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    CalendarFilterDialogModule
+    CalendarFilterDialogModule,
+    AvailabilityHeaderComponent
   ],
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss'
@@ -564,6 +570,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   // Add properties to track state and reduce logging
   private currentActiveView: CalendarView | null = null;
+
+  getCurrentActiveView(): CalendarView {
+    return this.currentActiveView || 'timeGridWeek';
+  }
   private hasLoggedCalendarWarning = false;
 
   /**
@@ -650,5 +660,32 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.analysisTimeout,
       this.contentAnalyzer
     );
+  }
+
+  // Event handler methods for the availability header component
+  onSearch(query: string): void {
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.performSearch(query, availability);
+    });
+  }
+
+  onFilter(): void {
+    this.openFilterDialog();
+  }
+
+  onAnalyze(): void {
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.analyzeCalendarContent(availability);
+    });
+  }
+
+  onRecommendations(): void {
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.getSmartRecommendations(availability);
+    });
+  }
+
+  onRefresh(): void {
+    this.refreshAvailability();
   }
 }

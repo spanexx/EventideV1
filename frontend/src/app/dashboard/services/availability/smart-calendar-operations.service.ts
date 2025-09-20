@@ -1,9 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Availability } from '../../models/availability.models';
 import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, FilterOptions } from '../smart-calendar-manager.service';
 import { SmartContentAnalyzerService, ContentAnalysisResult } from '../smart-content-analyzer.service';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
+import { MatDialog } from '@angular/material/dialog';
+import { SmartCalendarAnalysisDialogComponent } from '../../components/smart-calendar-analysis-dialog/smart-calendar-analysis-dialog.component';
+import { SmartCalendarRecommendationsDialogComponent } from '../../components/smart-calendar-recommendations-dialog/smart-calendar-recommendations-dialog.component';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +15,8 @@ export class SmartCalendarOperationsService {
   constructor(
     private smartCalendarManager: SmartCalendarManagerService,
     private contentAnalyzer: SmartContentAnalyzerService,
-    private snackbarService: SnackbarService
+    private snackbarService: SnackbarService,
+    private dialog: MatDialog
   ) {}
 
   /**
@@ -37,17 +41,21 @@ export class SmartCalendarOperationsService {
         // Detect conflicts
         const conflicts = this.contentAnalyzer.detectConflicts(availability);
         
-        smartMetricsSubject.next({
+        const metrics = {
           totalSlots: totalSlots,
           bookedSlots: bookedSlots,
           expiredSlots: 0, // We would calculate this based on dates
           upcomingSlots: 0, // We would calculate this based on dates
           conflictingSlots: conflicts.length,
           occupancyRate: occupancyRate
-        });
+        };
+        
+        smartMetricsSubject.next(metrics);
         
         // Update view recommendation from the analysis
+        let viewRecommendation = '';
         if (analysis.viewOptimization.recommendedView) {
+          viewRecommendation = analysis.viewOptimization.recommendedView;
           viewRecommendationSubject.next(analysis.viewOptimization.recommendedView);
         }
         
@@ -75,6 +83,16 @@ export class SmartCalendarOperationsService {
           smartMetricsSubject.next(updatedMetrics);
         }
         
+        // Show analysis dialog with the results
+        const dialogRef = this.dialog.open(SmartCalendarAnalysisDialogComponent, {
+          width: '600px',
+          data: {
+            metrics: metrics,
+            viewRecommendation: analysis.viewOptimization.recommendedView || '',
+            occupancyRate: occupancyRate
+          }
+        });
+        
         this.snackbarService.showSuccess('Calendar analysis complete');
       });
     } else {
@@ -95,6 +113,14 @@ export class SmartCalendarOperationsService {
       // Generate recommendations using our smart calendar manager
       this.smartCalendarManager.generateRecommendations().subscribe(recommendations => {
         smartRecommendationsSubject.next(recommendations);
+        
+        // Show recommendations dialog with the results
+        const dialogRef = this.dialog.open(SmartCalendarRecommendationsDialogComponent, {
+          width: '600px',
+          data: {
+            recommendations: recommendations || []
+          }
+        });
         
         if (recommendations.length > 0) {
           this.snackbarService.showInfo(`Found ${recommendations.length} recommendations`);

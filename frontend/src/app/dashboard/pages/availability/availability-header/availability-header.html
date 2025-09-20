@@ -1,0 +1,92 @@
+<div class="professional-header">
+  <div class="header-content">
+    <div class="header-left">
+      <h1 class="page-title">Availability</h1>
+    </div>
+    
+    <!-- View buttons in the center -->
+    <div class="view-buttons">
+      <button mat-icon-button (click)="onChangeView('dayGridMonth')" matTooltip="Switch to month view" [class.active]="activeView === 'dayGridMonth'">
+        <mat-icon>calendar_month</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onChangeView('timeGridWeek')" matTooltip="Switch to week view" [class.active]="activeView === 'timeGridWeek'">
+        <mat-icon>calendar_view_week</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onChangeView('timeGridDay')" matTooltip="Switch to day view" [class.active]="activeView === 'timeGridDay'">
+        <mat-icon>calendar_view_day</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onOpenDatePicker()" matTooltip="Go to specific date">
+        <mat-icon>date_range</mat-icon>
+      </button>
+      <div class="separator"></div>
+      <button mat-icon-button (click)="onCopyWeek()" matTooltip="Copy week schedule">
+        <mat-icon>content_copy</mat-icon>
+      </button>
+    </div>
+    
+    <!-- Pending changes indicator positioned at top right -->
+    @if (pendingChangesCount > 0) {
+      <div class="pending-changes-indicator">
+        <span class="pending-count">{{ pendingChangesCount }}</span>
+      </div>
+    }
+    
+    <!-- Smart Calendar Insights -->
+    <div class="header-insights" *ngIf="availability$ | async as availability">
+      <div class="insights-metrics" *ngIf="smartMetrics$ | async as metrics">
+        <div class="metric-item" matTooltip="Total availability slots">
+          <mat-icon class="metric-icon">event</mat-icon>
+          <span class="metric-value">{{ metrics.totalSlots }}</span>
+        </div>
+        
+        <div class="metric-item" matTooltip="Booked/occupied slots">
+          <mat-icon class="metric-icon">book</mat-icon>
+          <span class="metric-value">{{ metrics.bookedSlots }}</span>
+        </div>
+        
+        <div class="metric-item" matTooltip="Slots with conflicts">
+          <mat-icon class="metric-icon">warning</mat-icon>
+          <span class="metric-value">{{ metrics.conflictingSlots }}</span>
+        </div>
+        
+        <div class="metric-item" matTooltip="Percentage of slots booked">
+          <!-- <mat-icon class="metric-icon">percent</mat-icon> -->
+          <span class="metric-value">{{ metrics.occupancyRate }}%</span>
+        </div>
+      </div>
+      
+      <div class="header-actions">
+        @if (pendingChangesCount > 0) {
+          <button mat-icon-button (click)="onUndo()" matTooltip="Undo" [disabled]="!canUndo">
+            <mat-icon>undo</mat-icon>
+          </button>
+          <button mat-icon-button (click)="onRedo()" matTooltip="Redo" [disabled]="!canRedo">
+            <mat-icon>redo</mat-icon>
+          </button>
+          <button mat-icon-button (click)="onSaveChanges()" matTooltip="Save all changes">
+            <mat-icon>save</mat-icon>
+          </button>
+          <button mat-icon-button (click)="onDiscardChanges()" matTooltip="Discard all changes">
+            <mat-icon>delete</mat-icon>
+          </button>
+        }
+        <input type="text" placeholder="Search..." [(ngModel)]="searchTerm" (keyup.enter)="onSearch()" class="search-input">
+        <button mat-icon-button (click)="onSearch()" matTooltip="Search">
+          <mat-icon>search</mat-icon>
+        </button>
+        <button mat-icon-button (click)="onFilter()" matTooltip="Filter">
+          <mat-icon>filter_list</mat-icon>
+        </button>
+        <button mat-icon-button (click)="onAnalyze()" matTooltip="Analyze calendar content for insights">
+          <mat-icon>analytics</mat-icon>
+        </button>
+        <button mat-icon-button (click)="onRecommendations()" matTooltip="Get smart recommendations">
+          <mat-icon>lightbulb</mat-icon>
+        </button>
+        <button mat-icon-button (click)="onRefresh()" matTooltip="Refresh">
+          <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

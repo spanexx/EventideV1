@@ -35,15 +35,9 @@ export class CalendarService {
         timeGridPlugin
       ],
       headerToolbar: {
-        left: 'prev,next today',
+        left: 'prev',
         center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay,datePickerButton'
-      },
-      customButtons: {
-        datePickerButton: {
-          text: 'Go to date',
-          click: openDatePicker
-        }
+        right: 'today,next'
       },
       initialView: 'timeGridWeek',
       editable: true,
