@@ -1,7 +1,55 @@
 <div class="availability-container">
-  <div class="page-header">
-    <h1 class="page-title">Availability Management</h1>
-    <p class="page-description">Set your available hours for bookings</p><span>Your Schedule</span>
+  <!-- Professional Header -->
+  <div class="professional-header">
+    <div class="header-content">
+      <div class="header-left">
+        <h1 class="page-title">Availability</h1>
+      </div>
+      
+      <!-- Smart Calendar Insights -->
+      <div class="header-insights" *ngIf="availability$ | async as availability">
+        <div class="insights-metrics" *ngIf="smartMetrics$ | async as metrics">
+          <div class="metric-item">
+            <mat-icon class="metric-icon">event</mat-icon>
+            <span class="metric-value">{{ metrics.totalSlots }}</span>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon class="metric-icon">book</mat-icon>
+            <span class="metric-value">{{ metrics.bookedSlots }}</span>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon class="metric-icon">warning</mat-icon>
+            <span class="metric-value">{{ metrics.conflictingSlots }}</span>
+          </div>
+          
+          <div class="metric-item">
+            <mat-icon class="metric-icon">percent</mat-icon>
+            <span class="metric-value">{{ metrics.occupancyRate }}%</span>
+          </div>
+        </div>
+        
+        <div class="header-actions">
+          <input type="text" placeholder="Search..." #searchInput (keyup.enter)="performSearch(searchInput.value, availability)" class="search-input">
+          <button mat-icon-button (click)="performSearch(searchInput.value, availability)" matTooltip="Search">
+            <mat-icon>search</mat-icon>
+          </button>
+          <button mat-icon-button (click)="openFilterDialog()" matTooltip="Filter">
+            <mat-icon>filter_list</mat-icon>
+          </button>
+          <button mat-icon-button (click)="analyzeCalendarContent(availability)" matTooltip="Analyze">
+            <mat-icon>analytics</mat-icon>
+          </button>
+          <button mat-icon-button (click)="getSmartRecommendations(availability)" matTooltip="Recommendations">
+            <mat-icon>lightbulb</mat-icon>
+          </button>
+          <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
+            <mat-icon>refresh</mat-icon>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
   
 
@@ -17,78 +65,7 @@
     </div>
   }
   
-  <!-- Smart Calendar Insights -->
-  <div class="smart-calendar-insights" *ngIf="availability$ | async as availability">
-    <div class="insights-header">
-      <h2>Calendar Insights</h2>
-      <div class="insights-actions">
-        <input type="text" placeholder="Search calendar..." #searchInput (keyup.enter)="performSearch(searchInput.value, availability)" class="search-input">
-        <button mat-icon-button (click)="performSearch(searchInput.value, availability)" matTooltip="Search">
-          <mat-icon>search</mat-icon>
-        </button>
-        <button mat-icon-button (click)="openFilterDialog()" matTooltip="Filter Calendar">
-          <mat-icon>filter_list</mat-icon>
-        </button>
-        <button mat-icon-button (click)="analyzeCalendarContent(availability)" matTooltip="Analyze Calendar">
-          <mat-icon>analytics</mat-icon>
-        </button>
-        <button mat-icon-button (click)="getSmartRecommendations(availability)" matTooltip="Get Recommendations">
-          <mat-icon>lightbulb</mat-icon>
-        </button>
-      </div>
-    </div>
-    
-    <div class="insights-content" *ngIf="smartMetrics$ | async as metrics">
-      <div class="metric-card">
-        <mat-icon class="metric-icon">event</mat-icon>
-        <div class="metric-info">
-          <span class="metric-label">Total Slots</span>
-          <span class="metric-value">{{ metrics.totalSlots }}</span>
-        </div>
-      </div>
-      
-      <div class="metric-card">
-        <mat-icon class="metric-icon">book</mat-icon>
-        <div class="metric-info">
-          <span class="metric-label">Booked Slots</span>
-          <span class="metric-value">{{ metrics.bookedSlots }}</span>
-        </div>
-      </div>
-      
-      <div class="metric-card">
-        <mat-icon class="metric-icon">warning</mat-icon>
-        <div class="metric-info">
-          <span class="metric-label">Conflicts</span>
-          <span class="metric-value">{{ metrics.conflictingSlots }}</span>
-        </div>
-      </div>
-      
-      <div class="metric-card">
-        <mat-icon class="metric-icon">percent</mat-icon>
-        <div class="metric-info">
-          <span class="metric-label">Occupancy Rate</span>
-          <span class="metric-value">{{ metrics.occupancyRate }}%</span>
-        </div>
-      </div>
-      
-      <div class="metric-card" *ngIf="viewRecommendation$ | async as recommendation">
-        <mat-icon class="metric-icon">visibility</mat-icon>
-        <div class="metric-info">
-          <span class="metric-label">Recommended View</span>
-          <span class="metric-value">{{ recommendation }}</span>
-        </div>
-      </div>
-    </div>
-    
-    <div class="insights-alerts" *ngIf="smartRecommendations$ | async as recommendations">
-      <div class="alert-card" *ngFor="let rec of recommendations">
-        <mat-icon [class]="'alert-icon ' + rec.priority">{{ rec.priority === 'high' ? 'error' : rec.priority === 'medium' ? 'warning' : 'info' }}</mat-icon>
-        <div class="alert-content">
-          <span class="alert-message">{{ rec.message }}</span>
-        </div>
-      </div>
-    </div>
-  </div>
+
   
   <!-- Calendar toolbar with icons -->
   <div class="calendar-toolbar">
