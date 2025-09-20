@@ -168,13 +168,4 @@ export class LogManagerService {
       return 'Failed to get summary from AI.';
     }
   }
-}'Content-Type': 'application/json',
-        },
-      });
-      return response.data.choices[0].message.content;
-    } catch (error) {
-      console.error('Error calling OpenRouter API:', error.response?.data || error.message);
-      return 'Failed to get summary from AI.';
-    }
-  }
 }
