@@ -19,6 +19,10 @@ export type { ContentAnalysisResult, FilterOptions } from './smart-content-analy
 export { SmartSearchService } from './search/smart-search.service';
 export type { SearchResult } from './search/smart-search.service';
 export { SearchFilterService } from './search/search-filter.service';
+export { DateParserService } from './search/date-parser.service';
+export { TemporalParserService } from './search/temporal-parser.service';
+export { KeywordMatcherService } from './search/keyword-matcher.service';
+export { SuggestionGeneratorService } from './search/suggestion-generator.service';
 export { CalendarAnalyticsService } from './analytics/calendar-analytics.service';
 export type { CalendarAnalysisResult } from './analytics/calendar-analytics.service';
 export { CalendarCacheService } from './cache/calendar-cache.service';

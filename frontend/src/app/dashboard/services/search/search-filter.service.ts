@@ -247,6 +247,22 @@ export class SearchFilterService {
         });
         break;
         
+      case 'lastweek':
+        const startOfLastWeek = new Date(now);
+        startOfLastWeek.setDate(now.getDate() - now.getDay() - 7);
+        startOfLastWeek.setHours(0, 0, 0, 0);
+        const endOfLastWeek = new Date(startOfLastWeek);
+        endOfLastWeek.setDate(endOfLastWeek.getDate() + 7);
+        
+        console.log('📅 Last week range:', { start: startOfLastWeek.toISOString(), end: endOfLastWeek.toISOString() });
+        
+        result = data.filter(slot => {
+          const slotDate = new Date(slot.startTime);
+          const matches = slotDate >= startOfLastWeek && slotDate < endOfLastWeek;
+          return matches;
+        });
+        break;
+        
       case 'specific':
         if (dateFilter.specificDate) {
           const targetDate = new Date(dateFilter.specificDate);
