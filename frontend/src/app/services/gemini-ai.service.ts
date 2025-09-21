@@ -318,7 +318,7 @@ ${logSummary}
     const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
     
     // Get time patterns
-    const timePatterns = this.analyzeTimePatterns(availabilityData);
+    const timePatterns = this.analyzeTimeDistribution(availabilityData);
     
     return `Total slots: ${totalSlots}
 Available slots: ${availableSlots}
@@ -438,22 +438,517 @@ Return ONLY valid JSON, no explanations.`;
     }
   }
 
-  private analyzeTimePatterns(availabilityData: any[]): string {
+  /**
+   * Analyze availability conflicts using AI
+   * @param availabilityData Array of availability slots
+   * @returns Conflict analysis with suggestions
+   */
+  async analyzeAvailabilityConflicts(availabilityData: any[]): Promise<{
+    hasConflicts: boolean;
+    conflicts: Array<{
+      type: string;
+      severity: 'low' | 'medium' | 'high';
+      description: string;
+      affectedSlots: any[];
+      suggestions: string[];
+    }>;
+    summary: string;
+  }> {
+    if (!this.apiKey || !availabilityData.length) {
+      return {
+        hasConflicts: false,
+        conflicts: [],
+        summary: 'AI service not available for conflict analysis'
+      };
+    }
+
+    const dataContext = this.createConflictAnalysisContext(availabilityData);
+    const systemInstruction = `You are a calendar conflict detection specialist. Analyze availability data for conflicts, overlaps, and scheduling issues.
+    
+Always respond with valid JSON only, no additional text or formatting.`;
+
+    const prompt = `Analyze the following availability data for conflicts and scheduling issues:
+
+${dataContext}
+
+Look for:
+- Overlapping time slots
+- Back-to-back bookings without buffer time
+- Unusual patterns or gaps
+- Resource conflicts
+- Capacity issues
+
+Respond with JSON:
+{
+  "hasConflicts": boolean,
+  "conflicts": [
+    {
+      "type": "overlap|buffer|capacity|pattern",
+      "severity": "low|medium|high",
+      "description": "Clear description of the conflict",
+      "affectedSlots": ["array of affected slot identifiers"],
+      "suggestions": ["array of suggestions to resolve"]
+    }
+  ],
+  "summary": "Overall summary of conflict analysis"
+}`;
+
+    try {
+      const responseText = await this.generateContent(prompt, {
+        systemInstruction,
+        temperature: 0.3,
+        maxOutputTokens: 800
+      });
+
+      const cleanedResponse = responseText.trim().replace(/```json\s*|\s*```/g, '');
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.error('Error analyzing conflicts with AI:', error);
+      return {
+        hasConflicts: false,
+        conflicts: [],
+        summary: 'Conflict analysis failed - manual review recommended'
+      };
+    }
+  }
+
+  /**
+   * Generate optimized scheduling suggestions using AI
+   * @param constraints Scheduling constraints and preferences
+   * @param availabilityData Current availability data
+   * @returns Optimization suggestions
+   */
+  async optimizeScheduleSlots(constraints: {
+    preferredTimes?: string[];
+    bufferTime?: number;
+    maxDailyBookings?: number;
+    workingHours?: { start: string; end: string };
+    priorities?: string[];
+  }, availabilityData: any[]): Promise<{
+    optimizations: Array<{
+      type: string;
+      impact: 'low' | 'medium' | 'high';
+      description: string;
+      recommendation: string;
+      estimatedImprovement: string;
+    }>;
+    suggestedSchedule?: any[];
+    summary: string;
+  }> {
+    if (!this.apiKey) {
+      return {
+        optimizations: [],
+        summary: 'AI optimization service not available'
+      };
+    }
+
+    const dataContext = this.createOptimizationContext(availabilityData, constraints);
+    const systemInstruction = `You are a scheduling optimization expert. Analyze availability data and constraints to suggest optimal scheduling strategies.
+    
+Always respond with valid JSON only, no additional text or formatting.`;
+
+    const prompt = `Analyze the scheduling data and suggest optimizations:
+
+${dataContext}
+
+Consider:
+- Efficient time utilization
+- Buffer time management
+- Peak hours optimization
+- Resource allocation
+- Customer satisfaction
+- Revenue optimization
+
+Respond with JSON:
+{
+  "optimizations": [
+    {
+      "type": "time|buffer|capacity|revenue|efficiency",
+      "impact": "low|medium|high",
+      "description": "What optimization is suggested",
+      "recommendation": "Specific action to take",
+      "estimatedImprovement": "Expected benefit (e.g., '15% more bookings')"
+    }
+  ],
+  "summary": "Overall optimization strategy summary"
+}`;
+
+    try {
+      const responseText = await this.generateContent(prompt, {
+        systemInstruction,
+        temperature: 0.4,
+        maxOutputTokens: 800
+      });
+
+      const cleanedResponse = responseText.trim().replace(/```json\s*|\s*```/g, '');
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.error('Error generating optimization suggestions:', error);
+      return {
+        optimizations: [],
+        summary: 'Optimization analysis failed - manual review recommended'
+      };
+    }
+  }
+
+  /**
+   * Validate availability input data using AI
+   * @param inputData Availability data to validate
+   * @returns Validation results with suggestions
+   */
+  async validateAvailabilityInput(inputData: any): Promise<{
+    isValid: boolean;
+    errors: Array<{
+      field: string;
+      type: string;
+      message: string;
+      severity: 'error' | 'warning' | 'info';
+    }>;
+    suggestions: string[];
+    summary: string;
+  }> {
+    if (!this.apiKey) {
+      return {
+        isValid: true,
+        errors: [],
+        suggestions: [],
+        summary: 'AI validation service not available'
+      };
+    }
+
+    const systemInstruction = `You are a data validation specialist for calendar availability systems. Validate input data for correctness, consistency, and best practices.
+    
+Always respond with valid JSON only, no additional text or formatting.`;
+
+    const prompt = `Validate the following availability input data:
+
+${JSON.stringify(inputData, null, 2)}
+
+Check for:
+- Required field presence
+- Data type correctness
+- Logical consistency (e.g., start time before end time)
+- Date/time format validity
+- Business rule compliance
+- Potential issues or improvements
+
+Respond with JSON:
+{
+  "isValid": boolean,
+  "errors": [
+    {
+      "field": "field name or path",
+      "type": "required|format|logic|range|business",
+      "message": "Clear error description",
+      "severity": "error|warning|info"
+    }
+  ],
+  "suggestions": ["array of improvement suggestions"],
+  "summary": "Overall validation summary"
+}`;
+
+    try {
+      const responseText = await this.generateContent(prompt, {
+        systemInstruction,
+        temperature: 0.2,
+        maxOutputTokens: 600
+      });
+
+      const cleanedResponse = responseText.trim().replace(/```json\s*|\s*```/g, '');
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.error('Error validating input with AI:', error);
+      return {
+        isValid: true,
+        errors: [],
+        suggestions: [],
+        summary: 'AI validation failed - manual validation recommended'
+      };
+    }
+  }
+
+  /**
+   * Analyze calendar patterns and trends using AI
+   * @param availabilityData Historical availability data
+   * @returns Pattern analysis with insights
+   */
+  async analyzeCalendarPatterns(availabilityData: any[]): Promise<{
+    patterns: Array<{
+      type: string;
+      description: string;
+      confidence: number;
+      impact: string;
+      recommendation: string;
+    }>;
+    trends: {
+      bookingTrends: string;
+      peakHours: string[];
+      seasonality: string;
+      utilization: string;
+    };
+    insights: string[];
+    summary: string;
+  }> {
+    if (!this.apiKey || !availabilityData.length) {
+      return {
+        patterns: [],
+        trends: {
+          bookingTrends: 'Insufficient data for analysis',
+          peakHours: [],
+          seasonality: 'No seasonal patterns detected',
+          utilization: 'Unable to calculate utilization'
+        },
+        insights: [],
+        summary: 'AI pattern analysis not available'
+      };
+    }
+
+    try {
+      // Validate data format before processing
+      this.validateAvailabilityData(availabilityData);
+      
+      const dataContext = this.createPatternAnalysisContext(availabilityData);
+      const systemInstruction = `You are a calendar analytics expert. Analyze availability patterns, trends, and booking behaviors to provide actionable insights.
+    
+Always respond with valid JSON only, no additional text or formatting.`;
+
+      const prompt = `Analyze the following calendar data for patterns and trends:
+
+${dataContext}
+
+Identify:
+- Recurring patterns in bookings
+- Peak and low-demand periods
+- Seasonal trends
+- Utilization patterns
+- Opportunity areas
+- Customer behavior insights
+
+Respond with JSON:
+{
+  "patterns": [
+    {
+      "type": "daily|weekly|monthly|seasonal|behavioral",
+      "description": "Pattern description",
+      "confidence": number_0_to_100,
+      "impact": "business impact description",
+      "recommendation": "actionable recommendation"
+    }
+  ],
+  "trends": {
+    "bookingTrends": "trending up/down/stable with details",
+    "peakHours": ["array of peak hour ranges"],
+    "seasonality": "seasonal pattern description",
+    "utilization": "utilization rate and insights"
+  },
+  "insights": ["array of key business insights"],
+  "summary": "Executive summary of pattern analysis"
+}`;
+
+    try {
+      const responseText = await this.generateContent(prompt, {
+        systemInstruction,
+        temperature: 0.4,
+        maxOutputTokens: 1000
+      });
+
+      const cleanedResponse = responseText.trim().replace(/```json\s*|\s*```/g, '');
+      return JSON.parse(cleanedResponse);
+    } catch (error) {
+      console.error('Error analyzing calendar patterns:', error);
+      return {
+        patterns: [],
+        trends: {
+          bookingTrends: 'Pattern analysis failed',
+          peakHours: [],
+          seasonality: 'Unable to detect seasonal patterns',
+          utilization: 'Utilization analysis failed'
+        },
+        insights: [],
+        summary: 'Pattern analysis failed - manual review recommended'
+      };
+    }
+  } catch (error) {
+    console.error('AI pattern analysis failed:', error);
+    return {
+      patterns: [],
+      trends: {
+        bookingTrends: 'Analysis failed - validation error',
+        peakHours: [],
+        seasonality: 'Analysis failed',
+        utilization: 'Analysis failed'
+      },
+      insights: ['AI analysis temporarily unavailable'],
+      summary: 'Pattern analysis failed due to data validation error'
+    };
+  }
+}
+
+  private createConflictAnalysisContext(availabilityData: any[]): string {
+    try {
+      // Validate input data
+      if (!Array.isArray(availabilityData) || availabilityData.length === 0) {
+        return 'No availability data provided for conflict analysis';
+      }
+
+      // Create a copy of the array to avoid mutating the original read-only data
+      const sortedData = [...availabilityData].sort((a, b) => {
+        // Handle both Date objects and string formats
+        const timeA = a.startTime instanceof Date ? a.startTime.getTime() : new Date(a.date + ' ' + a.startTime).getTime();
+        const timeB = b.startTime instanceof Date ? b.startTime.getTime() : new Date(b.date + ' ' + b.startTime).getTime();
+        return timeA - timeB;
+      });
+
+    return sortedData.map((slot, index) => {
+      // Format dates and times consistently
+      let dateStr, startTimeStr, endTimeStr;
+      
+      if (slot.startTime instanceof Date) {
+        dateStr = slot.startTime.toLocaleDateString();
+        startTimeStr = slot.startTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        endTimeStr = slot.endTime instanceof Date ? slot.endTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }) : slot.endTime;
+      } else {
+        dateStr = slot.date;
+        startTimeStr = slot.startTime;
+        endTimeStr = slot.endTime;
+      }
+      
+      return `${index + 1}. ${dateStr} ${startTimeStr}-${endTimeStr} (${slot.isBooked ? 'BOOKED' : 'AVAILABLE'}) ${slot.service?.name || ''}`;
+    }).join('\n');
+    } catch (error) {
+      console.error('Error creating conflict analysis context:', error);
+      return 'Error processing availability data for conflict analysis';
+    }
+  }
+
+  private createOptimizationContext(availabilityData: any[], constraints: any): string {
+    const stats = this.calculateScheduleStats(availabilityData);
+    
+    return `Current Schedule Stats:
+${JSON.stringify(stats, null, 2)}
+
+Constraints:
+${JSON.stringify(constraints, null, 2)}
+
+Availability Data (sample):
+${availabilityData.slice(0, 10).map(slot => {
+      // Format dates and times consistently
+      let dateStr, startTimeStr, endTimeStr;
+      
+      if (slot.startTime instanceof Date) {
+        dateStr = slot.startTime.toLocaleDateString();
+        startTimeStr = slot.startTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+        endTimeStr = slot.endTime instanceof Date ? slot.endTime.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' }) : slot.endTime;
+      } else {
+        dateStr = slot.date;
+        startTimeStr = slot.startTime;
+        endTimeStr = slot.endTime;
+      }
+      
+      return `${dateStr} ${startTimeStr}-${endTimeStr} (${slot.isBooked ? 'BOOKED' : 'AVAILABLE'})`;
+    }).join('\n')}`;
+  }
+
+  private createPatternAnalysisContext(availabilityData: any[]): string {
+    const stats = this.calculateScheduleStats(availabilityData);
+    const timeDistribution = this.analyzeTimeDistribution(availabilityData);
+    
+    return `Schedule Statistics:
+${JSON.stringify(stats, null, 2)}
+
+Time Distribution:
+${timeDistribution}
+
+Data Points: ${availabilityData.length} slots`;
+  }
+
+  private calculateScheduleStats(availabilityData: any[]): any {
+    const total = availabilityData.length;
+    const booked = availabilityData.filter(slot => slot.isBooked).length;
+    const available = total - booked;
+    const utilization = total > 0 ? ((booked / total) * 100).toFixed(1) : '0';
+    
+    // Extract unique dates, handling both Date objects and string formats
+    const dateStrings = availabilityData.map(slot => {
+      if (slot.startTime instanceof Date) {
+        return slot.startTime.toLocaleDateString();
+      } else if (slot.date) {
+        return slot.date;
+      } else {
+        // Fallback to extracting date from startTime if it's a string
+        return slot.startTime ? slot.startTime.split(' ')[0] : 'unknown';
+      }
+    });
+    const dates = [...new Set(dateStrings)];
+    const averageSlotsPerDay = dates.length > 0 ? (total / dates.length).toFixed(1) : '0';
+    
+    return {
+      totalSlots: total,
+      bookedSlots: booked,
+      availableSlots: available,
+      utilizationRate: `${utilization}%`,
+      uniqueDates: dates.length,
+      averageSlotsPerDay
+    };
+  }
+
+  private analyzeTimeDistribution(availabilityData: any[]): string {
     const timeSlots = {
-      morning: 0, // 6-12
+      morning: 0,   // 6-12
       afternoon: 0, // 12-18
-      evening: 0, // 18-22
-      night: 0 // 22-6
+      evening: 0    // 18-22
     };
 
     availabilityData.forEach(slot => {
-      const hour = new Date(slot.startTime).getHours();
-      if (hour >= 6 && hour < 12) timeSlots.morning++;
-      else if (hour >= 12 && hour < 18) timeSlots.afternoon++;
-      else if (hour >= 18 && hour < 22) timeSlots.evening++;
-      else timeSlots.night++;
+      // Handle both Date objects and string timestamps
+      let hours: number;
+      if (slot.startTime instanceof Date) {
+        hours = slot.startTime.getHours();
+      } else if (typeof slot.startTime === 'string') {
+        const [hoursStr] = slot.startTime.split(':');
+        hours = parseInt(hoursStr, 10);
+      } else {
+        console.warn('Invalid startTime format:', slot.startTime);
+        return;
+      }
+      
+      if (hours >= 6 && hours < 12) timeSlots.morning++;
+      else if (hours >= 12 && hours < 18) timeSlots.afternoon++;
+      else if (hours >= 18 && hours < 22) timeSlots.evening++;
     });
 
-    return `Time distribution: Morning(${timeSlots.morning}), Afternoon(${timeSlots.afternoon}), Evening(${timeSlots.evening}), Night(${timeSlots.night})`;
+    return `Morning (6-12): ${timeSlots.morning}, Afternoon (12-18): ${timeSlots.afternoon}, Evening (18-22): ${timeSlots.evening}`;
+  }
+
+  /**
+   * Validate availability data format to prevent runtime errors
+   */
+  private validateAvailabilityData(availabilityData: any[]): void {
+    if (!Array.isArray(availabilityData)) {
+      throw new Error('Availability data must be an array');
+    }
+
+    availabilityData.forEach((slot, index) => {
+      if (!slot) {
+        throw new Error(`Slot at index ${index} is null or undefined`);
+      }
+      
+      if (!slot.startTime) {
+        throw new Error(`Slot at index ${index} missing startTime`);
+      }
+      
+      if (!slot.endTime) {
+        throw new Error(`Slot at index ${index} missing endTime`);
+      }
+
+      // Validate that startTime and endTime are either Date objects or valid strings
+      if (!(slot.startTime instanceof Date) && typeof slot.startTime !== 'string') {
+        throw new Error(`Slot at index ${index} has invalid startTime format: ${typeof slot.startTime}`);
+      }
+      
+      if (!(slot.endTime instanceof Date) && typeof slot.endTime !== 'string') {
+        throw new Error(`Slot at index ${index} has invalid endTime format: ${typeof slot.endTime}`);
+      }
+    });
   }
 }

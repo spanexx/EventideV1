@@ -71,6 +71,12 @@ import { AvailabilityHeaderComponent } from './availability-header/availability-
 import { CalendarFilterDialogModule } from '../../components/calendar-filter-dialog/calendar-filter-dialog.module';
 import { CalendarFilterDialogComponent } from '../../components/calendar-filter-dialog/calendar-filter-dialog.component';
 
+// Import AI Components
+import { AIInsightsCompactComponent, AIInsightSummary } from '../../../shared/components/ai-components/ai-insights-compact.component';
+import { AIInsightsPanelComponent } from '../../../shared/components/ai-components/ai-insights-panel.component';
+import { AIRecommendationsComponent } from '../../../shared/components/ai-components/ai-recommendations.component';
+import { AIConflictResolverComponent } from '../../../shared/components/ai-components/ai-conflict-resolver.component';
+
 @Component({
   selector: 'app-availability',
   standalone: true,
@@ -84,7 +90,8 @@ import { CalendarFilterDialogComponent } from '../../components/calendar-filter-
     MatProgressSpinnerModule,
     MatTooltipModule,
     CalendarFilterDialogModule,
-    AvailabilityHeaderComponent
+    AvailabilityHeaderComponent,
+    AIInsightsCompactComponent
   ],
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss'
@@ -101,6 +108,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   loading$: Observable<boolean>;
   error$: Observable<string | null>;
   summary$!: Observable<{ created: number; skipped: number } | null>;
+  
+  // AI-Enhanced observables
+  aiData$: Observable<any>;
+  availabilityWithAI$: Observable<any>;
   
   // Smart calendar observables
   private smartMetricsSubject = new BehaviorSubject<ContentMetrics>({
@@ -181,6 +192,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
     this.error$ = this.store.select(AvailabilitySelectors.selectAvailabilityError);
+    
+    // Initialize AI-Enhanced observables
+    this.aiData$ = this.store.select(AvailabilitySelectors.selectAIData);
+    this.availabilityWithAI$ = this.store.select(AvailabilitySelectors.selectAvailabilityWithAI);
     
     // Initialize calendar options first with default view, will be updated later with preferences
     this.calendarOptions = this.calendarManager.initializeCalendarOptions(
@@ -723,6 +738,92 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   onRecommendations(): void {
     this.availability$.pipe(take(1)).subscribe(availability => {
       this.getSmartRecommendations(availability);
+    });
+  }
+
+  /**
+   * Load AI-enhanced availability data
+   */
+  loadAIEnhancedAvailability(): void {
+    this.store.select(AuthSelectors.selectUserId).pipe(take(1)).subscribe(userId => {
+      if (userId) {
+        const today = new Date();
+        this.store.dispatch(AvailabilityActions.loadAIEnhancedAvailability({ 
+          providerId: userId, 
+          date: today,
+          includeAnalysis: true
+        }));
+      }
+    });
+  }
+
+  /**
+   * Get AI insights for current availability data
+   */
+  getAIInsights(): void {
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.store.dispatch(AvailabilityActions.getAIInsights({ 
+        availabilityData: availability
+      }));
+    });
+  }
+
+  /**
+   * Refresh AI analysis
+   */
+  refreshAIAnalysis(): void {
+    this.getAIInsights();
+  }
+
+  /**
+   * Handle AI-specific actions
+   */
+  onAIAction(action: string): void {
+    switch (action) {
+      case 'insights':
+        this.getAIInsights();
+        break;
+      case 'enhance':
+        this.loadAIEnhancedAvailability();
+        break;
+      case 'refresh':
+        this.refreshAIAnalysis();
+        break;
+      default:
+        console.warn('Unknown AI action:', action);
+    }
+  }
+
+  /**
+   * Transform AI data to the expected format for AIInsightsCompactComponent
+   */
+  getAIInsightsSummary(aiData: any): AIInsightSummary {
+    return {
+      conflictsCount: aiData.conflicts?.conflicts?.length || 0,
+      patternsCount: aiData.insights?.patterns?.length || 0,
+      optimizationsCount: aiData.optimizations?.optimizations?.length || 0,
+      summary: aiData.analysis?.summary || 'AI analysis complete',
+      lastUpdate: aiData.lastUpdate,
+      hasHighPriorityIssues: (aiData.conflicts?.conflicts?.length || 0) > 0
+    };
+  }
+
+  /**
+   * Handle viewing AI details
+   */
+  onViewAIDetails(aiData: any): void {
+    // Open detailed AI insights dialog
+    const dialogRef = this.dialog.open(AIInsightsPanelComponent, {
+      width: '800px',
+      maxHeight: '90vh',
+      data: { aiData },
+      panelClass: 'ai-insights-dialog'
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      if (result?.refresh) {
+        this.refreshAIAnalysis();
+      }
     });
   }
 

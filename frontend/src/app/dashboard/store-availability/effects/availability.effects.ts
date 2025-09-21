@@ -91,4 +91,133 @@ export class AvailabilityEffects {
       )
     )
   );
+
+  // ===== AI-ENHANCED EFFECTS =====
+
+  loadAIEnhancedAvailability$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.loadAIEnhancedAvailability),
+      mergeMap(({ providerId, date, includeAnalysis = true }) =>
+        this.availabilityService.getAIEnhancedAvailability(providerId, date, includeAnalysis).pipe(
+          map(response => {
+            this.snackbarService.showSuccess('AI-enhanced availability loaded successfully!');
+            return AvailabilityActions.loadAIEnhancedAvailabilitySuccess({ response });
+          }),
+          catchError(error => {
+            this.snackbarService.showError('Failed to load AI-enhanced availability: ' + error.message);
+            return of(AvailabilityActions.loadAIEnhancedAvailabilityFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  createAIOptimizedAvailability$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.createAIOptimizedAvailability),
+      exhaustMap(({ availability }) =>
+        this.availabilityService.createAIOptimizedAvailability(availability).pipe(
+          map(response => {
+            this.snackbarService.showSuccess('AI-optimized availability created successfully!');
+            return AvailabilityActions.createAIOptimizedAvailabilitySuccess({ response });
+          }),
+          catchError(error => {
+            this.snackbarService.showError('Failed to create AI-optimized availability: ' + error.message);
+            return of(AvailabilityActions.createAIOptimizedAvailabilityFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  updateAIAnalyzed$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.updateAIAnalyzed),
+      switchMap(({ availability }) =>
+        this.availabilityService.updateAIAnalyzed(availability).pipe(
+          map(response => {
+            this.snackbarService.showSuccess('Availability updated with AI analysis!');
+            return AvailabilityActions.updateAIAnalyzedSuccess({ response });
+          }),
+          catchError(error => {
+            this.snackbarService.showError('Failed to update with AI analysis: ' + error.message);
+            return of(AvailabilityActions.updateAIAnalyzedFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  deleteAIAssessed$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.deleteAIAssessed),
+      switchMap(({ id }) =>
+        this.availabilityService.deleteAIAssessed(id).pipe(
+          map(response => {
+            this.snackbarService.showSuccess('Availability deleted with AI assessment!');
+            return AvailabilityActions.deleteAIAssessedSuccess({ response });
+          }),
+          catchError(error => {
+            this.snackbarService.showError('Failed to delete with AI assessment: ' + error.message);
+            return of(AvailabilityActions.deleteAIAssessedFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  createBulkAIOptimized$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.createBulkAIOptimized),
+      exhaustMap(({ bulkData }) =>
+        this.availabilityService.createBulkAIOptimized(bulkData).pipe(
+          map(response => {
+            this.snackbarService.showSuccess(`AI-optimized bulk creation completed! Efficiency score: ${response.aiAnalysis.efficiencyScore}%`);
+            return AvailabilityActions.createBulkAIOptimizedSuccess({ response });
+          }),
+          catchError(error => {
+            this.snackbarService.showError('Failed to create bulk AI-optimized availability: ' + error.message);
+            return of(AvailabilityActions.createBulkAIOptimizedFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  getAIInsights$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.getAIInsights),
+      switchMap(({ availabilityData }) =>
+        this.availabilityService.getAIInsights(availabilityData).then(
+          insights => {
+            this.snackbarService.showSuccess('AI insights generated successfully!');
+            return AvailabilityActions.getAIInsightsSuccess({ insights });
+          }
+        ).catch(
+          error => {
+            this.snackbarService.showError('Failed to generate AI insights: ' + error.message);
+            return AvailabilityActions.getAIInsightsFailure({ error: error.message });
+          }
+        )
+      )
+    )
+  );
+
+  validateWithAI$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(AvailabilityActions.validateWithAI),
+      switchMap(({ availability }) =>
+        this.availabilityService.validateWithAI(availability).pipe(
+          map(validation => {
+            this.snackbarService.showSuccess('AI validation completed!');
+            return AvailabilityActions.validateWithAISuccess({ validation });
+          }),
+          catchError(error => {
+            this.snackbarService.showError('AI validation failed: ' + error.message);
+            return of(AvailabilityActions.validateWithAIFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
 }

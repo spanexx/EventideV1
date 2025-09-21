@@ -35,6 +35,7 @@ export class HeaderActionsComponent {
   @Output() redo = new EventEmitter<void>();
   @Output() saveChanges = new EventEmitter<void>();
   @Output() discardChanges = new EventEmitter<void>();
+  @Output() aiAction = new EventEmitter<string>();
 
   async onSearch(): Promise<void> {
     this.search.emit(this.searchTerm);
@@ -78,6 +79,14 @@ export class HeaderActionsComponent {
 
   onDiscardChanges(): void {
     this.discardChanges.emit();
+  }
+
+  onAIInsights(): void {
+    this.aiAction.emit('insights');
+  }
+
+  onAIEnhance(): void {
+    this.aiAction.emit('enhance');
   }
 
   onSearchFocus(): void {
