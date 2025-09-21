@@ -4,7 +4,7 @@ import { Observable, BehaviorSubject, Subscription } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
 import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import { FullCalendarModule } from '@fullcalendar/angular';
-import { MatDialog } from '@angular/material/dialog';
+import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenu, MatMenuModule, MatMenuTrigger } from '@angular/material/menu';
@@ -14,6 +14,7 @@ import * as AvailabilityActions from '../../store-availability/actions/availabil
 import * as AvailabilitySelectors from '../../store-availability/selectors/availability.selectors';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import * as CalendarSelectors from '../../store-calendar/selectors/calendar.selectors';
+import * as CalendarActions from '../../store-calendar/actions/calendar.actions';
 import { Availability } from '../../models/availability.models';
 import { AvailabilityService } from '../../services/availability.service';
 import { CommonModule } from '@angular/common';
@@ -31,7 +32,8 @@ import { take } from 'rxjs/operators';
 
 // Import our new pending changes services
 import { 
-  PendingChangesService, 
+  PendingChangesService,
+  PendingChangesSignalService, 
   ChangesSynchronizerService, 
   DragResizeService,
   Change
@@ -50,18 +52,24 @@ import {
 } from '../../services/availability';
 
 // Import the new undo/redo system
-import { UndoRedoCoordinatorService } from '../../services/undo-redo';
+import { UndoRedoCoordinatorService, UndoRedoSignalService } from '../../services/undo-redo';
 
 // Import our smart calendar services
 import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, CalendarView, FilterOptions } from '../../services/smart-calendar-manager.service';
-import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services/smart-content-analyzer.service';
+import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services';
 
 // Import our new calendar state service
 import { CalendarStateService } from '../../services/calendar-state.service';
+import { CalendarStateCoordinatorService } from '../../services/calendar-state-coordinator.service';
+import { GoToDateRequest } from '../../services/availability/availability-dialog-coordinator.service';
 
-// Import the filter dialog component and module
-import { CalendarFilterDialogComponent } from '../../components/calendar-filter-dialog/calendar-filter-dialog.component';
+import { SmartCalendarAnalysisDialogComponent } from '../../components/smart-calendar-analysis-dialog/smart-calendar-analysis-dialog.component';
+import { SmartCalendarRecommendationsDialogComponent } from '../../components/smart-calendar-recommendations-dialog/smart-calendar-recommendations-dialog.component';
+
+// Import the new availability header component
+import { AvailabilityHeaderComponent } from './availability-header/availability-header';
 import { CalendarFilterDialogModule } from '../../components/calendar-filter-dialog/calendar-filter-dialog.module';
+import { CalendarFilterDialogComponent } from '../../components/calendar-filter-dialog/calendar-filter-dialog.component';
 
 @Component({
   selector: 'app-availability',
@@ -72,9 +80,11 @@ import { CalendarFilterDialogModule } from '../../components/calendar-filter-dia
     MatButtonModule,
     MatIconModule,
     MatMenuModule,
+    MatDialogModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
-    CalendarFilterDialogModule
+    CalendarFilterDialogModule,
+    AvailabilityHeaderComponent
   ],
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss'
@@ -109,14 +119,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   viewRecommendation$ = this.viewRecommendationSubject.asObservable();
   smartRecommendations$ = this.smartRecommendationsSubject.asObservable();
   
-  // We're now using the PendingChangesService for state management
-  pendingChangesCount: number = 0;
-  
-  // Undo/redo state for UI binding
-  canUndo: boolean = false;
-  canRedo: boolean = false;
-  undoDescription: string | null = null;
-  redoDescription: string | null = null;
+  // MIGRATION: Removed manual state properties - header component gets state directly from signals
+  // pendingChangesCount, canUndo, canRedo, undoDescription, redoDescription are now signals
 
   calendarOptions: any;
   
@@ -149,8 +153,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private businessLogicService: BusinessLogicService,
     private calendarManager: CalendarService,
     private calendarEvents: CalendarEventsService,
-    // Inject our new services
+    // Inject our new services - MIGRATION: Using both old and new services during transition
     private pendingChangesService: PendingChangesService,
+    private pendingChangesSignalService: PendingChangesSignalService,
     private changesSynchronizerService: ChangesSynchronizerService,
     private dragResizeService: DragResizeService,
     // Inject our new availability services
@@ -163,19 +168,21 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private availabilityPendingChangesService: AvailabilityPendingChangesService,
     private availabilityKeyboardOperationsService: AvailabilityKeyboardOperationsService,
     private cdr: ChangeDetectorRef,
-    // Inject the undo/redo coordinator service
+    // Inject the undo/redo services - MIGRATION: Using both old and new during transition
     private undoRedoService: UndoRedoCoordinatorService,
+    private undoRedoSignalService: UndoRedoSignalService,
     // Inject our smart calendar services
     private smartCalendarManager: SmartCalendarManagerService,
     private contentAnalyzer: SmartContentAnalyzerService,
-    // Inject our new calendar state service
-    private calendarStateService: CalendarStateService
+    // Inject our new calendar state services
+    private calendarStateService: CalendarStateService,
+    private calendarStateCoordinator: CalendarStateCoordinatorService
   ) {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
     this.error$ = this.store.select(AvailabilitySelectors.selectAvailabilityError);
     
-    // Initialize calendar options
+    // Initialize calendar options first with default view, will be updated later with preferences
     this.calendarOptions = this.calendarManager.initializeCalendarOptions(
       this.handleDateSelect.bind(this),
       this.handleEventClick.bind(this),
@@ -185,7 +192,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.handleEventResize.bind(this),
       this.handleEventDrop.bind(this),
       this.openDatePicker.bind(this),
-      this.handleEventContextMenu.bind(this)
+      this.handleEventContextMenu.bind(this),
+      'timeGridWeek' // Default view, will be updated in ngOnInit
     );
     // Initialize summary stream after DI is available
     this.summary$ = this.businessLogicService.summary$;
@@ -193,36 +201,33 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
 
   ngOnInit(): void {
+    // Load calendar preferences first
+    console.log('[AvailabilityComponent] Loading calendar preferences');
+    this.calendarStateService.loadPreferences();
+    
+    // Get preferred view and update calendar options
+    const preferredView = this.calendarStateService.getPreferredView();
+    console.log('[AvailabilityComponent] Preferred view from service:', preferredView);
+    
+    // Update calendar options with preferred view
+    if (preferredView !== 'timeGridWeek') {
+      this.calendarOptions = {
+        ...this.calendarOptions,
+        initialView: preferredView
+      };
+      console.log('[AvailabilityComponent] Updated calendar options with preferred view:', preferredView);
+    }
+    
+    // Listen for go to date requests from dialog coordinator
+    this.dialogCoordinatorService.goToDateRequested$.subscribe(request => {
+      this.handleGoToDateRequest(request);
+    });
+    
     // Load availability data
     const today = new Date();
     
-    // Subscribe to pending changes to update the count
-    this.pendingChangesService.pendingChanges$.subscribe(state => {
-      this.pendingChangesCount = state.changes.length;
-      // Trigger change detection to avoid ExpressionChangedAfterItHasBeenCheckedError
-      this.cdr.detectChanges();
-    });
-    
-    // Subscribe to undo/redo state for UI binding
-    this.undoRedoService.canUndo$.subscribe(canUndo => {
-      this.canUndo = canUndo;
-      this.cdr.detectChanges();
-    });
-    
-    this.undoRedoService.canRedo$.subscribe(canRedo => {
-      this.canRedo = canRedo;
-      this.cdr.detectChanges();
-    });
-    
-    this.undoRedoService.undoDescription$.subscribe(description => {
-      this.undoDescription = description;
-      this.cdr.detectChanges();
-    });
-    
-    this.undoRedoService.redoDescription$.subscribe(description => {
-      this.redoDescription = description;
-      this.cdr.detectChanges();
-    });
+    // MIGRATION: Removed manual subscriptions - header component gets state directly from signals
+    // No need for manual change detection since signals provide automatic reactivity
     
     // Initialize smart calendar features
     this.initializeSmartCalendar();
@@ -266,6 +271,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       // Now that the calendar is initialized, reset the warning flag
       this.hasLoggedCalendarWarning = false;
       this.currentActiveView = null;
+      
+      // Apply preferred view after calendar is ready
+      this.applyPreferredViewToCalendar();
     }, 100);
   }
 
@@ -280,26 +288,26 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.availability$.subscribe(availability => {
       console.log(`[AvailabilityComponent] Availability updated - ${availability.length} slots`);
       
-      // Initialize the pending changes service with the original state
+      // MIGRATION: Initialize the signal-based pending changes service with the original state
       if (!isInitialized && availability.length >= 0) {
-        this.pendingChangesService.initialize(availability);
+        this.pendingChangesSignalService.initialize(availability);
         isInitialized = true;
         // Initialize the previous availability with the store data
         previousAvailability = [...availability];
-        console.log('[AvailabilityComponent] Initialized pending changes with', availability.length, 'slots');
+        console.log('[AvailabilityComponent] Initialized signal-based pending changes with', availability.length, 'slots');
       } else if (isInitialized) {
         // If already initialized, update the original state when store changes
         // This happens when data is refreshed from server
-        this.pendingChangesService.initialize(availability);
+        this.pendingChangesSignalService.initialize(availability);
         previousAvailability = [...availability];
-        console.log('[AvailabilityComponent] Updated original state with', availability.length, 'slots from store');
+        console.log('[AvailabilityComponent] Updated signal-based original state with', availability.length, 'slots from store');
       }
     });
     
-    // Subscribe to pending changes current state for calendar updates
+    // MIGRATION: Subscribe to signal-based pending changes current state for calendar updates
     // This includes both the original state and any pending changes
-    this.pendingChangesService.getCurrentState$().subscribe(currentAvailability => {
-      console.log(`[AvailabilityComponent] Pending changes state updated - ${currentAvailability.length} slots`);
+    this.pendingChangesSignalService.getCurrentState$.subscribe(currentAvailability => {
+      console.log(`[AvailabilityComponent] Signal-based pending changes state updated - ${currentAvailability.length} slots`);
       
       // Only update calendar if we have been initialized and calendar is available
       if (isInitialized && this.calendarComponent) {
@@ -522,14 +530,16 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * Execute undo operation
    */
   undo(): void {
-    this.availabilityPendingChangesService.undo();
+    // MIGRATION: Use signal-based undo/redo service
+    this.undoRedoSignalService.undo();
   }
 
   /**
    * Execute redo operation
    */
   redo(): void {
-    this.availabilityPendingChangesService.redo();
+    // MIGRATION: Use signal-based undo/redo service
+    this.undoRedoSignalService.redo();
   }
 
   /**
@@ -545,7 +555,13 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param view The view to change to
    */
   changeView(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): void {
+    console.log('[AvailabilityComponent] Changing view to:', view);
+    
+    // Update the calendar view
     this.availabilityCalendarOperationsService.changeView(this.calendarComponent, view);
+    
+    // Update the state through the coordinator (handles preferences automatically)
+    this.calendarStateService.setView(view);
   }
 
   /**
@@ -564,6 +580,10 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   // Add properties to track state and reduce logging
   private currentActiveView: CalendarView | null = null;
+
+  getCurrentActiveView(): CalendarView {
+    return this.currentActiveView || 'timeGridWeek';
+  }
   private hasLoggedCalendarWarning = false;
 
   /**
@@ -590,15 +610,22 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
   
   /**
-   * Performs a search on the calendar data using natural language processing
+   * Performs a search on the calendar data using enhanced AI-powered natural language processing
    */
-  performSearch(query: string, availability: Availability[]): void {
-    this.smartCalendarOperationsService.performSearch(
+  async performSearch(query: string, availability: Availability[]): Promise<void> {
+    // Get calendar API if available
+    let calendarApi = null;
+    if (this.calendarComponent) {
+      calendarApi = this.calendarComponent.getApi();
+    }
+    
+    await this.smartCalendarOperationsService.performSearch(
       query,
       availability,
       (results) => this.refreshFullCalendar(results),
       this.smartMetricsSubject,
-      this.contentAnalyzer
+      this.contentAnalyzer,
+      calendarApi
     );
   }
   
@@ -650,5 +677,109 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.analysisTimeout,
       this.contentAnalyzer
     );
+  }
+
+  // Event handler methods for the availability header component
+  onSearch(query: string): void {
+    // Always search against the original store data, not the current filtered results
+    // This ensures each search starts with the full dataset
+    this.store.select(AvailabilitySelectors.selectAvailability).pipe(take(1)).subscribe((originalAvailability: Availability[]) => {
+      this.performSearch(query, originalAvailability);
+    });
+  }
+
+  onSearchClear(): void {
+    // When search is cleared, restore the original data from store
+    this.store.select(AvailabilitySelectors.selectAvailability).pipe(take(1)).subscribe((originalAvailability: Availability[]) => {
+      this.refreshFullCalendar(originalAvailability);
+      // Update metrics to reflect the full dataset
+      const totalSlots = originalAvailability.length;
+      const bookedSlots = originalAvailability.filter(slot => slot.isBooked).length;
+      const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+      
+      this.smartMetricsSubject.next({
+        totalSlots: totalSlots,
+        bookedSlots: bookedSlots,
+        expiredSlots: 0,
+        upcomingSlots: 0,
+        conflictingSlots: this.contentAnalyzer.detectConflicts(originalAvailability).length,
+        occupancyRate: occupancyRate
+      });
+      
+      this.snackbarService.showInfo('Search cleared - showing all slots');
+    });
+  }
+
+  onFilter(): void {
+    this.openFilterDialog();
+  }
+
+  onAnalyze(): void {
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.analyzeCalendarContent(availability);
+    });
+  }
+
+  onRecommendations(): void {
+    this.availability$.pipe(take(1)).subscribe(availability => {
+      this.getSmartRecommendations(availability);
+    });
+  }
+
+  onRefresh(): void {
+    this.refreshAvailability();
+  }
+
+  /**
+   * Apply the preferred view to the calendar after it's initialized
+   */
+  private applyPreferredViewToCalendar(): void {
+    if (this.calendarComponent) {
+      const preferredView = this.calendarStateService.getPreferredView();
+      const calendarApi = this.calendarComponent.getApi();
+      
+      if (calendarApi && calendarApi.view.type !== preferredView) {
+        console.log('[AvailabilityComponent] Applying preferred view to initialized calendar:', preferredView);
+        calendarApi.changeView(preferredView);
+        
+        // Update the state to reflect the applied view
+        this.calendarStateService.setView(preferredView);
+      }
+    }
+  }
+
+  /**
+   * Handle go to date request from dialog coordinator
+   * Implements the specific behavior: change to day view temporarily and navigate to date
+   * Does NOT update the preferred view in storage
+   * @param request The go to date request
+   */
+  private handleGoToDateRequest(request: GoToDateRequest): void {
+    console.log('[AvailabilityComponent] Handling go to date request:', request);
+    
+    if (this.calendarComponent) {
+      const calendarApi = this.calendarComponent.getApi();
+      
+      if (calendarApi) {
+        // 1. Store current view to potentially restore later
+        const currentView = calendarApi.view.type;
+        console.log('[AvailabilityComponent] Current view before go to date:', currentView);
+        
+        // 2. Change to day view temporarily (as per requirement)
+        // Use FullCalendar API directly without triggering state updates
+        calendarApi.changeView(request.temporaryView);
+        console.log('[AvailabilityComponent] Changed to temporary view:', request.temporaryView);
+        
+        // 3. Navigate to the selected date
+        calendarApi.gotoDate(request.date);
+        console.log('[AvailabilityComponent] Navigated to date:', request.date);
+        
+        // 4. Do NOT dispatch any state updates to prevent preference changes
+        // The calendar view is now temporarily changed without affecting user preferences
+        
+        // Show success message
+        this.snackbarService.showSuccess(`Navigated to ${request.date.toDateString()} in ${request.temporaryView === 'timeGridDay' ? 'Day' : 'Week'} view`);
+      }
+    }
   }
 }

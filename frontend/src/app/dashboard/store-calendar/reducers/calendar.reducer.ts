@@ -4,6 +4,7 @@ import { CalendarState } from '../../models/calendar.models';
 
 export const initialCalendarState: CalendarState = {
   currentView: 'timeGridWeek',
+  preferredView: null, // Will be set from user preferences
   dateRange: {
     startDate: new Date(),
     endDate: new Date()
@@ -85,6 +86,45 @@ export const calendarReducer = createReducer(
   })),
   
   on(CalendarActions.refreshCalendarFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error
+  })),
+  
+  // Set Preferred View
+  on(CalendarActions.setPreferredView, (state) => ({
+    ...state,
+    loading: true,
+    error: null
+  })),
+  
+  on(CalendarActions.setPreferredViewSuccess, (state, { view }) => ({
+    ...state,
+    preferredView: view,
+    loading: false
+  })),
+  
+  on(CalendarActions.setPreferredViewFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error
+  })),
+  
+  // Load Calendar Preferences
+  on(CalendarActions.loadCalendarPreferences, (state) => ({
+    ...state,
+    loading: true,
+    error: null
+  })),
+  
+  on(CalendarActions.loadCalendarPreferencesSuccess, (state, { preferredView }) => ({
+    ...state,
+    preferredView,
+    currentView: preferredView || state.currentView, // Use preferred view if available
+    loading: false
+  })),
+  
+  on(CalendarActions.loadCalendarPreferencesFailure, (state, { error }) => ({
     ...state,
     loading: false,
     error

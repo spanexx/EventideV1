@@ -122,7 +122,11 @@ export class LogManagerService {
       const newLogContent = await fs.readFile(filePath, 'utf-8');
       const newSummary = await this.getAiSummary(newLogContent, existingSummary);
 
-      await fs.writeFile(summaryFilePath, newSummary);
+      // Do not update the summary file if there are no significant events.
+      if (newSummary.trim() !== 'No significant events to report.') {
+        await fs.writeFile(summaryFilePath, newSummary);
+      }
+
       await fs.unlink(filePath);
     } catch (error) {
       console.error(`Failed to summarize and remove ${filePath}:`, error);
@@ -135,9 +139,10 @@ export class LogManagerService {
     }
 
     const prompt = `
-      You are a log summarization assistant. Below is an existing summary of previous logs and the content of a new log file.
-      Your task is to integrate the information from the new log file into the existing summary, creating a concise, consolidated overview.
-      The final output should be a single, coherent summary. Do not just append the new information; intelligently merge it.
+      You are a log summarization assistant. Your instructions are: if there is nothing to summarize, no issues and no concerns, there is no need to summarize too much.
+      Focus on significant events like errors, failures, and key state changes.
+      Intelligently merge the new information into the existing summary, creating a concise, consolidated overview.
+      **If the new log content contains no significant events, issues, or concerns, your entire response must be only the following phrase: "No significant events to report."**
 
       **Existing Summary:**
       ---
@@ -149,7 +154,7 @@ export class LogManagerService {
       ${newLogContent}
       ---
 
-      Now, provide the new, consolidated summary.
+      Provide the new, consolidated summary.
     `;
 
     try {

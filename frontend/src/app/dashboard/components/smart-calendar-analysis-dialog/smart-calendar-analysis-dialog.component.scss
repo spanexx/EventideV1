@@ -1,0 +1,67 @@
+.analysis-dialog-content {
+  min-width: 400px;
+  padding: 20px 0;
+}
+
+.calendar-metrics {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.metric-card {
+  flex: 1;
+  min-width: 120px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  text-align: center;
+  
+  .metric-icon {
+    font-size: 2rem;
+    width: auto;
+    height: auto;
+    color: #4285f4;
+    margin-bottom: 10px;
+  }
+  
+  h3 {
+    margin: 0 0 5px 0;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #666;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.smart-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.insight-card {
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  
+  h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 1.1rem;
+  }
+  
+  p {
+    margin: 0;
+    color: #666;
+    line-height: 1.4;
+  }
+}

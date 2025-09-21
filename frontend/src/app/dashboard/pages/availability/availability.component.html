@@ -1,62 +1,30 @@
 <div class="availability-container">
-  <!-- Professional Header -->
-  <div class="professional-header">
-    <div class="header-content">
-      <div class="header-left">
-        <h1 class="page-title">Availability</h1>
-      </div>
-      
-      <!-- Smart Calendar Insights -->
-      <div class="header-insights" *ngIf="availability$ | async as availability">
-        <div class="insights-metrics" *ngIf="smartMetrics$ | async as metrics">
-          <div class="metric-item">
-            <mat-icon class="metric-icon">event</mat-icon>
-            <span class="metric-value">{{ metrics.totalSlots }}</span>
-          </div>
-          
-          <div class="metric-item">
-            <mat-icon class="metric-icon">book</mat-icon>
-            <span class="metric-value">{{ metrics.bookedSlots }}</span>
-          </div>
-          
-          <div class="metric-item">
-            <mat-icon class="metric-icon">warning</mat-icon>
-            <span class="metric-value">{{ metrics.conflictingSlots }}</span>
-          </div>
-          
-          <div class="metric-item">
-            <mat-icon class="metric-icon">percent</mat-icon>
-            <span class="metric-value">{{ metrics.occupancyRate }}%</span>
-          </div>
-        </div>
-        
-        <div class="header-actions">
-          <input type="text" placeholder="Search..." #searchInput (keyup.enter)="performSearch(searchInput.value, availability)" class="search-input">
-          <button mat-icon-button (click)="performSearch(searchInput.value, availability)" matTooltip="Search">
-            <mat-icon>search</mat-icon>
-          </button>
-          <button mat-icon-button (click)="openFilterDialog()" matTooltip="Filter">
-            <mat-icon>filter_list</mat-icon>
-          </button>
-          <button mat-icon-button (click)="analyzeCalendarContent(availability)" matTooltip="Analyze">
-            <mat-icon>analytics</mat-icon>
-          </button>
-          <button mat-icon-button (click)="getSmartRecommendations(availability)" matTooltip="Recommendations">
-            <mat-icon>lightbulb</mat-icon>
-          </button>
-          <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
-            <mat-icon>refresh</mat-icon>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <app-availability-header 
+    [availability$]="availability$" 
+    [smartMetrics$]="smartMetrics$"
+    [activeView]="getCurrentActiveView()"
+    (search)="onSearch($event)"
+    (searchClear)="onSearchClear()"
+    (filter)="onFilter()"
+    (analyze)="onAnalyze()"
+    (recommendations)="onRecommendations()"
+    (refresh)="onRefresh()"
+    (undo)="undo()"
+    (redo)="redo()"
+    (saveChanges)="saveChanges()"
+    (discardChanges)="discardChanges()"
+    (changeView)="changeView($event)"
+    (openDatePicker)="openDatePicker()"
+    (copyWeek)="openCopyWeekDialog()">
+  </app-availability-header>
   
 
-  <div class="summary-banner" *ngIf="summary$ | async as summary">
-    <span>{{ summary.created }} created<span *ngIf="summary.skipped">, {{ summary.skipped }} skipped</span>.</span>
-    <button mat-button color="primary" (click)="dismissSummary()">Dismiss</button>
-  </div>
+  @if (summary$ | async; as summary) {
+    <div class="summary-banner">
+      <span>{{ summary.created }} created@if (summary.skipped) {, {{ summary.skipped }} skipped}</span>
+      <button mat-button color="primary" (click)="dismissSummary()">Dismiss</button>
+    </div>
+  }
   
   @if (loading$ | async) {
     <div class="loading">
@@ -66,66 +34,6 @@
   }
   
 
-  
-  <!-- Calendar toolbar with icons -->
-  <div class="calendar-toolbar">
-    <div class="toolbar-row">
-      <div class="toolbar-left">
-        <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
-          <mat-icon>refresh</mat-icon>
-        </button>
-        <button mat-icon-button (click)="openCopyWeekDialog()" matTooltip="Copy week schedule">
-          <mat-icon>content_copy</mat-icon>
-        </button>
-        <div class="pending-changes-indicator" *ngIf="pendingChangesCount > 0">
-          <span class="pending-count">{{ pendingChangesCount }}</span>
-          <span class="pending-label">pending changes</span>
-        </div>
-        <div class="pending-changes-controls">
-          <button mat-icon-button (click)="undo()" matTooltip="Undo" [disabled]="!canUndo">
-            <mat-icon>undo</mat-icon>
-          </button>
-          <button mat-icon-button (click)="redo()" matTooltip="Redo" [disabled]="!canRedo">
-            <mat-icon>redo</mat-icon>
-          </button>
-          <div class="separator"></div>
-          <button mat-icon-button (click)="saveChanges()" matTooltip="Save all changes" [disabled]="pendingChangesCount === 0">
-            <mat-icon>save</mat-icon>
-          </button>
-          <button mat-icon-button (click)="discardChanges()" matTooltip="Discard all changes" [disabled]="pendingChangesCount === 0">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </div>
-      </div>
-      
-      <div class="toolbar-center">
-        <button mat-icon-button (click)="navigateCalendar('prev')">
-          <mat-icon>navigate_before</mat-icon>
-        </button>
-        <button mat-icon-button (click)="navigateCalendar('today')">
-          <mat-icon>today</mat-icon>
-        </button>
-        <button mat-icon-button (click)="navigateCalendar('next')">
-          <mat-icon>navigate_next</mat-icon>
-        </button>
-      </div>
-      
-      <div class="toolbar-right">
-        <button mat-icon-button (click)="changeView('dayGridMonth')" [class.active]="isViewActive('dayGridMonth')">
-          <mat-icon>calendar_month</mat-icon>
-        </button>
-        <button mat-icon-button (click)="changeView('timeGridWeek')" [class.active]="isViewActive('timeGridWeek')">
-          <mat-icon>calendar_view_week</mat-icon>
-        </button>
-        <button mat-icon-button (click)="changeView('timeGridDay')" [class.active]="isViewActive('timeGridDay')">
-          <mat-icon>calendar_view_day</mat-icon>
-        </button>
-        <button mat-icon-button (click)="openDatePicker()">
-          <mat-icon>date_range</mat-icon>
-        </button>
-      </div>
-    </div>
-  </div>
   
   <div class="calendar-container">
     <full-calendar #calendar [options]="calendarOptions"></full-calendar>

@@ -28,7 +28,6 @@ build/
 # Documentation
 docs/
 *.md
-logger
 
 # Temporary files
 tmp/

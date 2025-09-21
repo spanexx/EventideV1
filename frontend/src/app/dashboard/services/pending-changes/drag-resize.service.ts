@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Availability } from '../../models/availability.models';
 import { PendingChangesService } from './pending-changes.service';
+import { PendingChangesSignalService } from './pending-changes-signal.service';
+import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { Change } from './pending-changes.interface';
 
 @Injectable({
@@ -9,7 +11,9 @@ import { Change } from './pending-changes.interface';
 })
 export class DragResizeService {
   constructor(
-    private pendingChangesService: PendingChangesService,
+    private pendingChangesService: PendingChangesService, // Keep old for compatibility
+    private pendingChangesSignalService: PendingChangesSignalService, // New signal service
+    private undoRedoService: UndoRedoSignalService,
     private store: Store
   ) {}
 
@@ -19,8 +23,19 @@ export class DragResizeService {
    * @param availability Current availability data
    */
   handleEventResize(resizeInfo: any, availability: Availability[]): void {
-    const slot = availability.find(a => a.id === resizeInfo.event.id);
+    // First try to find the slot in the current state (which includes pending changes)
+    const currentState = this.pendingChangesSignalService.currentState();
+    let slot = currentState.find(a => a.id === resizeInfo.event.id);
+    
+    // If not found in current state, try the original availability array (fallback)
+    if (!slot) {
+      slot = availability.find(a => a.id === resizeInfo.event.id);
+    }
+    
     if (slot) {
+      // Save current state for undo before making changes
+      this.undoRedoService.saveStateForUndo('Resize availability slot');
+      
       // Create updated slot with new times
       const updatedSlot = {
         ...slot,
@@ -39,13 +54,10 @@ export class DragResizeService {
         timestamp: new Date()
       };
 
-      // Add the change to pending changes
-      this.pendingChangesService.addChange(change);
-      
-      // Update the current state
-      const currentState = this.pendingChangesService.getCurrentState();
-      const updatedState = currentState.map(s => s.id === slot.id ? updatedSlot : s);
-      this.pendingChangesService.updateCurrentState(updatedState);
+      // Add the change to signal-based pending changes
+      this.pendingChangesSignalService.addChange(change);
+    } else {
+      console.warn('[DragResizeService] Could not find slot with ID:', resizeInfo.event.id);
     }
   }
 
@@ -55,8 +67,19 @@ export class DragResizeService {
    * @param availability Current availability data
    */
   handleEventDrop(dropInfo: any, availability: Availability[]): void {
-    const slot = availability.find(a => a.id === dropInfo.event.id);
+    // First try to find the slot in the current state (which includes pending changes)
+    const currentState = this.pendingChangesSignalService.currentState();
+    let slot = currentState.find(a => a.id === dropInfo.event.id);
+    
+    // If not found in current state, try the original availability array (fallback)
+    if (!slot) {
+      slot = availability.find(a => a.id === dropInfo.event.id);
+    }
+    
     if (slot) {
+      // Save current state for undo before making changes
+      this.undoRedoService.saveStateForUndo('Move availability slot');
+      
       // Create updated slot with new times
       const updatedSlot = {
         ...slot,
@@ -75,13 +98,10 @@ export class DragResizeService {
         timestamp: new Date()
       };
 
-      // Add the change to pending changes
-      this.pendingChangesService.addChange(change);
-      
-      // Update the current state
-      const currentState = this.pendingChangesService.getCurrentState();
-      const updatedState = currentState.map(s => s.id === slot.id ? updatedSlot : s);
-      this.pendingChangesService.updateCurrentState(updatedState);
+      // Add the change to signal-based pending changes
+      this.pendingChangesSignalService.addChange(change);
+    } else {
+      console.warn('[DragResizeService] Could not find slot with ID:', dropInfo.event.id);
     }
   }
 

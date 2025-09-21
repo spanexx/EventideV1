@@ -9,6 +9,11 @@ export const selectCurrentView = createSelector(
   (state: CalendarState) => state.currentView
 );
 
+export const selectPreferredView = createSelector(
+  selectCalendarState,
+  (state: CalendarState) => state.preferredView
+);
+
 export const selectDateRange = createSelector(
   selectCalendarState,
   (state: CalendarState) => state.dateRange

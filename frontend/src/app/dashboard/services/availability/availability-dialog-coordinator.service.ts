@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
@@ -8,20 +8,36 @@ import { Availability } from '../../models/availability.models';
 import { DialogManagementService } from '../dialog/dialog-management.service';
 import { DialogDataService } from '../dialog/dialog-data.service';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
-import { PendingChangesService } from '../pending-changes';
+import { PendingChangesSignalService } from '../pending-changes/pending-changes-signal.service';
+import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { Change } from '../pending-changes/pending-changes.interface';
+
+export interface GoToDateRequest {
+  date: Date;
+  temporaryView: 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
+  behavior: 'temporary-day' | 'temporary-preferred' | 'change-to-day' | 'change-to-preferred';
+}
+
+export type GoToDateBehavior = 'temporary-day' | 'temporary-preferred' | 'change-to-day' | 'change-to-preferred';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AvailabilityDialogCoordinatorService {
+  // Subject for go to date requests
+  private goToDateSubject = new Subject<GoToDateRequest>();
+  public readonly goToDateRequested$ = this.goToDateSubject.asObservable();
+
   constructor(
     private store: Store,
     private dialogService: DialogManagementService,
     private dialogDataService: DialogDataService,
     private snackbarService: SnackbarService,
-    private pendingChangesService: PendingChangesService
-  ) {}
+    private pendingChangesSignalService: PendingChangesSignalService,
+    private undoRedoService: UndoRedoSignalService
+  ) {
+    console.log('[AvailabilityDialogCoordinatorService] Initialized with signal-based services');
+  }
 
   /**
    * Add a new availability slot
@@ -100,6 +116,10 @@ export class AvailabilityDialogCoordinatorService {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
+        console.log('[AvailabilityDialogCoordinatorService] Delete confirmed for slot:', slot.id);
+        // Save state for undo before making changes
+        this.undoRedoService.saveStateForUndo('Delete availability slot');
+        
         // Instead of directly deleting, add to pending changes
         const change: Change = {
           id: `delete-${slot.id}-${Date.now()}`,
@@ -108,7 +128,8 @@ export class AvailabilityDialogCoordinatorService {
           // For delete operations, we typically don't need the full entity
           timestamp: new Date()
         };
-        this.pendingChangesService.addChange(change);
+        this.pendingChangesSignalService.addChange(change);
+        console.log('[AvailabilityDialogCoordinatorService] Added delete change, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       }
     });
   }
@@ -202,6 +223,9 @@ export class AvailabilityDialogCoordinatorService {
         });
 
         // 6. Add to pending changes (these are new slots that haven't been created yet)
+        console.log('[AvailabilityDialogCoordinatorService] Copy week operation - saving state for undo');
+        this.undoRedoService.saveStateForUndo(`Copy week from ${sourceWeek.toDateString()} to ${targetWeek.toDateString()}`);
+        
         newSlots.forEach(slot => {
           const change: Change = {
             id: `create-${Date.now()}-${Math.random()}`,
@@ -209,10 +233,10 @@ export class AvailabilityDialogCoordinatorService {
             entity: slot,
             timestamp: new Date()
           };
-          this.pendingChangesService.addChange(change);
+          this.pendingChangesSignalService.addChange(change);
         });
 
-
+        console.log('[AvailabilityDialogCoordinatorService] Copy week completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
         snackbarService.showSuccess(`Copied ${newSlots.length} slots to pending changes. Click Save to apply.`);
       });
     });
@@ -226,9 +250,44 @@ export class AvailabilityDialogCoordinatorService {
       this.dialogDataService.prepareDatePickerDialogData(new Date())
     );
 
-    dialogRef.afterClosed().subscribe((result: any) => {
-      // Handle the date picker result
-      // This would typically be handled by the component that calls this method
+    dialogRef.afterClosed().subscribe((selectedDate: Date | null) => {
+      if (selectedDate) {
+        console.log('[AvailabilityDialogCoordinatorService] Go to date selected:', selectedDate);
+        this.handleGoToDate(selectedDate);
+      }
+    });
+  }
+
+  /**
+   * Handle the go to date functionality
+   * - Changes calendar to day view
+   * - Navigates to selected date
+   * - Does NOT change the preferred view in storage
+   * @param selectedDate The date to navigate to
+   */
+  private handleGoToDate(selectedDate: Date): void {
+    console.log('[AvailabilityDialogCoordinatorService] Handling go to date:', selectedDate);
+    
+    // Get current user preference for go to date behavior
+    // For now, use the default behavior, but this will be configurable in settings
+    const goToDateBehavior: GoToDateBehavior = 'temporary-day'; // Default: temporary day view without saving preference
+    
+    // Determine the target view based on behavior
+    let temporaryView: 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
+    if (goToDateBehavior === 'temporary-day' || goToDateBehavior === 'change-to-day') {
+      temporaryView = 'timeGridDay';
+    } else if (goToDateBehavior === 'temporary-preferred' || goToDateBehavior === 'change-to-preferred') {
+      // TODO: Get user's preferred view from preferences service
+      temporaryView = 'timeGridWeek'; // Fallback for now
+    } else {
+      temporaryView = 'timeGridDay';
+    }
+    
+    // Emit the go to date request with behavior information
+    this.goToDateSubject.next({
+      date: selectedDate,
+      temporaryView: temporaryView,
+      behavior: goToDateBehavior
     });
   }
 

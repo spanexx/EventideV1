@@ -3,13 +3,15 @@ import { inject } from '@angular/core';
 import { AuthService } from '../../services/auth.service';
 import { Observable, throwError } from 'rxjs';
 import { catchError, switchMap } from 'rxjs/operators';
+import { environment } from '../../../environments/environment';
 
 export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, next: HttpHandlerFn): Observable<HttpEvent<unknown>> => {
   const authService = inject(AuthService);
   const token = authService.getToken();
 
   let authReq = req;
-  if (token) {
+  // Only add auth header for requests to our API
+  if (token && req.url.startsWith(environment.apiUrl)) {
     authReq = req.clone({
       setHeaders: {
         Authorization: `Bearer ${token}`
@@ -19,7 +21,10 @@ export const authInterceptor: HttpInterceptorFn = (req: HttpRequest<unknown>, ne
 
   return next(authReq).pipe(
     catchError(error => {
-      if (error.status === 401 && !authReq.url.includes('/auth/refresh')) {
+      // Only handle 401 errors for our API endpoints, not external APIs like OpenRouter
+      if (error.status === 401 && 
+          req.url.startsWith(environment.apiUrl) && 
+          !authReq.url.includes('/auth/refresh')) {
         // Attempt to refresh token
         return authService.refreshToken().pipe(
           switchMap((response) => {
