@@ -74,6 +74,7 @@
           [canRedo]="canRedo()"
           [searchTerm]="searchTerm"
           (search)="onSearch($event)"
+          (searchClear)="onSearchClear()"
           (filter)="onFilter()"
           (analyze)="onAnalyze()"
           (recommendations)="onRecommendations()"

@@ -8,5 +8,7 @@ export const environment = {
     sampleRate: 0.05
   },
 
-  openRouterApiKey: "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"
+  openRouterApiKey: "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",
+  geminiApiKey: "AIzaSyCXwNqpeELpVco-pUBiSOF4yfeOBRlI4TA"
+
 };

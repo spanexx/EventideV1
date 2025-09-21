@@ -38,6 +38,7 @@ export class AvailabilityHeaderComponent {
   @Input() smartMetrics$!: Observable<ContentMetrics>;
   @Input() activeView: CalendarView = 'timeGridWeek';
   @Output() search = new EventEmitter<string>();
+  @Output() searchClear = new EventEmitter<void>();
   @Output() filter = new EventEmitter<void>();
   @Output() analyze = new EventEmitter<void>();
   @Output() recommendations = new EventEmitter<void>();
@@ -65,6 +66,10 @@ export class AvailabilityHeaderComponent {
 
   onSearch(term: string): void {
     this.search.emit(term);
+  }
+
+  onSearchClear(): void {
+    this.searchClear.emit();
   }
 
   onFilter(): void {

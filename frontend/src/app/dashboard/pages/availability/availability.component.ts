@@ -56,7 +56,7 @@ import { UndoRedoCoordinatorService, UndoRedoSignalService } from '../../service
 
 // Import our smart calendar services
 import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, CalendarView, FilterOptions } from '../../services/smart-calendar-manager.service';
-import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services/smart-content-analyzer.service';
+import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services';
 
 // Import our new calendar state service
 import { CalendarStateService } from '../../services/calendar-state.service';
@@ -610,15 +610,22 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   }
   
   /**
-   * Performs a search on the calendar data using natural language processing
+   * Performs a search on the calendar data using enhanced AI-powered natural language processing
    */
-  performSearch(query: string, availability: Availability[]): void {
-    this.smartCalendarOperationsService.performSearch(
+  async performSearch(query: string, availability: Availability[]): Promise<void> {
+    // Get calendar API if available
+    let calendarApi = null;
+    if (this.calendarComponent) {
+      calendarApi = this.calendarComponent.getApi();
+    }
+    
+    await this.smartCalendarOperationsService.performSearch(
       query,
       availability,
       (results) => this.refreshFullCalendar(results),
       this.smartMetricsSubject,
-      this.contentAnalyzer
+      this.contentAnalyzer,
+      calendarApi
     );
   }
   
@@ -674,8 +681,32 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   // Event handler methods for the availability header component
   onSearch(query: string): void {
-    this.availability$.pipe(take(1)).subscribe(availability => {
-      this.performSearch(query, availability);
+    // Always search against the original store data, not the current filtered results
+    // This ensures each search starts with the full dataset
+    this.store.select(AvailabilitySelectors.selectAvailability).pipe(take(1)).subscribe((originalAvailability: Availability[]) => {
+      this.performSearch(query, originalAvailability);
+    });
+  }
+
+  onSearchClear(): void {
+    // When search is cleared, restore the original data from store
+    this.store.select(AvailabilitySelectors.selectAvailability).pipe(take(1)).subscribe((originalAvailability: Availability[]) => {
+      this.refreshFullCalendar(originalAvailability);
+      // Update metrics to reflect the full dataset
+      const totalSlots = originalAvailability.length;
+      const bookedSlots = originalAvailability.filter(slot => slot.isBooked).length;
+      const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+      
+      this.smartMetricsSubject.next({
+        totalSlots: totalSlots,
+        bookedSlots: bookedSlots,
+        expiredSlots: 0,
+        upcomingSlots: 0,
+        conflictingSlots: this.contentAnalyzer.detectConflicts(originalAvailability).length,
+        occupancyRate: occupancyRate
+      });
+      
+      this.snackbarService.showInfo('Search cleared - showing all slots');
     });
   }
 

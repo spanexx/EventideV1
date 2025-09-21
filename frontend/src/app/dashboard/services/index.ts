@@ -13,3 +13,12 @@ export * from './mock-dashboard.service';
 // Smart calendar services
 export * from './smart-calendar-manager.service';
 export { SmartContentAnalyzerService } from './smart-content-analyzer.service';
+export type { ContentAnalysisResult, FilterOptions } from './smart-content-analyzer.service';
+
+// Modular search and analytics services
+export { SmartSearchService } from './search/smart-search.service';
+export type { SearchResult } from './search/smart-search.service';
+export { SearchFilterService } from './search/search-filter.service';
+export { CalendarAnalyticsService } from './analytics/calendar-analytics.service';
+export type { CalendarAnalysisResult } from './analytics/calendar-analytics.service';
+export { CalendarCacheService } from './cache/calendar-cache.service';

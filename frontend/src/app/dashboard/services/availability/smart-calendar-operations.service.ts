@@ -1,8 +1,8 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Availability } from '../../models/availability.models';
 import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, FilterOptions } from '../smart-calendar-manager.service';
-import { SmartContentAnalyzerService, ContentAnalysisResult } from '../smart-content-analyzer.service';
+import { SmartContentAnalyzerService, ContentAnalysisResult } from '../';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
 import { MatDialog } from '@angular/material/dialog';
 import { SmartCalendarAnalysisDialogComponent } from '../../components/smart-calendar-analysis-dialog/smart-calendar-analysis-dialog.component';
@@ -146,50 +146,125 @@ export class SmartCalendarOperationsService {
   }
   
   /**
-   * Performs a search on the calendar data using natural language processing
+   * Performs a search on the calendar data using enhanced AI-powered natural language processing
    * @param query Search query
    * @param availability Current availability data
    * @param refreshCalendar Function to refresh the calendar with search results
    * @param smartMetricsSubject BehaviorSubject to update metrics
    */
-  performSearch(
+  async performSearch(
     query: string,
     availability: Availability[],
     refreshCalendar: (results: Availability[]) => void,
     smartMetricsSubject: any,
-    contentAnalyzer: SmartContentAnalyzerService
-  ): void {
+    contentAnalyzer: SmartContentAnalyzerService,
+    // Add calendar API for navigation
+    calendarApi?: any
+  ): Promise<void> {
     if (!query) {
       this.snackbarService.showInfo('Please enter a search query');
       return;
     }
     
-    // Perform the search using the smart content analyzer
-    const searchResults = contentAnalyzer.searchWithNLP(query, availability);
-    
-    // Update the calendar with search results
-    refreshCalendar(searchResults);
-    
-    // Update metrics with search results
-    const totalSlots = searchResults.length;
-    const bookedSlots = searchResults.filter(slot => slot.isBooked).length;
-    const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
-    
-    // Detect conflicts in search results
-    const conflicts = contentAnalyzer.detectConflicts(searchResults);
-    
-    smartMetricsSubject.next({
-      totalSlots: totalSlots,
-      bookedSlots: bookedSlots,
-      expiredSlots: 0, // We would calculate this based on dates
-      upcomingSlots: 0, // We would calculate this based on dates
-      conflictingSlots: conflicts.length,
-      occupancyRate: occupancyRate
-    });
-    
-    this.snackbarService.showSuccess(`Found ${searchResults.length} matching slots`);
+    try {
+      // Use enhanced AI search if available
+      const searchResult = await contentAnalyzer.searchWithEnhancedNLP(query, availability);
+      
+      // Update the calendar with search results
+      refreshCalendar(searchResult.results);
+      
+      // Navigate to date if navigation info is provided
+      if (calendarApi && searchResult.navigation) {
+        this.navigateToDate(calendarApi, searchResult.navigation.date, searchResult.navigation.view);
+      }
+      
+      // Update metrics with search results
+      const totalSlots = searchResult.results.length;
+      const bookedSlots = searchResult.results.filter((slot: Availability) => slot.isBooked).length;
+      const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+      
+      // Detect conflicts in search results
+      const conflicts = contentAnalyzer.detectConflicts(searchResult.results);
+      
+      smartMetricsSubject.next({
+        totalSlots: totalSlots,
+        bookedSlots: bookedSlots,
+        expiredSlots: 0, // We would calculate this based on dates
+        upcomingSlots: 0, // We would calculate this based on dates
+        conflictingSlots: conflicts.length,
+        occupancyRate: occupancyRate
+      });
+      
+      // Show enhanced search results feedback
+      if (searchResult.results.length > 0) {
+        this.snackbarService.showSuccess(
+          `Found ${searchResult.results.length} results: ${searchResult.interpretation}`
+        );
+      } else {
+        this.snackbarService.showInfo(
+          `No results found: ${searchResult.interpretation}`
+        );
+      }
+      
+      // Store suggestions for future use (could emit to a suggestions subject)
+      if (searchResult.suggestions && searchResult.suggestions.length > 0) {
+        console.log('AI Search suggestions:', searchResult.suggestions);
+      }
+      
+    } catch (error) {
+      console.error('Enhanced AI search failed, falling back to basic search:', error);
+      
+      // Fallback to basic search
+      const searchResults = await contentAnalyzer.searchWithNLP(query, availability);
+      
+      // Update the calendar with search results
+      refreshCalendar(searchResults);
+      
+      // Update metrics with search results
+      const totalSlots = searchResults.length;
+      const bookedSlots = searchResults.filter((slot: Availability) => slot.isBooked).length;
+      const occupancyRate = totalSlots > 0 ? Math.round((bookedSlots / totalSlots) * 100) : 0;
+      
+      // Detect conflicts in search results
+      const conflicts = contentAnalyzer.detectConflicts(searchResults);
+      
+      smartMetricsSubject.next({
+        totalSlots: totalSlots,
+        bookedSlots: bookedSlots,
+        expiredSlots: 0, // We would calculate this based on dates
+        upcomingSlots: 0, // We would calculate this based on dates
+        conflictingSlots: conflicts.length,
+        occupancyRate: occupancyRate
+      });
+      
+      this.snackbarService.showSuccess(`Found ${searchResults.length} matching slots`);
+    }
   }
-  
+
+  /**
+   * Navigates the calendar to a specific date and view
+   * @param calendarApi FullCalendar API instance
+   * @param date Date to navigate to (YYYY-MM-DD format)
+   * @param view Optional view to switch to
+   */
+  private navigateToDate(calendarApi: any, date: string, view?: 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth'): void {
+    try {
+      // Change view if specified
+      if (view && calendarApi.view.type !== view) {
+        calendarApi.changeView(view);
+      }
+      
+      // Navigate to the specific date
+      const targetDate = new Date(date);
+      if (!isNaN(targetDate.getTime())) {
+        calendarApi.gotoDate(targetDate);
+        console.log(`📅 Navigated to date: ${date} with view: ${view || calendarApi.view.type}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to navigate to date:', error);
+    }
+  }
+
   /**
    * Opens a filter dialog to configure calendar filters
    * @param currentFilters Current filter options

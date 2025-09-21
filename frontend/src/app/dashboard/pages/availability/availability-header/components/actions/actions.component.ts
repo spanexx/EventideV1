@@ -27,6 +27,7 @@ export class HeaderActionsComponent {
   @Input() searchTerm: string = '';
   
   @Output() search = new EventEmitter<string>();
+  @Output() searchClear = new EventEmitter<void>();
   @Output() filter = new EventEmitter<void>();
   @Output() analyze = new EventEmitter<void>();
   @Output() recommendations = new EventEmitter<void>();
@@ -35,8 +36,20 @@ export class HeaderActionsComponent {
   @Output() saveChanges = new EventEmitter<void>();
   @Output() discardChanges = new EventEmitter<void>();
 
-  onSearch(): void {
+  async onSearch(): Promise<void> {
     this.search.emit(this.searchTerm);
+  }
+
+  onSearchInput(): void {
+    // If search term is cleared, emit clear event to restore original data
+    if (!this.searchTerm || this.searchTerm.trim() === '') {
+      this.searchClear.emit();
+    }
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.searchClear.emit();
   }
 
   onFilter(): void {

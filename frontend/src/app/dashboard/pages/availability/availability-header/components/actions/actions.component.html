@@ -22,10 +22,14 @@
       placeholder="Search in natural language..." 
       [(ngModel)]="searchTerm" 
       (keyup.enter)="onSearch()" 
+      (input)="onSearchInput()"
       (focus)="onSearchFocus()"
       (blur)="onSearchBlur()"
       class="search-input"
       matTooltip="Try: 'meetings tomorrow', 'free slots this week', 'conflicts on Friday'">
+    <button *ngIf="searchTerm" mat-icon-button (click)="clearSearch()" matTooltip="Clear search" class="clear-search-btn">
+      <mat-icon>clear</mat-icon>
+    </button>
     <button mat-icon-button (click)="onFilter()" matTooltip="Filter" aria-label="Filter">
       <mat-icon>filter_list</mat-icon>
     </button>

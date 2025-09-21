@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, Input, ViewChild, AfterViewInit } from '@
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { SmartCalendarManagerService, SmartCalendarConfig, ContentMetrics } from '../../services/smart-calendar-manager.service';
-import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services/smart-content-analyzer.service';
+import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../services';
 import { CommonModule } from '@angular/common';
 import { Availability } from '../../models/availability.models';
 import { FullCalendarComponent } from '@fullcalendar/angular';
