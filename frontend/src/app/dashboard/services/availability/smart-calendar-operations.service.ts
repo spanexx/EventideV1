@@ -110,6 +110,18 @@ export class SmartCalendarOperationsService {
     smartRecommendationsSubject: any
   ): void {
     if (availability && availability.length > 0) {
+      // First update the manager with current metrics based on availability data
+      const totalSlots = availability.length;
+      const bookedSlots = availability.filter(slot => slot.isBooked).length;
+      const occupancyRate = Math.round((bookedSlots / totalSlots) * 100);
+      
+      // Update metrics in the smart calendar manager
+      this.smartCalendarManager.updateMetrics({
+        totalSlots: totalSlots,
+        bookedSlots: bookedSlots,
+        occupancyRate: occupancyRate
+      });
+      
       // Generate recommendations using our smart calendar manager
       this.smartCalendarManager.generateRecommendations().subscribe(recommendations => {
         smartRecommendationsSubject.next(recommendations);

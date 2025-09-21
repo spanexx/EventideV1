@@ -15,6 +15,7 @@ export class CalendarService {
 
   /**
    * Initialize calendar options
+   * @param initialView The initial view to use (from preferences)
    * @returns CalendarOptions object with all configuration
    */
   initializeCalendarOptions(
@@ -26,7 +27,8 @@ export class CalendarService {
     handleEventResize: (resizeInfo: any) => void,
     handleEventDrop: (dropInfo: any) => void,
     openDatePicker: () => void,
-    handleEventContextMenu: (mouseEvent: MouseEvent, eventInfo: any) => void
+    handleEventContextMenu: (mouseEvent: MouseEvent, eventInfo: any) => void,
+    initialView: string = 'timeGridWeek'
   ): any {
     return {
       plugins: [
@@ -39,7 +41,7 @@ export class CalendarService {
         center: 'title',
         right: 'today,next'
       },
-      initialView: 'timeGridWeek',
+      initialView: initialView,
       editable: true,
       selectable: true,
       selectMirror: true,

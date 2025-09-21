@@ -22,6 +22,7 @@ export class ViewButtonsComponent {
   @Output() changeView = new EventEmitter<CalendarView>();
   @Output() openDatePicker = new EventEmitter<void>();
   @Output() copyWeek = new EventEmitter<void>();
+  @Output() refresh = new EventEmitter<void>();
 
   onChangeView(view: CalendarView): void {
     this.changeView.emit(view);
@@ -33,5 +34,9 @@ export class ViewButtonsComponent {
 
   onCopyWeek(): void {
     this.copyWeek.emit();
+  }
+
+  onRefresh(): void {
+    this.refresh.emit();
   }
 }

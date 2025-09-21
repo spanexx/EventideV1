@@ -1,37 +1,42 @@
 <div class="header-actions">
   @if (pendingChangesCount > 0) {
-    <button mat-icon-button (click)="onUndo()" matTooltip="Undo" [disabled]="!canUndo">
-      <mat-icon>undo</mat-icon>
-    </button>
-    <button mat-icon-button (click)="onRedo()" matTooltip="Redo" [disabled]="!canRedo">
-      <mat-icon>redo</mat-icon>
-    </button>
-    <button mat-icon-button (click)="onSaveChanges()" matTooltip="Save all changes">
-      <mat-icon>save</mat-icon>
-    </button>
-    <button mat-icon-button (click)="onDiscardChanges()" matTooltip="Discard all changes">
-      <mat-icon>delete</mat-icon>
-    </button>
+    <div class="pending-group">
+      <button mat-icon-button (click)="onUndo()" matTooltip="Undo" [disabled]="!canUndo" aria-label="Undo">
+        <mat-icon>undo</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onRedo()" matTooltip="Redo" [disabled]="!canRedo" aria-label="Redo">
+        <mat-icon>redo</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onSaveChanges()" matTooltip="Save all changes" aria-label="Save">
+        <mat-icon>save</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onDiscardChanges()" matTooltip="Discard all changes" aria-label="Discard">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
   }
-  <input 
-    type="text" 
-    placeholder="Search..." 
-    [(ngModel)]="searchTerm" 
-    (keyup.enter)="onSearch()" 
-    class="search-input">
-  <button mat-icon-button (click)="onSearch()" matTooltip="Search">
-    <mat-icon>search</mat-icon>
-  </button>
-  <button mat-icon-button (click)="onFilter()" matTooltip="Filter">
-    <mat-icon>filter_list</mat-icon>
-  </button>
-  <button mat-icon-button (click)="onAnalyze()" matTooltip="Analyze calendar content for insights">
-    <mat-icon>analytics</mat-icon>
-  </button>
-  <button mat-icon-button (click)="onRecommendations()" matTooltip="Get smart recommendations">
-    <mat-icon>lightbulb</mat-icon>
-  </button>
-  <button mat-icon-button (click)="onRefresh()" matTooltip="Refresh">
-    <mat-icon>refresh</mat-icon>
-  </button>
+  
+  <div class="search-filter-group">
+    <input 
+      type="text" 
+      placeholder="Search in natural language..." 
+      [(ngModel)]="searchTerm" 
+      (keyup.enter)="onSearch()" 
+      (focus)="onSearchFocus()"
+      (blur)="onSearchBlur()"
+      class="search-input"
+      matTooltip="Try: 'meetings tomorrow', 'free slots this week', 'conflicts on Friday'">
+    <button mat-icon-button (click)="onFilter()" matTooltip="Filter" aria-label="Filter">
+      <mat-icon>filter_list</mat-icon>
+    </button>
+  </div>
+  
+  <div class="insights-group">
+    <button mat-icon-button (click)="onAnalyze()" matTooltip="Analyze calendar content for insights" aria-label="Analyze">
+      <mat-icon>analytics</mat-icon>
+    </button>
+    <button mat-icon-button (click)="onRecommendations()" matTooltip="Get smart recommendations" aria-label="Tips">
+      <mat-icon>lightbulb</mat-icon>
+    </button>
+  </div>
 </div>

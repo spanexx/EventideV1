@@ -21,9 +21,7 @@ export class AvailabilityPendingChangesService {
     private snackbarService: SnackbarService,
     private dialogService: DialogManagementService,
     private store: Store
-  ) {
-    console.log('[AvailabilityPendingChangesService] Initialized with signal-based services');
-  }
+  ) {}
 
   /**
    * Save all pending changes
@@ -32,8 +30,6 @@ export class AvailabilityPendingChangesService {
   saveChanges(refreshAvailability: () => void): void {
     const changes = this.pendingChangesSignalService.getPendingChanges();
     
-    console.log('[AvailabilityPendingChangesService] Attempting to save changes:', changes.length);
-    
     if (changes.length === 0) {
       this.snackbarService.showInfo('No changes to save');
       return;
@@ -41,7 +37,6 @@ export class AvailabilityPendingChangesService {
     
     this.changesSynchronizerService.saveChanges(changes).subscribe(result => {
       if (result.success) {
-        console.log('[AvailabilityPendingChangesService] Changes saved successfully');
         this.snackbarService.showSuccess(result.message);
         // Clear pending changes
         this.pendingChangesSignalService.saveChanges();
@@ -49,7 +44,6 @@ export class AvailabilityPendingChangesService {
         this.undoRedoService.clearHistory();
         // Refresh the calendar
         refreshAvailability();
-        console.log('[AvailabilityPendingChangesService] Save completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       } else {
         console.error('[AvailabilityPendingChangesService] Save failed:', result.message);
         this.snackbarService.showError(result.message);
@@ -71,8 +65,6 @@ export class AvailabilityPendingChangesService {
       return;
     }
     
-    console.log('[AvailabilityPendingChangesService] Attempting to discard changes, current count:', this.pendingChangesSignalService.pendingChangesCount());
-    
     const dialogRef = this.dialogService.openConfirmationDialog({
       title: 'Discard Changes',
       message: 'Are you sure you want to discard all pending changes? This action cannot be undone.',
@@ -87,7 +79,6 @@ export class AvailabilityPendingChangesService {
         this.undoRedoService.clearHistory();
         refreshFullCalendar(originalState);
         this.snackbarService.showSuccess('Changes discarded');
-        console.log('[AvailabilityPendingChangesService] Changes discarded, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       }
     });
   }
@@ -96,17 +87,13 @@ export class AvailabilityPendingChangesService {
    * Execute undo operation
    */
   undo(): void {
-    console.log('[AvailabilityPendingChangesService] Executing undo operation');
     this.undoRedoService.undo();
-    console.log('[AvailabilityPendingChangesService] Undo completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
   }
 
   /**
    * Execute redo operation
    */
   redo(): void {
-    console.log('[AvailabilityPendingChangesService] Executing redo operation');
     this.undoRedoService.redo();
-    console.log('[AvailabilityPendingChangesService] Redo completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
   }
 }

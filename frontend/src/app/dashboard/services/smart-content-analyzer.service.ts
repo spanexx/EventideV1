@@ -1,8 +1,9 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { CalendarView, DensityLevel } from './smart-calendar-manager.service';
 import { Availability } from '../models/availability.models';
 import { SmartCalendarLoggerService } from './smart-calendar-logger.service';
+import { AIService } from '../../services/ai.service';
 
 export interface ContentAnalysisResult {
   viewOptimization: ViewOptimizationSuggestionsResult;
@@ -50,7 +51,10 @@ export class SmartContentAnalyzerService {
   private cacheTimeout = 5 * 60 * 1000; // 5 minutes cache timeout
   private cacheTimestamps: Map<string, number> = new Map();
 
-  constructor(private logger: SmartCalendarLoggerService) { }
+  constructor(
+    private logger: SmartCalendarLoggerService,
+    private aiService: AIService = inject(AIService)
+  ) { }
 
   /**
    * Analyzes calendar content to provide intelligent insights and recommendations

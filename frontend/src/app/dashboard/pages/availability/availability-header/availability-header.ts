@@ -51,6 +51,7 @@ export class AvailabilityHeaderComponent {
   @Output() copyWeek = new EventEmitter<void>();
 
   searchTerm: string = '';
+  isMobileMenuOpen: boolean = false;
 
   // MIGRATION: Computed signals for reactive state (no more manual input binding needed)
   readonly pendingChangesCount = computed(() => this.pendingChangesService.pendingChangesCount());
@@ -108,5 +109,13 @@ export class AvailabilityHeaderComponent {
 
   onCopyWeek(): void {
     this.copyWeek.emit();
+  }
+
+  toggleMobileMenu(): void {
+    this.isMobileMenuOpen = !this.isMobileMenuOpen;
+  }
+
+  closeMobileMenu(): void {
+    this.isMobileMenuOpen = false;
   }
 }

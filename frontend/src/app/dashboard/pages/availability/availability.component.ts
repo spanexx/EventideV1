@@ -14,6 +14,7 @@ import * as AvailabilityActions from '../../store-availability/actions/availabil
 import * as AvailabilitySelectors from '../../store-availability/selectors/availability.selectors';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import * as CalendarSelectors from '../../store-calendar/selectors/calendar.selectors';
+import * as CalendarActions from '../../store-calendar/actions/calendar.actions';
 import { Availability } from '../../models/availability.models';
 import { AvailabilityService } from '../../services/availability.service';
 import { CommonModule } from '@angular/common';
@@ -59,6 +60,8 @@ import { SmartContentAnalyzerService, ContentAnalysisResult } from '../../servic
 
 // Import our new calendar state service
 import { CalendarStateService } from '../../services/calendar-state.service';
+import { CalendarStateCoordinatorService } from '../../services/calendar-state-coordinator.service';
+import { GoToDateRequest } from '../../services/availability/availability-dialog-coordinator.service';
 
 import { SmartCalendarAnalysisDialogComponent } from '../../components/smart-calendar-analysis-dialog/smart-calendar-analysis-dialog.component';
 import { SmartCalendarRecommendationsDialogComponent } from '../../components/smart-calendar-recommendations-dialog/smart-calendar-recommendations-dialog.component';
@@ -171,14 +174,15 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     // Inject our smart calendar services
     private smartCalendarManager: SmartCalendarManagerService,
     private contentAnalyzer: SmartContentAnalyzerService,
-    // Inject our new calendar state service
-    private calendarStateService: CalendarStateService
+    // Inject our new calendar state services
+    private calendarStateService: CalendarStateService,
+    private calendarStateCoordinator: CalendarStateCoordinatorService
   ) {
     this.availability$ = this.store.select(AvailabilitySelectors.selectAvailability);
     this.loading$ = this.store.select(AvailabilitySelectors.selectAvailabilityLoading);
     this.error$ = this.store.select(AvailabilitySelectors.selectAvailabilityError);
     
-    // Initialize calendar options
+    // Initialize calendar options first with default view, will be updated later with preferences
     this.calendarOptions = this.calendarManager.initializeCalendarOptions(
       this.handleDateSelect.bind(this),
       this.handleEventClick.bind(this),
@@ -188,7 +192,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       this.handleEventResize.bind(this),
       this.handleEventDrop.bind(this),
       this.openDatePicker.bind(this),
-      this.handleEventContextMenu.bind(this)
+      this.handleEventContextMenu.bind(this),
+      'timeGridWeek' // Default view, will be updated in ngOnInit
     );
     // Initialize summary stream after DI is available
     this.summary$ = this.businessLogicService.summary$;
@@ -196,6 +201,28 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
 
   ngOnInit(): void {
+    // Load calendar preferences first
+    console.log('[AvailabilityComponent] Loading calendar preferences');
+    this.calendarStateService.loadPreferences();
+    
+    // Get preferred view and update calendar options
+    const preferredView = this.calendarStateService.getPreferredView();
+    console.log('[AvailabilityComponent] Preferred view from service:', preferredView);
+    
+    // Update calendar options with preferred view
+    if (preferredView !== 'timeGridWeek') {
+      this.calendarOptions = {
+        ...this.calendarOptions,
+        initialView: preferredView
+      };
+      console.log('[AvailabilityComponent] Updated calendar options with preferred view:', preferredView);
+    }
+    
+    // Listen for go to date requests from dialog coordinator
+    this.dialogCoordinatorService.goToDateRequested$.subscribe(request => {
+      this.handleGoToDateRequest(request);
+    });
+    
     // Load availability data
     const today = new Date();
     
@@ -244,6 +271,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       // Now that the calendar is initialized, reset the warning flag
       this.hasLoggedCalendarWarning = false;
       this.currentActiveView = null;
+      
+      // Apply preferred view after calendar is ready
+      this.applyPreferredViewToCalendar();
     }, 100);
   }
 
@@ -525,7 +555,13 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * @param view The view to change to
    */
   changeView(view: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay'): void {
+    console.log('[AvailabilityComponent] Changing view to:', view);
+    
+    // Update the calendar view
     this.availabilityCalendarOperationsService.changeView(this.calendarComponent, view);
+    
+    // Update the state through the coordinator (handles preferences automatically)
+    this.calendarStateService.setView(view);
   }
 
   /**
@@ -661,5 +697,58 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   onRefresh(): void {
     this.refreshAvailability();
+  }
+
+  /**
+   * Apply the preferred view to the calendar after it's initialized
+   */
+  private applyPreferredViewToCalendar(): void {
+    if (this.calendarComponent) {
+      const preferredView = this.calendarStateService.getPreferredView();
+      const calendarApi = this.calendarComponent.getApi();
+      
+      if (calendarApi && calendarApi.view.type !== preferredView) {
+        console.log('[AvailabilityComponent] Applying preferred view to initialized calendar:', preferredView);
+        calendarApi.changeView(preferredView);
+        
+        // Update the state to reflect the applied view
+        this.calendarStateService.setView(preferredView);
+      }
+    }
+  }
+
+  /**
+   * Handle go to date request from dialog coordinator
+   * Implements the specific behavior: change to day view temporarily and navigate to date
+   * Does NOT update the preferred view in storage
+   * @param request The go to date request
+   */
+  private handleGoToDateRequest(request: GoToDateRequest): void {
+    console.log('[AvailabilityComponent] Handling go to date request:', request);
+    
+    if (this.calendarComponent) {
+      const calendarApi = this.calendarComponent.getApi();
+      
+      if (calendarApi) {
+        // 1. Store current view to potentially restore later
+        const currentView = calendarApi.view.type;
+        console.log('[AvailabilityComponent] Current view before go to date:', currentView);
+        
+        // 2. Change to day view temporarily (as per requirement)
+        // Use FullCalendar API directly without triggering state updates
+        calendarApi.changeView(request.temporaryView);
+        console.log('[AvailabilityComponent] Changed to temporary view:', request.temporaryView);
+        
+        // 3. Navigate to the selected date
+        calendarApi.gotoDate(request.date);
+        console.log('[AvailabilityComponent] Navigated to date:', request.date);
+        
+        // 4. Do NOT dispatch any state updates to prevent preference changes
+        // The calendar view is now temporarily changed without affecting user preferences
+        
+        // Show success message
+        this.snackbarService.showSuccess(`Navigated to ${request.date.toDateString()} in ${request.temporaryView === 'timeGridDay' ? 'Day' : 'Week'} view`);
+      }
+    }
   }
 }

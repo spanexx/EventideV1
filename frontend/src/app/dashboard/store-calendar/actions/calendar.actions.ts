@@ -58,3 +58,32 @@ export const refreshCalendarFailure = createAction(
   '[Calendar] Refresh Failure',
   props<{ error: string }>()
 );
+
+// Set Preferred View
+export const setPreferredView = createAction(
+  '[Calendar] Set Preferred View',
+  props<{ view: CalendarView }>()
+);
+
+export const setPreferredViewSuccess = createAction(
+  '[Calendar] Set Preferred View Success',
+  props<{ view: CalendarView }>()
+);
+
+export const setPreferredViewFailure = createAction(
+  '[Calendar] Set Preferred View Failure',
+  props<{ error: string }>()
+);
+
+// Load User Preferences
+export const loadCalendarPreferences = createAction('[Calendar] Load Preferences');
+
+export const loadCalendarPreferencesSuccess = createAction(
+  '[Calendar] Load Preferences Success',
+  props<{ preferredView: CalendarView | null }>()
+);
+
+export const loadCalendarPreferencesFailure = createAction(
+  '[Calendar] Load Preferences Failure',
+  props<{ error: string }>()
+);

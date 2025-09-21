@@ -30,7 +30,6 @@ export class HeaderActionsComponent {
   @Output() filter = new EventEmitter<void>();
   @Output() analyze = new EventEmitter<void>();
   @Output() recommendations = new EventEmitter<void>();
-  @Output() refresh = new EventEmitter<void>();
   @Output() undo = new EventEmitter<void>();
   @Output() redo = new EventEmitter<void>();
   @Output() saveChanges = new EventEmitter<void>();
@@ -52,10 +51,6 @@ export class HeaderActionsComponent {
     this.recommendations.emit();
   }
 
-  onRefresh(): void {
-    this.refresh.emit();
-  }
-
   onUndo(): void {
     this.undo.emit();
   }
@@ -70,5 +65,13 @@ export class HeaderActionsComponent {
 
   onDiscardChanges(): void {
     this.discardChanges.emit();
+  }
+
+  onSearchFocus(): void {
+    // Method for handling search focus animations
+  }
+
+  onSearchBlur(): void {
+    // Method for handling search blur animations
   }
 }

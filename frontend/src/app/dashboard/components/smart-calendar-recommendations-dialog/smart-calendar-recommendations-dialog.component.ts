@@ -19,4 +19,34 @@ export class SmartCalendarRecommendationsDialogComponent {
   constructor(
     @Inject(MAT_DIALOG_DATA) public data: RecommendationDialogData
   ) {}
+
+  getRecommendationIcon(type: string): string {
+    switch (type) {
+      case 'low_occupancy':
+        return 'schedule';
+      case 'high_occupancy':
+        return 'event_busy';
+      case 'conflicts':
+        return 'warning';
+      case 'view_change':
+        return 'visibility';
+      default:
+        return 'lightbulb';
+    }
+  }
+
+  getRecommendationTitle(type: string): string {
+    switch (type) {
+      case 'low_occupancy':
+        return 'Low Calendar Occupancy';
+      case 'high_occupancy':
+        return 'High Calendar Occupancy';
+      case 'conflicts':
+        return 'Schedule Conflicts Detected';
+      case 'view_change':
+        return 'View Optimization';
+      default:
+        return 'Smart Recommendation';
+    }
+  }
 }

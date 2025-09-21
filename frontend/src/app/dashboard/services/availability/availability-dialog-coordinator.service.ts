@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
 import { take } from 'rxjs/operators';
 import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
 import * as AvailabilityActions from '../../store-availability/actions/availability.actions';
@@ -12,10 +12,22 @@ import { PendingChangesSignalService } from '../pending-changes/pending-changes-
 import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { Change } from '../pending-changes/pending-changes.interface';
 
+export interface GoToDateRequest {
+  date: Date;
+  temporaryView: 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
+  behavior: 'temporary-day' | 'temporary-preferred' | 'change-to-day' | 'change-to-preferred';
+}
+
+export type GoToDateBehavior = 'temporary-day' | 'temporary-preferred' | 'change-to-day' | 'change-to-preferred';
+
 @Injectable({
   providedIn: 'root'
 })
 export class AvailabilityDialogCoordinatorService {
+  // Subject for go to date requests
+  private goToDateSubject = new Subject<GoToDateRequest>();
+  public readonly goToDateRequested$ = this.goToDateSubject.asObservable();
+
   constructor(
     private store: Store,
     private dialogService: DialogManagementService,
@@ -238,9 +250,44 @@ export class AvailabilityDialogCoordinatorService {
       this.dialogDataService.prepareDatePickerDialogData(new Date())
     );
 
-    dialogRef.afterClosed().subscribe((result: any) => {
-      // Handle the date picker result
-      // This would typically be handled by the component that calls this method
+    dialogRef.afterClosed().subscribe((selectedDate: Date | null) => {
+      if (selectedDate) {
+        console.log('[AvailabilityDialogCoordinatorService] Go to date selected:', selectedDate);
+        this.handleGoToDate(selectedDate);
+      }
+    });
+  }
+
+  /**
+   * Handle the go to date functionality
+   * - Changes calendar to day view
+   * - Navigates to selected date
+   * - Does NOT change the preferred view in storage
+   * @param selectedDate The date to navigate to
+   */
+  private handleGoToDate(selectedDate: Date): void {
+    console.log('[AvailabilityDialogCoordinatorService] Handling go to date:', selectedDate);
+    
+    // Get current user preference for go to date behavior
+    // For now, use the default behavior, but this will be configurable in settings
+    const goToDateBehavior: GoToDateBehavior = 'temporary-day'; // Default: temporary day view without saving preference
+    
+    // Determine the target view based on behavior
+    let temporaryView: 'timeGridDay' | 'timeGridWeek' | 'dayGridMonth';
+    if (goToDateBehavior === 'temporary-day' || goToDateBehavior === 'change-to-day') {
+      temporaryView = 'timeGridDay';
+    } else if (goToDateBehavior === 'temporary-preferred' || goToDateBehavior === 'change-to-preferred') {
+      // TODO: Get user's preferred view from preferences service
+      temporaryView = 'timeGridWeek'; // Fallback for now
+    } else {
+      temporaryView = 'timeGridDay';
+    }
+    
+    // Emit the go to date request with behavior information
+    this.goToDateSubject.next({
+      date: selectedDate,
+      temporaryView: temporaryView,
+      behavior: goToDateBehavior
     });
   }
 

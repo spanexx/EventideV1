@@ -2,14 +2,19 @@
 <div matDialogContent class="recommendations-dialog-content">
   <div class="recommendations-list" *ngIf="data.recommendations && data.recommendations.length > 0; else noRecommendations">
     <div class="recommendation-item" *ngFor="let recommendation of data.recommendations">
-      <mat-icon class="recommendation-icon">lightbulb</mat-icon>
+      <mat-icon class="recommendation-icon" [class.high-priority]="recommendation.priority === 'high'" 
+                [class.medium-priority]="recommendation.priority === 'medium'"
+                [class.low-priority]="recommendation.priority === 'low'">
+        {{ getRecommendationIcon(recommendation.type) }}
+      </mat-icon>
       <div class="recommendation-content">
-        <h3>{{ recommendation.title }}</h3>
-        <p>{{ recommendation.description }}</p>
-        <div class="recommendation-actions" *ngIf="recommendation.actions">
-          <button mat-button *ngFor="let action of recommendation.actions" (click)="action.handler()">
-            {{ action.label }}
-          </button>
+        <h3>{{ getRecommendationTitle(recommendation.type) }}</h3>
+        <p>{{ recommendation.message }}</p>
+        <div class="recommendation-meta">
+          <span class="priority-badge" [class]="'priority-' + recommendation.priority">
+            {{ recommendation.priority | titlecase }} Priority
+          </span>
+          <span class="recommendation-type">{{ recommendation.type | titlecase }}</span>
         </div>
       </div>
     </div>

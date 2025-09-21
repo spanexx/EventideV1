@@ -23,8 +23,6 @@ export class DragResizeService {
    * @param availability Current availability data
    */
   handleEventResize(resizeInfo: any, availability: Availability[]): void {
-    console.log('[DragResizeService] Handling event resize:', resizeInfo);
-    
     // First try to find the slot in the current state (which includes pending changes)
     const currentState = this.pendingChangesSignalService.currentState();
     let slot = currentState.find(a => a.id === resizeInfo.event.id);
@@ -35,8 +33,6 @@ export class DragResizeService {
     }
     
     if (slot) {
-      console.log('[DragResizeService] Found slot to resize:', slot);
-      
       // Save current state for undo before making changes
       this.undoRedoService.saveStateForUndo('Resize availability slot');
       
@@ -47,8 +43,6 @@ export class DragResizeService {
         endTime: resizeInfo.event.end,
         duration: this.calculateDuration(resizeInfo.event.start, resizeInfo.event.end)
       };
-      
-      console.log('[DragResizeService] Updated slot after resize:', updatedSlot);
 
       // Create a change record
       const change: Change = {
@@ -59,18 +53,11 @@ export class DragResizeService {
         previousEntity: { ...slot },
         timestamp: new Date()
       };
-      
-      console.log('[DragResizeService] Created resize change:', change);
 
-      // MIGRATION: Add the change to signal-based pending changes
+      // Add the change to signal-based pending changes
       this.pendingChangesSignalService.addChange(change);
-      
-      console.log('[DragResizeService] Added change to signal service, pending count:', 
-        this.pendingChangesSignalService.pendingChangesCount());
     } else {
-      console.warn('[DragResizeService] Could not find slot with ID in current state or original availability:', resizeInfo.event.id);
-      console.log('[DragResizeService] Current state IDs:', currentState.map(s => s.id));
-      console.log('[DragResizeService] Original availability IDs:', availability.map(s => s.id));
+      console.warn('[DragResizeService] Could not find slot with ID:', resizeInfo.event.id);
     }
   }
 
@@ -80,8 +67,6 @@ export class DragResizeService {
    * @param availability Current availability data
    */
   handleEventDrop(dropInfo: any, availability: Availability[]): void {
-    console.log('[DragResizeService] Handling event drop:', dropInfo);
-    
     // First try to find the slot in the current state (which includes pending changes)
     const currentState = this.pendingChangesSignalService.currentState();
     let slot = currentState.find(a => a.id === dropInfo.event.id);
@@ -92,8 +77,6 @@ export class DragResizeService {
     }
     
     if (slot) {
-      console.log('[DragResizeService] Found slot to move:', slot);
-      
       // Save current state for undo before making changes
       this.undoRedoService.saveStateForUndo('Move availability slot');
       
@@ -104,8 +87,6 @@ export class DragResizeService {
         endTime: dropInfo.event.end,
         date: dropInfo.event.start
       };
-      
-      console.log('[DragResizeService] Updated slot after move:', updatedSlot);
 
       // Create a change record
       const change: Change = {
@@ -116,18 +97,11 @@ export class DragResizeService {
         previousEntity: { ...slot },
         timestamp: new Date()
       };
-      
-      console.log('[DragResizeService] Created move change:', change);
 
-      // MIGRATION: Add the change to signal-based pending changes
+      // Add the change to signal-based pending changes
       this.pendingChangesSignalService.addChange(change);
-      
-      console.log('[DragResizeService] Added change to signal service, pending count:', 
-        this.pendingChangesSignalService.pendingChangesCount());
     } else {
-      console.warn('[DragResizeService] Could not find slot with ID in current state or original availability:', dropInfo.event.id);
-      console.log('[DragResizeService] Current state IDs:', currentState.map(s => s.id));
-      console.log('[DragResizeService] Original availability IDs:', availability.map(s => s.id));
+      console.warn('[DragResizeService] Could not find slot with ID:', dropInfo.event.id);
     }
   }
 

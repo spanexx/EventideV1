@@ -112,7 +112,6 @@ export class SmartCalendarManagerService {
    */
   updateMetrics(metrics: Partial<ContentMetrics>): void {
     const currentMetrics = this.metricsSubject.value;
-    this.logger.info('SmartCalendarManagerService', 'Updating metrics', { currentMetrics, newMetrics: metrics });
     this.metricsSubject.next({ ...currentMetrics, ...metrics });
   }
 
@@ -192,13 +191,6 @@ export class SmartCalendarManagerService {
    */
   generateRecommendations(): Observable<SmartRecommendations[]> {
     const currentMetrics = this.metricsSubject.value;
-    // Only log when we have meaningful data
-    if (currentMetrics.totalSlots > 0) {
-      this.logger.info('SmartCalendarManagerService', 'Generating recommendations with metrics', currentMetrics);
-    } else {
-      this.logger.debug('SmartCalendarManagerService', 'Generating recommendations with empty metrics');
-    }
-    
     const recommendations: SmartRecommendations[] = [];
     
     // Generate recommendations based on metrics
@@ -226,13 +218,10 @@ export class SmartCalendarManagerService {
       });
     }
     
-    // Add view recommendation by getting current view from NgRx store
+    // Add view recommendation
     const config = this.configSubject.value;
     
     return new Observable(observer => {
-      // Get the current view from the NgRx store
-      // Note: We need to inject the Store to access calendar selectors
-      // For now, we'll use the config from our own service
       const currentView = config.viewType;
       
       let recommendedView: CalendarView = 'timeGridWeek';
@@ -244,11 +233,6 @@ export class SmartCalendarManagerService {
         recommendedView = 'timeGridDay';
       }
       
-      // Only log when we have data
-      if (currentMetrics.totalSlots > 0) {
-        this.logger.info('SmartCalendarManagerService', 'View recommendation', { current: currentView, recommended: recommendedView });
-      }
-      
       // Only add recommendation if the recommended view is different from current view
       if (recommendedView !== currentView) {
         recommendations.push({
@@ -256,21 +240,8 @@ export class SmartCalendarManagerService {
           message: `Consider switching to ${recommendedView} view for better visualization.`,
           priority: 'low'
         });
-        // Only log when we have data
-        if (currentMetrics.totalSlots > 0) {
-          this.logger.info('SmartCalendarManagerService', 'Adding view change recommendation');
-        }
-      } else {
-        // Only log when we have data
-        if (currentMetrics.totalSlots > 0) {
-          this.logger.info('SmartCalendarManagerService', 'No view change recommendation needed - already on recommended view');
-        }
       }
       
-      // Only log when we have data
-      if (currentMetrics.totalSlots > 0) {
-        this.logger.info('SmartCalendarManagerService', 'Final recommendations', recommendations);
-      }
       observer.next(recommendations);
       observer.complete();
     });
@@ -287,8 +258,6 @@ export class SmartCalendarManagerService {
    * Applies filters to calendar data
    */
   applyFilters(calendarData: Availability[], filters: FilterOptions): Availability[] {
-    this.logger.info('SmartCalendarManagerService', 'Applying filters to calendar data', { filters });
-    
     if (!Array.isArray(calendarData) || calendarData.length === 0) {
       return [];
     }
@@ -329,11 +298,6 @@ export class SmartCalendarManagerService {
       });
     }
     
-    this.logger.info('SmartCalendarManagerService', 'Filtering completed', { 
-      originalCount: calendarData.length, 
-      filteredCount: filteredData.length 
-    });
-    
     return filteredData;
   }
   
@@ -341,8 +305,6 @@ export class SmartCalendarManagerService {
    * Performs a search on calendar data using natural language processing
    */
   searchWithNLP(query: string, calendarData: Availability[]): Availability[] {
-    this.logger.info('SmartCalendarManagerService', 'Performing NLP search', { query });
-    
     if (!query || !Array.isArray(calendarData) || calendarData.length === 0) {
       return [];
     }
@@ -362,11 +324,6 @@ export class SmartCalendarManagerService {
     if (lowerQuery.includes('available') || lowerQuery.includes('free')) {
       filteredData = filteredData.filter(slot => !slot.isBooked);
     }
-    
-    this.logger.info('SmartCalendarManagerService', 'NLP search completed', { 
-      query, 
-      resultCount: filteredData.length 
-    });
     
     return filteredData;
   }

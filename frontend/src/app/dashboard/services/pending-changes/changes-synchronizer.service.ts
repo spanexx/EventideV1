@@ -108,7 +108,9 @@ export class ChangesSynchronizerService {
 
     // Consolidate changes to avoid duplicate operations on the same entity
     const consolidatedChanges = this.consolidateChanges(changes);
-    console.log('[ChangesSynchronizerService] Consolidated from', changes.length, 'to', consolidatedChanges.length, 'changes');
+    if (consolidatedChanges.length !== changes.length) {
+      console.log('[ChangesSynchronizerService] Consolidated', changes.length, 'changes to', consolidatedChanges.length);
+    }
 
     // Group changes by operation type, but handle temporary IDs correctly
     const createChanges = consolidatedChanges.filter(change => {
@@ -118,7 +120,7 @@ export class ChangesSynchronizerService {
       // If it's an update/move/resize operation on a temporary ID, treat it as create
       if ((change.type === 'update' || change.type === 'move' || change.type === 'resize') && 
           change.entity && isTemporaryId(change.entity.id)) {
-        console.log('[ChangesSynchronizerService] Converting', change.type, 'with temp ID to create:', change.entity.id);
+        console.log('[ChangesSynchronizerService] Converting', change.type, 'with temp ID to create');
         return true;
       }
       return false;
@@ -132,18 +134,10 @@ export class ChangesSynchronizerService {
     
     const deleteChanges = consolidatedChanges.filter(change => change.type === 'delete');
 
-    console.log('[ChangesSynchronizerService] Grouped changes:', {
-      creates: createChanges.length,
-      updates: updateChanges.length, 
-      deletes: deleteChanges.length
-    });
-
     // Create observables for each type of operation
-    const createObservables = createChanges.map(change => {
-      console.log('[ChangesSynchronizerService] Creating availability:', change.entity?.id);
-      return this.availabilityService.createAvailability(change.entity!).pipe(
+    const createObservables = createChanges.map(change => 
+      this.availabilityService.createAvailability(change.entity!).pipe(
         map(result => {
-          console.log('[ChangesSynchronizerService] Created successfully:', result.id);
           created.push(result);
           return result;
         }),
@@ -152,14 +146,12 @@ export class ChangesSynchronizerService {
           failed.push({ entity: change.entity, error: error.message });
           return of(null);
         })
-      );
-    });
+      )
+    );
 
-    const updateObservables = updateChanges.map(change => {
-      console.log('[ChangesSynchronizerService] Updating availability:', change.entity?.id);
-      return this.availabilityService.updateAvailability(change.entity!).pipe(
+    const updateObservables = updateChanges.map(change => 
+      this.availabilityService.updateAvailability(change.entity!).pipe(
         map(result => {
-          console.log('[ChangesSynchronizerService] Updated successfully:', result.id);
           updated.push(result);
           return result;
         }),
@@ -168,14 +160,12 @@ export class ChangesSynchronizerService {
           failed.push({ entity: change.entity, error: error.message });
           return of(null);
         })
-      );
-    });
+      )
+    );
 
-    const deleteObservables = deleteChanges.map(change => {
-      console.log('[ChangesSynchronizerService] Deleting availability:', change.entityId);
-      return this.availabilityService.deleteAvailability(change.entityId!).pipe(
+    const deleteObservables = deleteChanges.map(change => 
+      this.availabilityService.deleteAvailability(change.entityId!).pipe(
         map(() => {
-          console.log('[ChangesSynchronizerService] Deleted successfully:', change.entityId);
           deleted.push(change.entityId!);
           return null;
         }),
@@ -184,8 +174,8 @@ export class ChangesSynchronizerService {
           failed.push({ entity: { id: change.entityId }, error: error.message });
           return of(null);
         })
-      );
-    });
+      )
+    );
 
     // Execute all operations in parallel
     const allObservables = [...createObservables, ...updateObservables, ...deleteObservables];

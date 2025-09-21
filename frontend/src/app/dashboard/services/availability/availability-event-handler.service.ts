@@ -117,7 +117,6 @@ export class AvailabilityEventHandlerService {
             this.snackbarService.showError('This slot is in the past and cannot be modified.');
           } else {
             if (confirm('Are you sure you want to delete this availability slot?')) {
-              console.log('[AvailabilityEventHandlerService] Ctrl+click delete for slot:', slot.id);
               // Save state for undo before making changes
               this.undoRedoService.saveStateForUndo('Delete availability slot via Ctrl+click');
               
@@ -130,7 +129,6 @@ export class AvailabilityEventHandlerService {
                 timestamp: new Date()
               };
               this.pendingChangesSignalService.addChange(change);
-              console.log('[AvailabilityEventHandlerService] Added delete change, pending count:', this.pendingChangesSignalService.pendingChangesCount());
             }
           }
         } else {
@@ -204,7 +202,6 @@ export class AvailabilityEventHandlerService {
    * @param selectInfo The date selection information
    */
   private openAvailabilityDialog(selectInfo: DateSelectArg) {
-    console.log('[AvailabilityEventHandlerService] Opening new availability dialog for date selection:', selectInfo.start);
     const dialogRef = this.dialogService.openAvailabilityDialog({
       availability: null, 
       date: selectInfo.start,
@@ -214,13 +211,7 @@ export class AvailabilityEventHandlerService {
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('[AvailabilityEventHandlerService] Create dialog closed with result:', result);
-      if (result && result !== true) {
-        console.log('[AvailabilityEventHandlerService] New availability created, pending count:', this.pendingChangesSignalService.pendingChangesCount());
-      }
-      // The dialog now handles adding to pending changes internally,
-      // so we don't need to add them here anymore.
-      // This prevents duplicate additions to pending changes.
+      // Dialog handles adding to pending changes internally
     });
   }
 
@@ -235,20 +226,13 @@ export class AvailabilityEventHandlerService {
       return;
     }
     
-    console.log('[AvailabilityEventHandlerService] Opening edit dialog for slot:', slot);
     const dialogRef = this.dialogService.openAvailabilityDialog({
       availability: slot, 
       date: slot.date
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('[AvailabilityEventHandlerService] Edit dialog closed with result:', result);
-      if (result && result !== true) {
-        console.log('[AvailabilityEventHandlerService] Availability edited, pending count:', this.pendingChangesSignalService.pendingChangesCount());
-      }
-      // The dialog now handles adding to pending changes internally,
-      // so we don't need to add them here anymore.
-      // This prevents duplicate additions to pending changes.
+      // Dialog handles adding to pending changes internally
     });
   }
 
@@ -266,7 +250,6 @@ export class AvailabilityEventHandlerService {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
-        console.log('[AvailabilityEventHandlerService] Delete confirmed for slot:', slot.id);
         // Save state for undo before making changes
         this.undoRedoService.saveStateForUndo('Delete availability slot');
         
@@ -279,7 +262,6 @@ export class AvailabilityEventHandlerService {
           timestamp: new Date()
         };
         this.pendingChangesSignalService.addChange(change);
-        console.log('[AvailabilityEventHandlerService] Added delete change, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       }
     });
   }
