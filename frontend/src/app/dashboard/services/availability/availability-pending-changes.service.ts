@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
-import { PendingChangesService } from '../pending-changes/pending-changes.service';
+import { PendingChangesSignalService } from '../pending-changes/pending-changes-signal.service';
+import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { ChangesSynchronizerService } from '../pending-changes/changes-synchronizer.service';
-import { UndoRedoCoordinatorService } from '../undo-redo/undo-redo-coordinator.service';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
 import { DialogManagementService } from '../dialog/dialog-management.service';
 import { Store } from '@ngrx/store';
@@ -15,20 +15,24 @@ import { take } from 'rxjs/operators';
 })
 export class AvailabilityPendingChangesService {
   constructor(
-    private pendingChangesService: PendingChangesService,
+    private pendingChangesSignalService: PendingChangesSignalService,
+    private undoRedoService: UndoRedoSignalService,
     private changesSynchronizerService: ChangesSynchronizerService,
-    private undoRedoService: UndoRedoCoordinatorService,
     private snackbarService: SnackbarService,
     private dialogService: DialogManagementService,
     private store: Store
-  ) {}
+  ) {
+    console.log('[AvailabilityPendingChangesService] Initialized with signal-based services');
+  }
 
   /**
    * Save all pending changes
    * @param refreshAvailability Function to refresh availability data
    */
   saveChanges(refreshAvailability: () => void): void {
-    const changes = this.pendingChangesService.getPendingChanges();
+    const changes = this.pendingChangesSignalService.getPendingChanges();
+    
+    console.log('[AvailabilityPendingChangesService] Attempting to save changes:', changes.length);
     
     if (changes.length === 0) {
       this.snackbarService.showInfo('No changes to save');
@@ -37,14 +41,17 @@ export class AvailabilityPendingChangesService {
     
     this.changesSynchronizerService.saveChanges(changes).subscribe(result => {
       if (result.success) {
+        console.log('[AvailabilityPendingChangesService] Changes saved successfully');
         this.snackbarService.showSuccess(result.message);
         // Clear pending changes
-        this.pendingChangesService.saveChanges();
+        this.pendingChangesSignalService.saveChanges();
         // Clear undo/redo stack since changes are now committed
-        this.undoRedoService.onChangesSaved();
+        this.undoRedoService.clearHistory();
         // Refresh the calendar
         refreshAvailability();
+        console.log('[AvailabilityPendingChangesService] Save completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       } else {
+        console.error('[AvailabilityPendingChangesService] Save failed:', result.message);
         this.snackbarService.showError(result.message);
         // Show failed changes if any
         if (result.failed.length > 0) {
@@ -59,10 +66,12 @@ export class AvailabilityPendingChangesService {
    * @param refreshFullCalendar Function to refresh the full calendar
    */
   discardChanges(refreshFullCalendar: (availability: Availability[]) => void): void {
-    if (!this.pendingChangesService.hasPendingChanges()) {
+    if (!this.pendingChangesSignalService.hasPendingChanges()) {
       this.snackbarService.showInfo('No changes to discard');
       return;
     }
+    
+    console.log('[AvailabilityPendingChangesService] Attempting to discard changes, current count:', this.pendingChangesSignalService.pendingChangesCount());
     
     const dialogRef = this.dialogService.openConfirmationDialog({
       title: 'Discard Changes',
@@ -73,11 +82,12 @@ export class AvailabilityPendingChangesService {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
-        const originalState = this.pendingChangesService.discardChanges();
+        const originalState = this.pendingChangesSignalService.discardChanges();
         // Clear undo/redo stack since all changes are reverted
-        this.undoRedoService.onChangesDiscarded();
+        this.undoRedoService.clearHistory();
         refreshFullCalendar(originalState);
         this.snackbarService.showSuccess('Changes discarded');
+        console.log('[AvailabilityPendingChangesService] Changes discarded, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       }
     });
   }
@@ -86,13 +96,17 @@ export class AvailabilityPendingChangesService {
    * Execute undo operation
    */
   undo(): void {
+    console.log('[AvailabilityPendingChangesService] Executing undo operation');
     this.undoRedoService.undo();
+    console.log('[AvailabilityPendingChangesService] Undo completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
   }
 
   /**
    * Execute redo operation
    */
   redo(): void {
+    console.log('[AvailabilityPendingChangesService] Executing redo operation');
     this.undoRedoService.redo();
+    console.log('[AvailabilityPendingChangesService] Redo completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
   }
 }

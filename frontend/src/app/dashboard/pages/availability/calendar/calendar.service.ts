@@ -100,16 +100,16 @@ export class CalendarService {
         
         // Update smart calendar information when view changes
         this.updateSmartCalendarInfo(info);
+        
+        // Add smart features when the view is mounted
+        this.addSmartFeatures(info);
       },
       dateClick: (info: any) => {
         // Handle left click on empty time slots
         console.log('Date clicked:', info);
-      },
-      // Add smart features to the calendar
-      viewSkeletonRender: (info: any) => {
-        // Add smart features when the view skeleton is rendered
-        this.addSmartFeatures(info);
       }
+      // viewDidMount is already defined above - no need for viewSkeletonRender
+      // viewSkeletonRender was not a valid FullCalendar option
     };
   }
 

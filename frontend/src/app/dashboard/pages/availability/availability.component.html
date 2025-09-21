@@ -2,9 +2,6 @@
   <app-availability-header 
     [availability$]="availability$" 
     [smartMetrics$]="smartMetrics$"
-    [pendingChangesCount]="pendingChangesCount"
-    [canUndo]="canUndo"
-    [canRedo]="canRedo"
     [activeView]="getCurrentActiveView()"
     (search)="onSearch($event)"
     (filter)="onFilter()"

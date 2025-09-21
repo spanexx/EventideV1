@@ -1,8 +1,8 @@
 .professional-header {
-  background: white;
-  border-bottom: 1px solid #e0e0e0;
-  padding: 12px 24px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  background: var(--color-card);
+  border-bottom: 1px solid var(--color-border);
+  padding: var(--spacing-md) var(--spacing-xl);
+  box-shadow: var(--shadow-2xs);
   position: relative;
   
   .header-content {
@@ -11,92 +11,16 @@
     align-items: center;
     max-width: 1400px;
     margin: 0 auto;
+    gap: var(--spacing-lg);
   }
   
   .header-left {
     h1.page-title {
-      font-size: 18px;
-      font-weight: 600;
-      color: #333;
+      font-size: var(--font-size-xl);
+      font-weight: var(--font-weight-semibold);
+      color: var(--color-foreground);
       margin: 0;
       line-height: 1.2;
-    }
-  }
-  
-  .view-buttons {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    
-    .separator {
-      width: 1px;
-      height: 24px;
-      background-color: #ddd;
-      margin: 0 8px;
-    }
-    
-    .mat-mdc-icon-button {
-      width: 36px;
-      height: 36px;
-      border-radius: 4px;
-      
-      &:hover {
-        background-color: #f0f0f0;
-      }
-      
-      &.active {
-        background-color: #e3f2fd;
-        color: #1976d2;
-      }
-    }
-  }
-  
-  .view-buttons {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    
-    .mat-mdc-icon-button {
-      width: 36px;
-      height: 36px;
-      border-radius: 4px;
-      
-      &:hover {
-        background-color: #f0f0f0;
-      }
-      
-      &.active {
-        background-color: #e3f2fd;
-        color: #1976d2;
-      }
-    }
-  }
-  
-  .pending-changes-indicator {
-    position: absolute;
-    top: -8px;
-    right: 20px;
-    display: flex;
-    align-items: center;
-    padding: 2px 4px;
-    border-radius: 12px;
-    color: white;
-    font-weight: 500;
-    font-size: 12px;
-    background: #f44336;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    
-    .pending-count {
-      background: #d32f2f;
-      border-radius: 50%;
-      width: 18px;
-      height: 18px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 600;
-      font-size: 11px;
     }
   }
   
@@ -104,154 +28,142 @@
   .header-insights {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: var(--spacing-lg);
     
-    .insights-metrics {
-      display: flex;
-      gap: 16px;
-      
-      .metric-item {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        
-        .metric-icon {
-          font-size: 18px;
-          width: 18px;
-          height: 18px;
-          color: #666;
-        }
-        
-        .metric-value {
-          font-size: 14px;
-          font-weight: 600;
-          color: #333;
-        }
-      }
-    }
-    
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      
-      .search-input {
-        padding: 6px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-        width: 180px;
-        
-        &:focus {
-          outline: none;
-          border-color: #0078d4;
-          box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
-        }
-      }
-      
-      .mat-mdc-icon-button {
-        width: 36px;
-        height: 36px;
-        border-radius: 4px;
-        
-        &:hover {
-          background-color: #f0f0f0;
-        }
-      }
+    @media (max-width: 1024px) {
+      gap: var(--spacing-md);
     }
   }
 }
 
+// Responsive design for tablets
+@media (max-width: 1200px) {
+  .professional-header {
+    .header-content {
+      flex-wrap: wrap;
+    }
+    
+    .header-left {
+      flex: 1;
+      min-width: 200px;
+    }
+    
+    .view-buttons {
+      order: 3;
+      width: 100%;
+      justify-content: center;
+      margin-top: var(--spacing-sm);
+    }
+  }
+}
+
+// Responsive design for mobile devices
 @media (max-width: 768px) {
   .professional-header {
+    padding: var(--spacing-md);
+    
     .header-content {
       flex-direction: column;
       align-items: stretch;
-      gap: 12px;
+      gap: var(--spacing-md);
+    }
+    
+    .header-left {
+      text-align: center;
+      
+      h1.page-title {
+        font-size: var(--font-size-lg);
+      }
     }
     
     .view-buttons {
       justify-content: center;
-    }
-    
-    .pending-changes-indicator {
-      position: static;
-      margin-bottom: 10px;
-      align-self: flex-end;
+      margin-top: 0;
     }
     
     .header-insights {
       flex-direction: column;
       align-items: stretch;
-      gap: 12px;
+      gap: var(--spacing-md);
       
       .insights-metrics {
-        justify-content: space-between;
+        justify-content: space-around;
       }
       
       .header-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+        
         .search-input {
           width: 100%;
+          max-width: none;
         }
       }
     }
   }
 }
-      
-      .separator {
-        width: 1px;
-        height: 20px;
-        background-color: #ddd;
-        margin: 0 4px;
-      }
-      
-      .search-input {
-        padding: 6px 12px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-        font-size: 14px;
-        width: 180px;
-        
-        &:focus {
-          outline: none;
-          border-color: #0078d4;
-          box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
-        }
-      }
-      
-      .mat-mdc-icon-button {
-        width: 36px;
-        height: 36px;
-        border-radius: 4px;
-        
-        &:hover {
-          background-color: #f0f0f0;
-        }
-      }
 
-
-@media (max-width: 768px) {
+// Responsive design for small mobile devices
+@media (max-width: 480px) {
   .professional-header {
+    padding: var(--spacing-sm);
+    
     .header-content {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
+      gap: var(--spacing-sm);
+    }
+    
+    .header-left {
+      h1.page-title {
+        font-size: var(--font-size-md);
+      }
     }
     
     .header-insights {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
+      gap: var(--spacing-sm);
+    }
+    
+    .view-buttons {
+      .mat-mdc-icon-button {
+        width: 32px;
+        height: 32px;
+        font-size: var(--font-size-sm);
+      }
+    }
+  }
+}
+
+// Responsive design for extra small devices
+@media (max-width: 360px) {
+  .professional-header {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    
+    .header-content {
+      gap: var(--spacing-xs);
+    }
+    
+    .header-left {
+      h1.page-title {
+        font-size: var(--font-size-sm);
+      }
+    }
+    
+    .view-buttons {
+      gap: var(--spacing-xs);
       
-      .insights-metrics {
-        justify-content: space-between;
+      .mat-mdc-icon-button {
+        width: 28px;
+        height: 28px;
+        font-size: var(--font-size-xs);
       }
       
-      .header-actions {
-        .search-input {
-          width: 100%;
-        }
+      .separator {
+        height: 20px;
+        margin: 0 var(--spacing-xs);
       }
+    }
+    
+    .header-insights {
+      gap: var(--spacing-xs);
     }
   }
 }

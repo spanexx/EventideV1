@@ -2,6 +2,8 @@ import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Availability } from '../../models/availability.models';
 import { PendingChangesService } from './pending-changes.service';
+import { PendingChangesSignalService } from './pending-changes-signal.service';
+import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { Change } from './pending-changes.interface';
 
 @Injectable({
@@ -9,7 +11,9 @@ import { Change } from './pending-changes.interface';
 })
 export class DragResizeService {
   constructor(
-    private pendingChangesService: PendingChangesService,
+    private pendingChangesService: PendingChangesService, // Keep old for compatibility
+    private pendingChangesSignalService: PendingChangesSignalService, // New signal service
+    private undoRedoService: UndoRedoSignalService,
     private store: Store
   ) {}
 
@@ -19,8 +23,23 @@ export class DragResizeService {
    * @param availability Current availability data
    */
   handleEventResize(resizeInfo: any, availability: Availability[]): void {
-    const slot = availability.find(a => a.id === resizeInfo.event.id);
+    console.log('[DragResizeService] Handling event resize:', resizeInfo);
+    
+    // First try to find the slot in the current state (which includes pending changes)
+    const currentState = this.pendingChangesSignalService.currentState();
+    let slot = currentState.find(a => a.id === resizeInfo.event.id);
+    
+    // If not found in current state, try the original availability array (fallback)
+    if (!slot) {
+      slot = availability.find(a => a.id === resizeInfo.event.id);
+    }
+    
     if (slot) {
+      console.log('[DragResizeService] Found slot to resize:', slot);
+      
+      // Save current state for undo before making changes
+      this.undoRedoService.saveStateForUndo('Resize availability slot');
+      
       // Create updated slot with new times
       const updatedSlot = {
         ...slot,
@@ -28,6 +47,8 @@ export class DragResizeService {
         endTime: resizeInfo.event.end,
         duration: this.calculateDuration(resizeInfo.event.start, resizeInfo.event.end)
       };
+      
+      console.log('[DragResizeService] Updated slot after resize:', updatedSlot);
 
       // Create a change record
       const change: Change = {
@@ -38,14 +59,18 @@ export class DragResizeService {
         previousEntity: { ...slot },
         timestamp: new Date()
       };
-
-      // Add the change to pending changes
-      this.pendingChangesService.addChange(change);
       
-      // Update the current state
-      const currentState = this.pendingChangesService.getCurrentState();
-      const updatedState = currentState.map(s => s.id === slot.id ? updatedSlot : s);
-      this.pendingChangesService.updateCurrentState(updatedState);
+      console.log('[DragResizeService] Created resize change:', change);
+
+      // MIGRATION: Add the change to signal-based pending changes
+      this.pendingChangesSignalService.addChange(change);
+      
+      console.log('[DragResizeService] Added change to signal service, pending count:', 
+        this.pendingChangesSignalService.pendingChangesCount());
+    } else {
+      console.warn('[DragResizeService] Could not find slot with ID in current state or original availability:', resizeInfo.event.id);
+      console.log('[DragResizeService] Current state IDs:', currentState.map(s => s.id));
+      console.log('[DragResizeService] Original availability IDs:', availability.map(s => s.id));
     }
   }
 
@@ -55,8 +80,23 @@ export class DragResizeService {
    * @param availability Current availability data
    */
   handleEventDrop(dropInfo: any, availability: Availability[]): void {
-    const slot = availability.find(a => a.id === dropInfo.event.id);
+    console.log('[DragResizeService] Handling event drop:', dropInfo);
+    
+    // First try to find the slot in the current state (which includes pending changes)
+    const currentState = this.pendingChangesSignalService.currentState();
+    let slot = currentState.find(a => a.id === dropInfo.event.id);
+    
+    // If not found in current state, try the original availability array (fallback)
+    if (!slot) {
+      slot = availability.find(a => a.id === dropInfo.event.id);
+    }
+    
     if (slot) {
+      console.log('[DragResizeService] Found slot to move:', slot);
+      
+      // Save current state for undo before making changes
+      this.undoRedoService.saveStateForUndo('Move availability slot');
+      
       // Create updated slot with new times
       const updatedSlot = {
         ...slot,
@@ -64,6 +104,8 @@ export class DragResizeService {
         endTime: dropInfo.event.end,
         date: dropInfo.event.start
       };
+      
+      console.log('[DragResizeService] Updated slot after move:', updatedSlot);
 
       // Create a change record
       const change: Change = {
@@ -74,14 +116,18 @@ export class DragResizeService {
         previousEntity: { ...slot },
         timestamp: new Date()
       };
-
-      // Add the change to pending changes
-      this.pendingChangesService.addChange(change);
       
-      // Update the current state
-      const currentState = this.pendingChangesService.getCurrentState();
-      const updatedState = currentState.map(s => s.id === slot.id ? updatedSlot : s);
-      this.pendingChangesService.updateCurrentState(updatedState);
+      console.log('[DragResizeService] Created move change:', change);
+
+      // MIGRATION: Add the change to signal-based pending changes
+      this.pendingChangesSignalService.addChange(change);
+      
+      console.log('[DragResizeService] Added change to signal service, pending count:', 
+        this.pendingChangesSignalService.pendingChangesCount());
+    } else {
+      console.warn('[DragResizeService] Could not find slot with ID in current state or original availability:', dropInfo.event.id);
+      console.log('[DragResizeService] Current state IDs:', currentState.map(s => s.id));
+      console.log('[DragResizeService] Original availability IDs:', availability.map(s => s.id));
     }
   }
 

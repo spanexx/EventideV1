@@ -1,0 +1,36 @@
+<div class="view-buttons">
+  <button 
+    mat-icon-button 
+    (click)="onChangeView('dayGridMonth')" 
+    matTooltip="Switch to month view" 
+    [class.active]="activeView === 'dayGridMonth'">
+    <mat-icon>calendar_month</mat-icon>
+  </button>
+  <button 
+    mat-icon-button 
+    (click)="onChangeView('timeGridWeek')" 
+    matTooltip="Switch to week view" 
+    [class.active]="activeView === 'timeGridWeek'">
+    <mat-icon>calendar_view_week</mat-icon>
+  </button>
+  <button 
+    mat-icon-button 
+    (click)="onChangeView('timeGridDay')" 
+    matTooltip="Switch to day view" 
+    [class.active]="activeView === 'timeGridDay'">
+    <mat-icon>calendar_view_day</mat-icon>
+  </button>
+  <button 
+    mat-icon-button 
+    (click)="onOpenDatePicker()" 
+    matTooltip="Go to specific date">
+    <mat-icon>date_range</mat-icon>
+  </button>
+  <div class="separator"></div>
+  <button 
+    mat-icon-button 
+    (click)="onCopyWeek()" 
+    matTooltip="Copy week schedule">
+    <mat-icon>content_copy</mat-icon>
+  </button>
+</div>

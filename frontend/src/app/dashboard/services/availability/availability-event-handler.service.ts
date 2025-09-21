@@ -9,7 +9,8 @@ import { DialogManagementService } from '../dialog/dialog-management.service';
 import { CalendarOperationsService } from '../calendar/calendar-operations.service';
 import { DialogDataService } from '../dialog/dialog-data.service';
 import { CalendarEventsService } from '../../pages/availability/calendar/calendar-events.service';
-import { PendingChangesService } from '../pending-changes';
+import { PendingChangesSignalService } from '../pending-changes/pending-changes-signal.service';
+import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { Change } from '../pending-changes/pending-changes.interface';
 import { take } from 'rxjs/operators';
 
@@ -24,8 +25,11 @@ export class AvailabilityEventHandlerService {
     private calendarService: CalendarOperationsService,
     private dialogDataService: DialogDataService,
     private calendarEvents: CalendarEventsService,
-    private pendingChangesService: PendingChangesService
-  ) {}
+    private pendingChangesSignalService: PendingChangesSignalService,
+    private undoRedoService: UndoRedoSignalService
+  ) {
+    console.log('[AvailabilityEventHandlerService] Initialized with signal-based services');
+  }
 
   /**
    * Handle date selection for creating new availability slots
@@ -113,6 +117,10 @@ export class AvailabilityEventHandlerService {
             this.snackbarService.showError('This slot is in the past and cannot be modified.');
           } else {
             if (confirm('Are you sure you want to delete this availability slot?')) {
+              console.log('[AvailabilityEventHandlerService] Ctrl+click delete for slot:', slot.id);
+              // Save state for undo before making changes
+              this.undoRedoService.saveStateForUndo('Delete availability slot via Ctrl+click');
+              
               // Instead of directly deleting, add to pending changes
               const change: Change = {
                 id: `delete-${slot.id}-${Date.now()}`,
@@ -121,7 +129,8 @@ export class AvailabilityEventHandlerService {
                 // For delete operations, we typically don't need the full entity
                 timestamp: new Date()
               };
-              this.pendingChangesService.addChange(change);
+              this.pendingChangesSignalService.addChange(change);
+              console.log('[AvailabilityEventHandlerService] Added delete change, pending count:', this.pendingChangesSignalService.pendingChangesCount());
             }
           }
         } else {
@@ -195,7 +204,7 @@ export class AvailabilityEventHandlerService {
    * @param selectInfo The date selection information
    */
   private openAvailabilityDialog(selectInfo: DateSelectArg) {
-    console.log('Opening new availability dialog for date selection');
+    console.log('[AvailabilityEventHandlerService] Opening new availability dialog for date selection:', selectInfo.start);
     const dialogRef = this.dialogService.openAvailabilityDialog({
       availability: null, 
       date: selectInfo.start,
@@ -205,7 +214,10 @@ export class AvailabilityEventHandlerService {
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('Dialog closed with result:', result);
+      console.log('[AvailabilityEventHandlerService] Create dialog closed with result:', result);
+      if (result && result !== true) {
+        console.log('[AvailabilityEventHandlerService] New availability created, pending count:', this.pendingChangesSignalService.pendingChangesCount());
+      }
       // The dialog now handles adding to pending changes internally,
       // so we don't need to add them here anymore.
       // This prevents duplicate additions to pending changes.
@@ -223,14 +235,17 @@ export class AvailabilityEventHandlerService {
       return;
     }
     
-    console.log('Opening edit availability dialog for slot:', slot);
+    console.log('[AvailabilityEventHandlerService] Opening edit dialog for slot:', slot);
     const dialogRef = this.dialogService.openAvailabilityDialog({
       availability: slot, 
       date: slot.date
     });
 
     dialogRef.afterClosed().subscribe((result: any) => {
-      console.log('Dialog closed with result:', result);
+      console.log('[AvailabilityEventHandlerService] Edit dialog closed with result:', result);
+      if (result && result !== true) {
+        console.log('[AvailabilityEventHandlerService] Availability edited, pending count:', this.pendingChangesSignalService.pendingChangesCount());
+      }
       // The dialog now handles adding to pending changes internally,
       // so we don't need to add them here anymore.
       // This prevents duplicate additions to pending changes.
@@ -251,6 +266,10 @@ export class AvailabilityEventHandlerService {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
+        console.log('[AvailabilityEventHandlerService] Delete confirmed for slot:', slot.id);
+        // Save state for undo before making changes
+        this.undoRedoService.saveStateForUndo('Delete availability slot');
+        
         // Instead of directly deleting, add to pending changes
         const change: Change = {
           id: `delete-${slot.id}-${Date.now()}`,
@@ -259,7 +278,8 @@ export class AvailabilityEventHandlerService {
           // For delete operations, we typically don't need the full entity
           timestamp: new Date()
         };
-        this.pendingChangesService.addChange(change);
+        this.pendingChangesSignalService.addChange(change);
+        console.log('[AvailabilityEventHandlerService] Added delete change, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       }
     });
   }

@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, computed } from '@angular/core';
 import { Observable } from 'rxjs';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -8,6 +8,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { Availability } from '../../../models/availability.models';
 import { ContentMetrics, CalendarView } from '../../../services/smart-calendar-manager.service';
+import { PendingChangesSignalService } from '../../../services/pending-changes/pending-changes-signal.service';
+import { UndoRedoSignalService } from '../../../services/undo-redo/undo-redo-signal.service';
+import { ViewButtonsComponent } from './components/view-buttons/view-buttons.component';
+import { HeaderMetricsComponent } from './components/metrics/metrics.component';
+import { HeaderActionsComponent } from './components/actions/actions.component';
+import { PendingChangesIndicatorComponent } from './components/pending-changes/pending-changes.component';
 
 @Component({
   selector: 'app-availability-header',
@@ -18,7 +24,11 @@ import { ContentMetrics, CalendarView } from '../../../services/smart-calendar-m
     MatButtonModule,
     MatIconModule,
     MatInputModule,
-    MatTooltipModule
+    MatTooltipModule,
+    ViewButtonsComponent,
+    HeaderMetricsComponent,
+    HeaderActionsComponent,
+    PendingChangesIndicatorComponent
   ],
   templateUrl: './availability-header.html',
   styleUrl: './availability-header.scss'
@@ -26,9 +36,6 @@ import { ContentMetrics, CalendarView } from '../../../services/smart-calendar-m
 export class AvailabilityHeaderComponent {
   @Input() availability$!: Observable<Availability[]>;
   @Input() smartMetrics$!: Observable<ContentMetrics>;
-  @Input() pendingChangesCount: number = 0;
-  @Input() canUndo: boolean = false;
-  @Input() canRedo: boolean = false;
   @Input() activeView: CalendarView = 'timeGridWeek';
   @Output() search = new EventEmitter<string>();
   @Output() filter = new EventEmitter<void>();
@@ -45,8 +52,18 @@ export class AvailabilityHeaderComponent {
 
   searchTerm: string = '';
 
-  onSearch(): void {
-    this.search.emit(this.searchTerm);
+  // MIGRATION: Computed signals for reactive state (no more manual input binding needed)
+  readonly pendingChangesCount = computed(() => this.pendingChangesService.pendingChangesCount());
+  readonly canUndo = computed(() => this.undoRedoService.canUndo());
+  readonly canRedo = computed(() => this.undoRedoService.canRedo());
+
+  constructor(
+    private pendingChangesService: PendingChangesSignalService,
+    private undoRedoService: UndoRedoSignalService
+  ) {}
+
+  onSearch(term: string): void {
+    this.search.emit(term);
   }
 
   onFilter(): void {

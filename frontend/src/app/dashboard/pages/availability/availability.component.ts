@@ -31,7 +31,8 @@ import { take } from 'rxjs/operators';
 
 // Import our new pending changes services
 import { 
-  PendingChangesService, 
+  PendingChangesService,
+  PendingChangesSignalService, 
   ChangesSynchronizerService, 
   DragResizeService,
   Change
@@ -50,7 +51,7 @@ import {
 } from '../../services/availability';
 
 // Import the new undo/redo system
-import { UndoRedoCoordinatorService } from '../../services/undo-redo';
+import { UndoRedoCoordinatorService, UndoRedoSignalService } from '../../services/undo-redo';
 
 // Import our smart calendar services
 import { SmartCalendarManagerService, ContentMetrics, SmartCalendarConfig, CalendarView, FilterOptions } from '../../services/smart-calendar-manager.service';
@@ -115,14 +116,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   viewRecommendation$ = this.viewRecommendationSubject.asObservable();
   smartRecommendations$ = this.smartRecommendationsSubject.asObservable();
   
-  // We're now using the PendingChangesService for state management
-  pendingChangesCount: number = 0;
-  
-  // Undo/redo state for UI binding
-  canUndo: boolean = false;
-  canRedo: boolean = false;
-  undoDescription: string | null = null;
-  redoDescription: string | null = null;
+  // MIGRATION: Removed manual state properties - header component gets state directly from signals
+  // pendingChangesCount, canUndo, canRedo, undoDescription, redoDescription are now signals
 
   calendarOptions: any;
   
@@ -155,8 +150,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private businessLogicService: BusinessLogicService,
     private calendarManager: CalendarService,
     private calendarEvents: CalendarEventsService,
-    // Inject our new services
+    // Inject our new services - MIGRATION: Using both old and new services during transition
     private pendingChangesService: PendingChangesService,
+    private pendingChangesSignalService: PendingChangesSignalService,
     private changesSynchronizerService: ChangesSynchronizerService,
     private dragResizeService: DragResizeService,
     // Inject our new availability services
@@ -169,8 +165,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     private availabilityPendingChangesService: AvailabilityPendingChangesService,
     private availabilityKeyboardOperationsService: AvailabilityKeyboardOperationsService,
     private cdr: ChangeDetectorRef,
-    // Inject the undo/redo coordinator service
+    // Inject the undo/redo services - MIGRATION: Using both old and new during transition
     private undoRedoService: UndoRedoCoordinatorService,
+    private undoRedoSignalService: UndoRedoSignalService,
     // Inject our smart calendar services
     private smartCalendarManager: SmartCalendarManagerService,
     private contentAnalyzer: SmartContentAnalyzerService,
@@ -202,33 +199,8 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     // Load availability data
     const today = new Date();
     
-    // Subscribe to pending changes to update the count
-    this.pendingChangesService.pendingChanges$.subscribe(state => {
-      this.pendingChangesCount = state.changes.length;
-      // Trigger change detection to avoid ExpressionChangedAfterItHasBeenCheckedError
-      this.cdr.detectChanges();
-    });
-    
-    // Subscribe to undo/redo state for UI binding
-    this.undoRedoService.canUndo$.subscribe(canUndo => {
-      this.canUndo = canUndo;
-      this.cdr.detectChanges();
-    });
-    
-    this.undoRedoService.canRedo$.subscribe(canRedo => {
-      this.canRedo = canRedo;
-      this.cdr.detectChanges();
-    });
-    
-    this.undoRedoService.undoDescription$.subscribe(description => {
-      this.undoDescription = description;
-      this.cdr.detectChanges();
-    });
-    
-    this.undoRedoService.redoDescription$.subscribe(description => {
-      this.redoDescription = description;
-      this.cdr.detectChanges();
-    });
+    // MIGRATION: Removed manual subscriptions - header component gets state directly from signals
+    // No need for manual change detection since signals provide automatic reactivity
     
     // Initialize smart calendar features
     this.initializeSmartCalendar();
@@ -286,26 +258,26 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.availability$.subscribe(availability => {
       console.log(`[AvailabilityComponent] Availability updated - ${availability.length} slots`);
       
-      // Initialize the pending changes service with the original state
+      // MIGRATION: Initialize the signal-based pending changes service with the original state
       if (!isInitialized && availability.length >= 0) {
-        this.pendingChangesService.initialize(availability);
+        this.pendingChangesSignalService.initialize(availability);
         isInitialized = true;
         // Initialize the previous availability with the store data
         previousAvailability = [...availability];
-        console.log('[AvailabilityComponent] Initialized pending changes with', availability.length, 'slots');
+        console.log('[AvailabilityComponent] Initialized signal-based pending changes with', availability.length, 'slots');
       } else if (isInitialized) {
         // If already initialized, update the original state when store changes
         // This happens when data is refreshed from server
-        this.pendingChangesService.initialize(availability);
+        this.pendingChangesSignalService.initialize(availability);
         previousAvailability = [...availability];
-        console.log('[AvailabilityComponent] Updated original state with', availability.length, 'slots from store');
+        console.log('[AvailabilityComponent] Updated signal-based original state with', availability.length, 'slots from store');
       }
     });
     
-    // Subscribe to pending changes current state for calendar updates
+    // MIGRATION: Subscribe to signal-based pending changes current state for calendar updates
     // This includes both the original state and any pending changes
-    this.pendingChangesService.getCurrentState$().subscribe(currentAvailability => {
-      console.log(`[AvailabilityComponent] Pending changes state updated - ${currentAvailability.length} slots`);
+    this.pendingChangesSignalService.getCurrentState$.subscribe(currentAvailability => {
+      console.log(`[AvailabilityComponent] Signal-based pending changes state updated - ${currentAvailability.length} slots`);
       
       // Only update calendar if we have been initialized and calendar is available
       if (isInitialized && this.calendarComponent) {
@@ -528,14 +500,16 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
    * Execute undo operation
    */
   undo(): void {
-    this.availabilityPendingChangesService.undo();
+    // MIGRATION: Use signal-based undo/redo service
+    this.undoRedoSignalService.undo();
   }
 
   /**
    * Execute redo operation
    */
   redo(): void {
-    this.availabilityPendingChangesService.redo();
+    // MIGRATION: Use signal-based undo/redo service
+    this.undoRedoSignalService.redo();
   }
 
   /**

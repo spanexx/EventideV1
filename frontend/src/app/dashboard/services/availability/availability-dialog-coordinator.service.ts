@@ -8,7 +8,8 @@ import { Availability } from '../../models/availability.models';
 import { DialogManagementService } from '../dialog/dialog-management.service';
 import { DialogDataService } from '../dialog/dialog-data.service';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
-import { PendingChangesService } from '../pending-changes';
+import { PendingChangesSignalService } from '../pending-changes/pending-changes-signal.service';
+import { UndoRedoSignalService } from '../undo-redo/undo-redo-signal.service';
 import { Change } from '../pending-changes/pending-changes.interface';
 
 @Injectable({
@@ -20,8 +21,11 @@ export class AvailabilityDialogCoordinatorService {
     private dialogService: DialogManagementService,
     private dialogDataService: DialogDataService,
     private snackbarService: SnackbarService,
-    private pendingChangesService: PendingChangesService
-  ) {}
+    private pendingChangesSignalService: PendingChangesSignalService,
+    private undoRedoService: UndoRedoSignalService
+  ) {
+    console.log('[AvailabilityDialogCoordinatorService] Initialized with signal-based services');
+  }
 
   /**
    * Add a new availability slot
@@ -100,6 +104,10 @@ export class AvailabilityDialogCoordinatorService {
 
     dialogRef.afterClosed().subscribe((result: any) => {
       if (result) {
+        console.log('[AvailabilityDialogCoordinatorService] Delete confirmed for slot:', slot.id);
+        // Save state for undo before making changes
+        this.undoRedoService.saveStateForUndo('Delete availability slot');
+        
         // Instead of directly deleting, add to pending changes
         const change: Change = {
           id: `delete-${slot.id}-${Date.now()}`,
@@ -108,7 +116,8 @@ export class AvailabilityDialogCoordinatorService {
           // For delete operations, we typically don't need the full entity
           timestamp: new Date()
         };
-        this.pendingChangesService.addChange(change);
+        this.pendingChangesSignalService.addChange(change);
+        console.log('[AvailabilityDialogCoordinatorService] Added delete change, pending count:', this.pendingChangesSignalService.pendingChangesCount());
       }
     });
   }
@@ -202,6 +211,9 @@ export class AvailabilityDialogCoordinatorService {
         });
 
         // 6. Add to pending changes (these are new slots that haven't been created yet)
+        console.log('[AvailabilityDialogCoordinatorService] Copy week operation - saving state for undo');
+        this.undoRedoService.saveStateForUndo(`Copy week from ${sourceWeek.toDateString()} to ${targetWeek.toDateString()}`);
+        
         newSlots.forEach(slot => {
           const change: Change = {
             id: `create-${Date.now()}-${Math.random()}`,
@@ -209,10 +221,10 @@ export class AvailabilityDialogCoordinatorService {
             entity: slot,
             timestamp: new Date()
           };
-          this.pendingChangesService.addChange(change);
+          this.pendingChangesSignalService.addChange(change);
         });
 
-
+        console.log('[AvailabilityDialogCoordinatorService] Copy week completed, pending count:', this.pendingChangesSignalService.pendingChangesCount());
         snackbarService.showSuccess(`Copied ${newSlots.length} slots to pending changes. Click Save to apply.`);
       });
     });
