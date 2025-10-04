@@ -3,6 +3,7 @@
     [availability$]="availability$" 
     [smartMetrics$]="smartMetrics$"
     [activeView]="getCurrentActiveView()"
+    [aiData$]="aiData$"
     (search)="onSearch($event)"
     (searchClear)="onSearchClear()"
     (filter)="onFilter()"
@@ -15,7 +16,8 @@
     (discardChanges)="discardChanges()"
     (changeView)="changeView($event)"
     (openDatePicker)="openDatePicker()"
-    (copyWeek)="openCopyWeekDialog()">
+    (copyWeek)="openCopyWeekDialog()"
+    (aiAction)="onAIAction($event)">
   </app-availability-header>
   
 
@@ -30,6 +32,38 @@
     <div class="loading">
       <mat-spinner diameter="30"></mat-spinner>
       <span>Loading availability...</span>
+    </div>
+  }
+  
+  <!-- AI Insights Section -->
+  @if (aiData$ | async; as aiData) {
+    <div class="ai-insights-section">
+      @if (aiData.hasData && !aiData.loading) {
+        <app-ai-insights-compact 
+          [insights]="getAIInsightsSummary(aiData)"
+          [loading]="aiData.loading"
+          [error]="aiData.error"
+          (viewDetails)="onViewAIDetails(aiData)"
+          (refresh)="refreshAIAnalysis()"
+          (generate)="getAIInsights()"
+          (retry)="refreshAIAnalysis()">
+        </app-ai-insights-compact>
+      }
+      
+      @if (aiData.loading) {
+        <div class="ai-loading">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Analyzing with AI...</span>
+        </div>
+      }
+      
+      @if (aiData.error && !aiData.loading) {
+        <div class="ai-error">
+          <mat-icon>warning</mat-icon>
+          <span>AI analysis unavailable: {{ aiData.error }}</span>
+          <button mat-button (click)="refreshAIAnalysis()">Retry</button>
+        </div>
+      }
     </div>
   }
   

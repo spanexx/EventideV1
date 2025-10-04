@@ -37,6 +37,7 @@ export class AvailabilityHeaderComponent {
   @Input() availability$!: Observable<Availability[]>;
   @Input() smartMetrics$!: Observable<ContentMetrics>;
   @Input() activeView: CalendarView = 'timeGridWeek';
+  @Input() aiData$?: Observable<any>;
   @Output() search = new EventEmitter<string>();
   @Output() searchClear = new EventEmitter<void>();
   @Output() filter = new EventEmitter<void>();
@@ -50,6 +51,7 @@ export class AvailabilityHeaderComponent {
   @Output() changeView = new EventEmitter<CalendarView>();
   @Output() openDatePicker = new EventEmitter<void>();
   @Output() copyWeek = new EventEmitter<void>();
+  @Output() aiAction = new EventEmitter<string>();
 
   searchTerm: string = '';
   isMobileMenuOpen: boolean = false;
@@ -114,6 +116,10 @@ export class AvailabilityHeaderComponent {
 
   onCopyWeek(): void {
     this.copyWeek.emit();
+  }
+
+  onAIAction(action: string): void {
+    this.aiAction.emit(action);
   }
 
   toggleMobileMenu(): void {

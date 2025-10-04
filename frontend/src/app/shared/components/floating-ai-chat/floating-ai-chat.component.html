@@ -1,0 +1,215 @@
+<!-- Floating Action Button (when chat is closed) -->
+<button 
+  *ngIf="!state.isOpen"
+  mat-fab 
+  color="primary" 
+  [ngStyle]="fabStyle"
+  (click)="toggleChat()"
+  matTooltip="Open AI Assistant (Ctrl+/)"
+  class="ai-chat-fab">
+  <mat-icon>smart_toy</mat-icon>
+</button>
+
+<!-- Floating Chat Window -->
+<div 
+  *ngIf="state.isOpen"
+  class="floating-chat-window"
+  [ngStyle]="chatStyle"
+  #chatContainer>
+  
+  <!-- Chat Header -->
+  <div 
+    class="chat-header"
+    (mousedown)="onDragStart($event)"
+    [class.dragging]="state.isDragging">
+    
+    <div class="header-left">
+      <mat-icon class="ai-icon">smart_toy</mat-icon>
+      <span class="chat-title">AI Assistant</span>
+      <div class="connection-status" [class.connected]="isConnected$ | async">
+        <mat-icon [style.color]="(isConnected$ | async) ? '#4caf50' : '#f44336'">
+          {{ (isConnected$ | async) ? 'wifi' : 'wifi_off' }}
+        </mat-icon>
+      </div>
+    </div>
+    
+    <div class="header-actions">
+      <button 
+        mat-icon-button 
+        (click)="toggleSuggestions()"
+        matTooltip="Quick suggestions"
+        class="header-btn">
+        <mat-icon>lightbulb</mat-icon>
+      </button>
+      
+      <button 
+        mat-icon-button 
+        [matMenuTriggerFor]="chatMenu"
+        matTooltip="More options"
+        class="header-btn">
+        <mat-icon>more_vert</mat-icon>
+      </button>
+      
+      <button 
+        mat-icon-button 
+        (click)="minimizeChat()"
+        matTooltip="Minimize"
+        class="header-btn">
+        <mat-icon>{{ state.isMinimized ? 'expand_more' : 'remove' }}</mat-icon>
+      </button>
+      
+      <button 
+        mat-icon-button 
+        (click)="closeChat()"
+        matTooltip="Close"
+        class="header-btn close-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Chat Content (hidden when minimized) -->
+  <div class="chat-content" *ngIf="!state.isMinimized">
+    
+    <!-- Quick Suggestions Panel -->
+    <div class="suggestions-panel" *ngIf="showSuggestions">
+      <div class="suggestions-header">
+        <span>Quick Actions</span>
+        <button mat-icon-button (click)="toggleSuggestions()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="suggestions-grid">
+        <button 
+          *ngFor="let suggestion of suggestions"
+          mat-stroked-button
+          class="suggestion-btn"
+          (click)="selectSuggestion(suggestion)">
+          {{ suggestion }}
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="messages-container" #messagesContainer>
+      <div class="messages-list">
+        
+        <!-- Welcome Message -->
+        <div class="message assistant-message" *ngIf="(messages$ | async)?.length === 0">
+          <div class="message-avatar">
+            <mat-icon>smart_toy</mat-icon>
+          </div>
+          <div class="message-content">
+            <div class="message-text">
+              Hi! I'm your AI assistant. I can help you manage your availability slots using natural language. 
+              Try saying things like:
+              <ul>
+                <li>"Create a slot tomorrow at 2 PM"</li>
+                <li>"Show my availability this week"</li>
+                <li>"Delete all unbooked slots"</li>
+                <li>"Analyze my schedule patterns"</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div 
+          *ngFor="let message of messages$ | async; trackBy: trackMessage"
+          class="message"
+          [class.user-message]="message.role === 'user'"
+          [class.assistant-message]="message.role === 'assistant'">
+          
+          <div class="message-avatar">
+            <mat-icon>{{ getMessageIcon(message) }}</mat-icon>
+          </div>
+          
+          <div class="message-content">
+            <div class="message-text" [innerHTML]="formatMessageContent(message.content)"></div>
+            
+            <!-- Tool Call Indicators -->
+            <div class="tool-calls" *ngIf="hasToolCalls(message)">
+              <div class="tool-indicator">
+                <mat-icon>build</mat-icon>
+                <span>{{ getToolCallSummary(message) }}</span>
+              </div>
+            </div>
+            
+            <div class="message-timestamp">
+              {{ formatTimestamp(message.timestamp) }}
+            </div>
+          </div>
+        </div>
+
+        <!-- Processing Indicator -->
+        <div class="message assistant-message" *ngIf="isProcessing$ | async">
+          <div class="message-avatar">
+            <mat-icon>smart_toy</mat-icon>
+          </div>
+          <div class="message-content">
+            <div class="typing-indicator">
+              <mat-spinner diameter="20"></mat-spinner>
+              <span>AI is thinking...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message Input -->
+    <div class="message-input-container">
+      <div class="input-wrapper">
+        <textarea
+          #messageInput
+          [(ngModel)]="currentMessage"
+          placeholder="Ask me to create, update, or manage your availability..."
+          class="message-input"
+          rows="1"
+          [disabled]="(isProcessing$ | async) === true"
+                              (keydown)="onTextareaKeydown($event)"
+                    (input)="adjustTextareaHeight($event)"></textarea>
+        
+        <button 
+          mat-icon-button 
+          color="primary"
+          (click)="sendMessage()"
+          [disabled]="!currentMessage.trim() || ((isProcessing$ | async) === true)"
+          class="send-btn">
+          <mat-icon>send</mat-icon>
+        </button>
+      </div>
+      
+      <div class="input-help">
+        <span class="keyboard-hint">Press Enter to send, Shift+Enter for new line</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Resize Handle -->
+  <div 
+    class="resize-handle"
+    (mousedown)="onResizeStart($event)"
+    *ngIf="!state.isMinimized">
+  </div>
+</div>
+
+<!-- Context Menu -->
+<mat-menu #chatMenu="matMenu">
+  <button mat-menu-item (click)="clearChat()">
+    <mat-icon>clear_all</mat-icon>
+    <span>Clear Chat</span>
+  </button>
+  <button mat-menu-item (click)="newSession()">
+    <mat-icon>add</mat-icon>
+    <span>New Session</span>
+  </button>
+  <mat-divider></mat-divider>
+  <button mat-menu-item>
+    <mat-icon>settings</mat-icon>
+    <span>Settings</span>
+  </button>
+  <button mat-menu-item>
+    <mat-icon>help</mat-icon>
+    <span>Help</span>
+  </button>
+</mat-menu>

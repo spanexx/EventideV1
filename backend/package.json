@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@google-cloud/storage": "^7.17.0",
+    "@langchain/langgraph": "^0.4.9",
     "@nestjs-modules/mailer": "^1.6.1",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",

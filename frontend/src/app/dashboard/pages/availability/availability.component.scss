@@ -8,6 +8,53 @@
   gap: var(--spacing-lg);
 }
 
+// AI Insights Section Styling
+.ai-insights-section {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  
+  .ai-loading {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    color: var(--muted-foreground);
+    font-size: var(--font-size-sm);
+    
+    mat-spinner {
+      width: 20px !important;
+      height: 20px !important;
+    }
+  }
+  
+  .ai-error {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    color: var(--destructive);
+    background: var(--destructive-foreground);
+    border-radius: var(--radius-md);
+    
+    mat-icon {
+      color: var(--destructive);
+    }
+    
+    button {
+      margin-left: auto;
+      background: var(--destructive);
+      color: var(--destructive-foreground);
+      
+      &:hover {
+        background: color-mix(in srgb, var(--destructive) 90%, black);
+      }
+    }
+  }
+}
+
 // Professional header styling
   .availability-container {
     max-width: 95%;
