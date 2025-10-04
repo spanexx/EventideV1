@@ -5,16 +5,21 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import { ResponseInterceptor } from './core/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from './core/filters/global-exception.filter';
+import { BackendLogsService } from './modules/backend-logs/backend-logs.service';
 
 async function bootstrap() {
   try {
     // Create the application instance
     console.log('Creating NestJS application...');
     const app = await NestFactory.create(AppModule, {
-      logger: ['error', 'warn', 'log', 'debug', 'verbose'],
+      // logger: ['error', 'warn', 'log', 'debug', 'verbose'],
       abortOnError: false, // Prevent immediate shutdown on initialization errors
       rawBody: true, // Enable raw body for webhook signature verification
     });
+
+    // Use our custom logger
+    app.useLogger(app.get(BackendLogsService));
+
 
     // Add memory monitoring function
     function logMemoryUsage() {

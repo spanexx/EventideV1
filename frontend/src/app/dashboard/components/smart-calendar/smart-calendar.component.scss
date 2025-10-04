@@ -1,0 +1,193 @@
+.smart-calendar-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin-bottom: 20px;
+}
+
+.smart-calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #eee;
+  
+  .header-info {
+    display: flex;
+    flex-direction: column;
+    
+    h2 {
+      margin: 0 0 10px 0;
+      color: #333;
+      font-size: 1.5rem;
+    }
+    
+    .calendar-info {
+      display: flex;
+      flex-direction: column;
+      
+      .month-info {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #4285f4;
+      }
+      
+      .date-range {
+        font-size: 0.9rem;
+        color: #666;
+      }
+    }
+  }
+}
+
+.smart-calendar-controls {
+  display: flex;
+  gap: 10px;
+  
+  button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    
+    &.analyze-btn {
+      background-color: #4285f4;
+      color: white;
+      
+      &:hover {
+        background-color: #3367d6;
+      }
+    }
+    
+    &.optimize-btn {
+      background-color: #34a853;
+      color: white;
+      
+      &:hover {
+        background-color: #2e8b47;
+      }
+    }
+    
+    &.recommend-btn {
+      background-color: #fbbc05;
+      color: white;
+      
+      &:hover {
+        background-color: #e6ac00;
+      }
+    }
+  }
+}
+
+.smart-calendar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.calendar-metrics {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.metric-card {
+  flex: 1;
+  min-width: 150px;
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  text-align: center;
+  
+  .metric-icon {
+    font-size: 2rem;
+    width: auto;
+    height: auto;
+    color: #4285f4;
+  }
+  
+  h3 {
+    margin: 10px 0 5px 0;
+    font-size: 14px;
+    color: #666;
+    font-weight: 600;
+  }
+  
+  p {
+    margin: 0;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+  }
+}
+
+.smart-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.insight-card {
+  padding: 15px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  
+  h3 {
+    margin: 0 0 10px 0;
+    color: #333;
+    font-size: 16px;
+  }
+  
+  p {
+    margin: 0 0 15px 0;
+    color: #666;
+    line-height: 1.4;
+  }
+  
+  .switch-view-btn {
+    padding: 8px 16px;
+    background-color: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    
+    &:hover {
+      background-color: #3367d6;
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .smart-calendar-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+  
+  .calendar-metrics {
+    flex-direction: column;
+  }
+  
+  .metric-card {
+    min-width: 100%;
+  }
+  
+  .smart-calendar-controls {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

@@ -1,0 +1,103 @@
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  
+  .search-input {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-sm);
+    width: 180px;
+    background: var(--color-card);
+    color: var(--color-foreground);
+    
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+    }
+  }
+  
+  .mat-mdc-icon-button {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-md);
+    
+    &:hover {
+      background-color: color-mix(in srgb, var(--color-primary) 8%, transparent);
+    }
+  }
+}
+
+// Tablet view
+@media (max-width: 1024px) {
+  .header-actions {
+    gap: var(--spacing-xs);
+    
+    .mat-mdc-icon-button {
+      width: 34px;
+      height: 34px;
+      font-size: var(--font-size-sm);
+    }
+  }
+}
+
+// Mobile view
+@media (max-width: 768px) {
+  .header-actions {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--spacing-xs);
+    
+    .search-input {
+      width: 100%;
+      max-width: 200px;
+    }
+    
+    .mat-mdc-icon-button {
+      width: 32px;
+      height: 32px;
+      font-size: var(--font-size-sm);
+    }
+  }
+}
+
+// Small mobile view
+@media (max-width: 480px) {
+  .header-actions {
+    gap: var(--spacing-2xs);
+    
+    .search-input {
+      max-width: 180px;
+      padding: var(--spacing-2xs) var(--spacing-xs);
+      font-size: var(--font-size-xs);
+    }
+    
+    .mat-mdc-icon-button {
+      width: 28px;
+      height: 28px;
+      font-size: var(--font-size-xs);
+    }
+  }
+}
+
+// Extra small mobile view
+@media (max-width: 360px) {
+  .header-actions {
+    gap: var(--spacing-3xs);
+    
+    .search-input {
+      max-width: 160px;
+      padding: var(--spacing-3xs) var(--spacing-2xs);
+      font-size: var(--font-size-2xs);
+    }
+    
+    .mat-mdc-icon-button {
+      width: 26px;
+      height: 26px;
+      font-size: var(--font-size-2xs);
+    }
+  }
+}

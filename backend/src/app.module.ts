@@ -14,6 +14,9 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { MetricsModule } from './core/metrics/metrics.module';
 import { AvailabilityModule } from './modules/availability/availability.module';
 import { WebsocketsModule } from './core/websockets';
+import { BrowserLogsModule } from './modules/browser-logs/browser-logs.module';
+import { LogManagerService } from './core/log-manager/log-manager.service';
+import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
 
 @Module({
   imports: [
@@ -78,8 +81,10 @@ import { WebsocketsModule } from './core/websockets';
     // ServicesModule,
     // FrontendLogsModule,
     AuthModule,
+    BrowserLogsModule,
+    BackendLogsModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, LogManagerService],
 })
 export class AppModule {}

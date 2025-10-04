@@ -1,0 +1,90 @@
+<header class="availability-header">
+  <div class="header-container">
+    <!-- Main Header Content -->
+    <div class="header-main">
+      <div class="header-start">
+        <h1 class="header-title">Availability</h1>
+        
+        <!-- Mobile: Pending indicator next to title -->
+        @if (pendingChangesCount() > 0) {
+          <app-pending-changes-indicator 
+            class="pending-badge mobile-only"
+            [pendingChangesCount]="pendingChangesCount()">
+          </app-pending-changes-indicator>
+        }
+      </div>
+      
+      <div class="header-end">
+        <!-- Desktop: View controls and pending indicator -->
+        <div class="desktop-controls desktop-only">
+          <app-view-buttons
+            [activeView]="activeView"
+            (changeView)="onChangeView($event)"
+            (openDatePicker)="onOpenDatePicker()"
+            (copyWeek)="onCopyWeek()"
+            (refresh)="onRefresh()">
+          </app-view-buttons>
+          
+          @if (pendingChangesCount() > 0) {
+            <app-pending-changes-indicator 
+              class="pending-badge"
+              [pendingChangesCount]="pendingChangesCount()">
+            </app-pending-changes-indicator>
+          }
+        </div>
+        
+        <!-- Mobile: Menu toggle -->
+        <button 
+          class="menu-btn mobile-only"
+          mat-icon-button
+          (click)="toggleMobileMenu()"
+          [attr.aria-expanded]="isMobileMenuOpen"
+          [class.active]="isMobileMenuOpen"
+          matTooltip="Toggle menu">
+          <mat-icon>{{ isMobileMenuOpen ? 'close' : 'more_vert' }}</mat-icon>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Mobile: Collapsible View Controls -->
+    <div class="mobile-controls mobile-only" 
+         [class.open]="isMobileMenuOpen">
+      <app-view-buttons
+        [activeView]="activeView"
+        (changeView)="onChangeView($event); closeMobileMenu()"
+        (openDatePicker)="onOpenDatePicker(); closeMobileMenu()"
+        (copyWeek)="onCopyWeek(); closeMobileMenu()"
+        (refresh)="onRefresh(); closeMobileMenu()">
+      </app-view-buttons>
+    </div>
+    
+    <!-- Secondary Content -->
+    <div class="header-secondary" *ngIf="availability$ | async as availability">
+      <div class="metrics-container">
+        <app-header-metrics 
+          *ngIf="smartMetrics$ | async as metrics" 
+          [metrics]="metrics">
+        </app-header-metrics>
+      </div>
+      
+      <div class="actions-container">
+        <app-header-actions
+          [pendingChangesCount]="pendingChangesCount()"
+          [canUndo]="canUndo()"
+          [canRedo]="canRedo()"
+          [searchTerm]="searchTerm"
+          (search)="onSearch($event)"
+          (searchClear)="onSearchClear()"
+          (filter)="onFilter()"
+          (analyze)="onAnalyze()"
+          (recommendations)="onRecommendations()"
+          (undo)="onUndo()"
+          (redo)="onRedo()"
+          (saveChanges)="onSaveChanges()"
+          (discardChanges)="onDiscardChanges()"
+          (aiAction)="onAIAction($event)">
+        </app-header-actions>
+      </div>
+    </div>
+  </div>
+</header>

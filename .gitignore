@@ -27,7 +27,7 @@ build/
 
 # Documentation
 docs/
-*.md
+# *.md
 
 # Temporary files
 tmp/
@@ -49,8 +49,7 @@ frontend/dist/
 frontend/build/
 frontend/logs/
 frontend/*.log
-
-
+frontend/src/environments/*
 
 # Task Management MCP Database
 tskdb_stdio*
@@ -67,7 +66,19 @@ prompt.prepare
 Event.md
 backend/scripts/
 test*
-
+backend/browser-logs/*
+backend/backend-logs/*
 .qwen*
 
 .tskdb_backup*
+
+_summaries.txt
+
+# Additional ignored patterns
+docs/
+*.md
+logger
+backend/browser-logs/
+backend/backend-logs/
+
+langGraph/

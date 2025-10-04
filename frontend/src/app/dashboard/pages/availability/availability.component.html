@@ -1,14 +1,32 @@
 <div class="availability-container">
-  <div class="page-header">
-    <h1 class="page-title">Availability Management</h1>
-    <p class="page-description">Set your available hours for bookings</p><span>Your Schedule</span>
-  </div>
+  <app-availability-header 
+    [availability$]="availability$" 
+    [smartMetrics$]="smartMetrics$"
+    [activeView]="getCurrentActiveView()"
+    [aiData$]="aiData$"
+    (search)="onSearch($event)"
+    (searchClear)="onSearchClear()"
+    (filter)="onFilter()"
+    (analyze)="onAnalyze()"
+    (recommendations)="onRecommendations()"
+    (refresh)="onRefresh()"
+    (undo)="undo()"
+    (redo)="redo()"
+    (saveChanges)="saveChanges()"
+    (discardChanges)="discardChanges()"
+    (changeView)="changeView($event)"
+    (openDatePicker)="openDatePicker()"
+    (copyWeek)="openCopyWeekDialog()"
+    (aiAction)="onAIAction($event)">
+  </app-availability-header>
   
 
-  <div class="summary-banner" *ngIf="summary$ | async as summary">
-    <span>{{ summary.created }} created<span *ngIf="summary.skipped">, {{ summary.skipped }} skipped</span>.</span>
-    <button mat-button color="primary" (click)="dismissSummary()">Dismiss</button>
-  </div>
+  @if (summary$ | async; as summary) {
+    <div class="summary-banner">
+      <span>{{ summary.created }} created@if (summary.skipped) {, {{ summary.skipped }} skipped}</span>
+      <button mat-button color="primary" (click)="dismissSummary()">Dismiss</button>
+    </div>
+  }
   
   @if (loading$ | async) {
     <div class="loading">
@@ -17,65 +35,39 @@
     </div>
   }
   
-  <!-- Calendar toolbar with icons -->
-  <div class="calendar-toolbar">
-    <div class="toolbar-row">
-      <div class="toolbar-left">
-        <button mat-icon-button (click)="refreshAvailability()" matTooltip="Refresh">
-          <mat-icon>refresh</mat-icon>
-        </button>
-        <button mat-icon-button (click)="openCopyWeekDialog()" matTooltip="Copy week schedule">
-          <mat-icon>content_copy</mat-icon>
-        </button>
-        <div class="pending-changes-indicator" *ngIf="pendingChangesCount > 0">
-          <span class="pending-count">{{ pendingChangesCount }}</span>
-          <span class="pending-label">pending changes</span>
-        </div>
-        <div class="pending-changes-controls">
-          <button mat-icon-button (click)="undo()" matTooltip="Undo" [disabled]="!canUndo">
-            <mat-icon>undo</mat-icon>
-          </button>
-          <button mat-icon-button (click)="redo()" matTooltip="Redo" [disabled]="!canRedo">
-            <mat-icon>redo</mat-icon>
-          </button>
-          <div class="separator"></div>
-          <button mat-icon-button (click)="saveChanges()" matTooltip="Save all changes" [disabled]="pendingChangesCount === 0">
-            <mat-icon>save</mat-icon>
-          </button>
-          <button mat-icon-button (click)="discardChanges()" matTooltip="Discard all changes" [disabled]="pendingChangesCount === 0">
-            <mat-icon>delete</mat-icon>
-          </button>
-        </div>
-      </div>
+  <!-- AI Insights Section -->
+  @if (aiData$ | async; as aiData) {
+    <div class="ai-insights-section">
+      @if (aiData.hasData && !aiData.loading) {
+        <app-ai-insights-compact 
+          [insights]="getAIInsightsSummary(aiData)"
+          [loading]="aiData.loading"
+          [error]="aiData.error"
+          (viewDetails)="onViewAIDetails(aiData)"
+          (refresh)="refreshAIAnalysis()"
+          (generate)="getAIInsights()"
+          (retry)="refreshAIAnalysis()">
+        </app-ai-insights-compact>
+      }
       
-      <div class="toolbar-center">
-        <button mat-icon-button (click)="navigateCalendar('prev')" matTooltip="Previous">
-          <mat-icon>navigate_before</mat-icon>
-        </button>
-        <button mat-icon-button (click)="navigateCalendar('today')" matTooltip="Today">
-          <mat-icon>today</mat-icon>
-        </button>
-        <button mat-icon-button (click)="navigateCalendar('next')" matTooltip="Next">
-          <mat-icon>navigate_next</mat-icon>
-        </button>
-      </div>
+      @if (aiData.loading) {
+        <div class="ai-loading">
+          <mat-spinner diameter="20"></mat-spinner>
+          <span>Analyzing with AI...</span>
+        </div>
+      }
       
-      <div class="toolbar-right">
-        <button mat-icon-button (click)="changeView('dayGridMonth')" [class.active]="isViewActive('dayGridMonth')" matTooltip="Month view">
-          <mat-icon>calendar_month</mat-icon>
-        </button>
-        <button mat-icon-button (click)="changeView('timeGridWeek')" [class.active]="isViewActive('timeGridWeek')" matTooltip="Week view">
-          <mat-icon>calendar_view_week</mat-icon>
-        </button>
-        <button mat-icon-button (click)="changeView('timeGridDay')" [class.active]="isViewActive('timeGridDay')" matTooltip="Day view">
-          <mat-icon>calendar_view_day</mat-icon>
-        </button>
-        <button mat-icon-button (click)="openDatePicker()" matTooltip="Go to date">
-          <mat-icon>date_range</mat-icon>
-        </button>
-      </div>
+      @if (aiData.error && !aiData.loading) {
+        <div class="ai-error">
+          <mat-icon>warning</mat-icon>
+          <span>AI analysis unavailable: {{ aiData.error }}</span>
+          <button mat-button (click)="refreshAIAnalysis()">Retry</button>
+        </div>
+      }
     </div>
-  </div>
+  }
+  
+
   
   <div class="calendar-container">
     <full-calendar #calendar [options]="calendarOptions"></full-calendar>
@@ -102,7 +94,7 @@
   </mat-menu>
   
   <div class="availability-actions">
-    <button mat-fab color="primary" matTooltip="Add new availability slot" (click)="addAvailability()">
+    <button mat-fab color="primary" (click)="addAvailability()">
       <mat-icon>add</mat-icon>
     </button>
   </div>

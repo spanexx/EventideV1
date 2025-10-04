@@ -1,0 +1,52 @@
+<div class="header-actions">
+  @if (pendingChangesCount > 0) {
+    <div class="pending-group">
+      <button mat-icon-button (click)="onUndo()" matTooltip="Undo" [disabled]="!canUndo" aria-label="Undo">
+        <mat-icon>undo</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onRedo()" matTooltip="Redo" [disabled]="!canRedo" aria-label="Redo">
+        <mat-icon>redo</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onSaveChanges()" matTooltip="Save all changes" aria-label="Save">
+        <mat-icon>save</mat-icon>
+      </button>
+      <button mat-icon-button (click)="onDiscardChanges()" matTooltip="Discard all changes" aria-label="Discard">
+        <mat-icon>delete</mat-icon>
+      </button>
+    </div>
+  }
+  
+  <div class="search-filter-group">
+    <input 
+      type="text" 
+      placeholder="Search in natural language..." 
+      [(ngModel)]="searchTerm" 
+      (keyup.enter)="onSearch()" 
+      (input)="onSearchInput()"
+      (focus)="onSearchFocus()"
+      (blur)="onSearchBlur()"
+      class="search-input"
+      matTooltip="Try: 'meetings tomorrow', 'free slots this week', 'conflicts on Friday'">
+    <button *ngIf="searchTerm" mat-icon-button (click)="clearSearch()" matTooltip="Clear search" class="clear-search-btn">
+      <mat-icon>clear</mat-icon>
+    </button>
+    <button mat-icon-button (click)="onFilter()" matTooltip="Filter" aria-label="Filter">
+      <mat-icon>filter_list</mat-icon>
+    </button>
+  </div>
+  
+  <div class="insights-group">
+    <button mat-icon-button (click)="onAnalyze()" matTooltip="Analyze calendar content for insights" aria-label="Analyze">
+      <mat-icon>analytics</mat-icon>
+    </button>
+    <button mat-icon-button (click)="onRecommendations()" matTooltip="Get smart recommendations" aria-label="Tips">
+      <mat-icon>lightbulb</mat-icon>
+    </button>
+    <button mat-icon-button (click)="onAIInsights()" matTooltip="Get AI insights" aria-label="AI Insights">
+      <mat-icon>psychology</mat-icon>
+    </button>
+    <button mat-icon-button (click)="onAIEnhance()" matTooltip="AI-enhanced view" aria-label="AI Enhanced">
+      <mat-icon>auto_awesome</mat-icon>
+    </button>
+  </div>
+</div>

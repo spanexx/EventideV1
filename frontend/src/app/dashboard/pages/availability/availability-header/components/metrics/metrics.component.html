@@ -1,0 +1,20 @@
+<div class="insights-metrics" *ngIf="metrics">
+  <div class="metric-item" matTooltip="Total availability slots">
+    <mat-icon class="metric-icon">event</mat-icon>
+    <span class="metric-value">{{ metrics.totalSlots }}</span>
+  </div>
+  
+  <div class="metric-item" matTooltip="Booked/occupied slots">
+    <mat-icon class="metric-icon">book</mat-icon>
+    <span class="metric-value">{{ metrics.bookedSlots }}</span>
+  </div>
+  
+  <div class="metric-item" matTooltip="Slots with conflicts">
+    <mat-icon class="metric-icon">warning</mat-icon>
+    <span class="metric-value">{{ metrics.conflictingSlots }}</span>
+  </div>
+  
+  <div class="metric-item" matTooltip="Percentage of slots booked">
+    <span class="metric-value">{{ metrics.occupancyRate }}%</span>
+  </div>
+</div>

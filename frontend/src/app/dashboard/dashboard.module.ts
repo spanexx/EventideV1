@@ -7,6 +7,7 @@ import { DashboardRoutingModule } from './dashboard-routing.module';
 import { reducers } from './store';
 import { DashboardEffects } from './store/effects/dashboard.effects';
 import { AnalyticsEffects } from '../analytics/store/effects/analytics.effects';
+import { SmartCalendarModule } from './components/smart-calendar/smart-calendar.module';
 
 @NgModule({
   declarations: [],
@@ -14,6 +15,7 @@ import { AnalyticsEffects } from '../analytics/store/effects/analytics.effects';
     CommonModule,
     DashboardRoutingModule,
     DashboardComponent,
+    SmartCalendarModule,
     StoreModule.forFeature('dashboard', reducers.dashboard),
     EffectsModule.forFeature([DashboardEffects, AnalyticsEffects])
   ],

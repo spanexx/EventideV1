@@ -34,6 +34,7 @@ export * from './integration/pending-changes-integration.service';
 
 // Main coordinator service
 export * from './undo-redo-coordinator.service';
+export * from './undo-redo-signal.service';
 
 // Re-export for convenience
 export { UndoRedoCoordinatorService as UndoRedoService } from './undo-redo-coordinator.service';
