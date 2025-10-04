@@ -136,10 +136,10 @@ export class ChangesSynchronizerService {
 
     // Create observables for each type of operation
     const createObservables = createChanges.map(change => 
-      this.availabilityService.createAvailability(change.entity!).pipe(
+      this.availabilityService.createAIOptimizedAvailability(change.entity!).pipe(
         map(result => {
-          created.push(result);
-          return result;
+          created.push(result.data); // Extract data from AI response
+          return result.data;
         }),
         catchError(error => {
           console.error('[ChangesSynchronizerService] Create failed:', error.message);
@@ -150,10 +150,10 @@ export class ChangesSynchronizerService {
     );
 
     const updateObservables = updateChanges.map(change => 
-      this.availabilityService.updateAvailability(change.entity!).pipe(
+      this.availabilityService.updateAIAnalyzed(change.entity!).pipe(
         map(result => {
-          updated.push(result);
-          return result;
+          updated.push(result.data); // Extract data from AI response
+          return result.data;
         }),
         catchError(error => {
           console.error('[ChangesSynchronizerService] Update failed:', error.message);
@@ -164,8 +164,8 @@ export class ChangesSynchronizerService {
     );
 
     const deleteObservables = deleteChanges.map(change => 
-      this.availabilityService.deleteAvailability(change.entityId!).pipe(
-        map(() => {
+      this.availabilityService.deleteAIAssessed(change.entityId!).pipe(
+        map((result) => {
           deleted.push(change.entityId!);
           return null;
         }),

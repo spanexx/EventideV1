@@ -16,13 +16,14 @@ export class AvailabilityEffects {
     this.actions$.pipe(
       ofType(AvailabilityActions.loadAvailability),
       mergeMap(({ providerId, date }) =>
-        this.availabilityService.getAvailability(providerId, date).pipe(
-          map(availability => {
+        this.availabilityService.getAIEnhancedAvailability(providerId, date, true).pipe(
+          map(response => {
             // Clean up the availability data to ensure it only has 'id' and not '_id'
-            const cleanedAvailability = availability.map(slot => {
+            const cleanedAvailability = response.data.map(slot => {
               const { _id, ...rest } = slot as any;
               return rest;
             });
+            
             return AvailabilityActions.loadAvailabilitySuccess({ availability: cleanedAvailability });
           }),
           catchError(error => {
@@ -38,11 +39,21 @@ export class AvailabilityEffects {
     this.actions$.pipe(
       ofType(AvailabilityActions.createAvailability),
       exhaustMap(({ availability }) =>
-        this.availabilityService.createAvailability(availability).pipe(
-          map(createdAvailability => {
+        this.availabilityService.createAIOptimizedAvailability(availability).pipe(
+          map(response => {
             // Clean up the created availability data to ensure it only has 'id' and not '_id'
-            const { _id, ...rest } = createdAvailability as any;
-            this.snackbarService.showSuccess('Availability slot created successfully!');
+            const { _id, ...rest } = response.data as any;
+            
+            // Show AI-enhanced success message
+            let message = 'Availability slot created successfully!';
+            if (response.aiAnalysis?.validation?.isValid === false) {
+              message += ' Note: AI detected some potential issues.';
+            } else if (response.aiAnalysis?.conflicts) {
+              message += ' AI conflict analysis completed.';
+            }
+            
+            this.snackbarService.showSuccess(message);
+            
             return AvailabilityActions.createAvailabilitySuccess({ availability: rest });
           }),
           catchError(error => {
@@ -58,11 +69,19 @@ export class AvailabilityEffects {
     this.actions$.pipe(
       ofType(AvailabilityActions.updateAvailability),
       switchMap(({ availability }) =>
-        this.availabilityService.updateAvailability(availability).pipe(
-          map(updatedAvailability => {
+        this.availabilityService.updateAIAnalyzed(availability).pipe(
+          map(response => {
             // Clean up the updated availability data to ensure it only has 'id' and not '_id'
-            const { _id, ...rest } = updatedAvailability as any;
-            this.snackbarService.showSuccess('Availability slot updated successfully!');
+            const { _id, ...rest } = response.data as any;
+            
+            // Show AI-enhanced success message
+            let message = 'Availability slot updated successfully!';
+            if (response.aiAnalysis?.impactAnalysis) {
+              message += ` ${response.aiAnalysis.impactAnalysis.substring(0, 50)}...`;
+            }
+            
+            this.snackbarService.showSuccess(message);
+            
             return AvailabilityActions.updateAvailabilitySuccess({ availability: rest });
           }),
           catchError(error => {
@@ -78,9 +97,21 @@ export class AvailabilityEffects {
     this.actions$.pipe(
       ofType(AvailabilityActions.deleteAvailability),
       switchMap(({ id }) =>
-        this.availabilityService.deleteAvailability(id).pipe(
-          map(() => {
-            this.snackbarService.showSuccess('Availability slot deleted successfully!');
+        this.availabilityService.deleteAIAssessed(id).pipe(
+          map(response => {
+            // Show AI-enhanced success message
+            let message = 'Availability slot deleted successfully!';
+            if (response.aiAnalysis?.impactAssessment) {
+              const risk = response.aiAnalysis.riskLevel;
+              if (risk === 'high') {
+                message += ' High impact deletion - please review recommendations.';
+              } else if (risk === 'medium') {
+                message += ' Medium impact deletion detected.';
+              }
+            }
+            
+            this.snackbarService.showSuccess(message);
+            
             return AvailabilityActions.deleteAvailabilitySuccess({ id });
           }),
           catchError(error => {

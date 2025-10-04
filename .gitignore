@@ -27,7 +27,7 @@ build/
 
 # Documentation
 docs/
-*.md
+# *.md
 
 # Temporary files
 tmp/
@@ -80,3 +80,5 @@ docs/
 logger
 backend/browser-logs/
 backend/backend-logs/
+
+langGraph/

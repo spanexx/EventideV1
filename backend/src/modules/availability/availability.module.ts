@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Availability, AvailabilitySchema } from './availability.schema';
 import { AvailabilityService } from './availability.service';
@@ -17,7 +17,7 @@ import { AiModule } from '../../core/ai/ai.module';
     ]),
     CustomCacheModule,
     WebsocketsModule,
-    AiModule, // Import AI module for enhanced controllers
+    forwardRef(() => AiModule), // Use forwardRef to avoid circular dependency
   ],
   providers: [AvailabilityService],
   controllers: [

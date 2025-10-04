@@ -190,3 +190,24 @@ export const setAILoading = createAction(
   '[Availability AI] Set AI Loading',
   props<{ loading: boolean }>()
 );
+
+// AI Analysis Success Actions (for basic CRUD operations)
+export const loadAIAnalysisSuccess = createAction(
+  '[Availability AI] Load AI Analysis Success',
+  props<{ aiAnalysis: any }>()
+);
+
+export const createAIAnalysisSuccess = createAction(
+  '[Availability AI] Create AI Analysis Success',
+  props<{ aiAnalysis: any }>()
+);
+
+export const updateAIAnalysisSuccess = createAction(
+  '[Availability AI] Update AI Analysis Success',
+  props<{ aiAnalysis: any }>()
+);
+
+export const deleteAIAnalysisSuccess = createAction(
+  '[Availability AI] Delete AI Analysis Success',
+  props<{ aiAnalysis: any }>()
+);
