@@ -17,7 +17,6 @@ import { WebsocketsModule } from './core/websockets';
 import { BrowserLogsModule } from './modules/browser-logs/browser-logs.module';
 import { LogManagerService } from './core/log-manager/log-manager.service';
 import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
-import { LangGraphModule } from './core/langgraph/langgraph.module';
 
 @Module({
   imports: [
@@ -81,7 +80,6 @@ import { LangGraphModule } from './core/langgraph/langgraph.module';
     // ClientsModule,
     // ServicesModule,
     // FrontendLogsModule,
-    LangGraphModule,
     AuthModule,
     BrowserLogsModule,
     BackendLogsModule,
