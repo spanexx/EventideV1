@@ -13,6 +13,10 @@ export interface UserPreferences {
       end: string; // HH:mm format
     };
   };
+  privacy: {
+    profileVisibility: 'public' | 'private';
+    accessCodeRotation: 'daily' | 'weekly' | 'monthly';
+  };
   language: string;
   timezone: string;
 }
@@ -31,6 +35,10 @@ export const defaultUserPreferences: UserPreferences = {
       start: '09:00',
       end: '17:00',
     },
+  },
+  privacy: {
+    profileVisibility: 'public',
+    accessCodeRotation: 'weekly',
   },
   language: 'en',
   timezone: 'UTC',

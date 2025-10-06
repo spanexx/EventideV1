@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Logs
+Logs
 logs
 *.log
 
@@ -26,8 +26,8 @@ build/
 *.sqlite
 
 # Documentation
-docs/
-# *.md
+# docs/
+*.md
 
 # Temporary files
 tmp/
@@ -80,5 +80,6 @@ docs/
 logger
 backend/browser-logs/
 backend/backend-logs/
+memory.json
 
 langGraph/

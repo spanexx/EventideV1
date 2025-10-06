@@ -46,7 +46,7 @@ export class AvailabilityBulkController {
   @ApiBody({ type: CreateBulkAvailabilityDto })
   async createBulk(
     @Body() createBulkAvailabilityDto: CreateBulkAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<{ created: IAvailability[]; conflicts: any[] }> {
     this.logger.log(
       `Creating bulk availability slots for provider ${createBulkAvailabilityDto.providerId}`,
     );
@@ -126,7 +126,7 @@ export class AvailabilityBulkController {
     
     // AI validation and analysis
     const [conflicts, optimizations] = await Promise.all([
-      this.aiAvailabilityService.analyzeConflicts(bulkData as any),
+      this.aiAvailabilityService.analyzeScheduleConflicts(bulkData as any),
       this.aiAvailabilityService.optimizeSchedule({ 
         bufferTime: 15,
         maxDailyBookings: 10 
@@ -156,10 +156,13 @@ export class AvailabilityBulkController {
     ];
 
     return {
-      data: created,
+      data: created.created,
       aiAnalysis: {
         validation,
-        conflicts,
+        conflicts: {
+          ...conflicts,
+          creationConflicts: created.conflicts
+        },
         optimizations,
         efficiencyScore,
         recommendations

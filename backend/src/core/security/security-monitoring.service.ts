@@ -118,4 +118,14 @@ export class SecurityMonitoringService {
       (event) => event.eventType === eventType && event.timestamp >= cutoff,
     );
   }
+
+  async getFailedAttempts(email: string, minutes: number = 30): Promise<number> {
+    const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+    return this.events.filter(
+      (event) =>
+        event.eventType === 'auth_failure' &&
+        event.email === email &&
+        event.timestamp >= cutoff,
+    ).length;
+  }
 }

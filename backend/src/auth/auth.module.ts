@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UsersModule } from '../modules/users/users.module';
 import { SecurityModule } from '../core/security/security.module';
+import { EmailModule } from '../core/email/email.module';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -23,6 +24,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
     }),
     UsersModule,
     SecurityModule,
+    EmailModule,
     ConfigModule,
   ],
   controllers: [AuthController],

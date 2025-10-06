@@ -34,6 +34,18 @@ export class UsersService {
     private emailService: EmailService,
   ) {}
 
+  async markEmailAsVerified(userId: string): Promise<void> {
+    this.logger.log(`Marking email as verified for user: ${userId}`);
+    const user = await this.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    
+    user.isEmailVerified = true;
+    await user.save();
+    this.logger.log(`Email marked as verified for user: ${userId}`);
+  }
+
   async createUser(createUserDto: CreateUserDto): Promise<User> {
     this.logger.log(`Creating user with email: ${createUserDto.email}`);
 
@@ -109,15 +121,95 @@ export class UsersService {
       throw new NotFoundException(`Provider with ID ${id} not found`);
     }
 
-    // Return only public information that exists in the User schema
+    // Return only public information
     return {
       id: user.id,
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
+      businessName: user.businessName,
+      bio: user.bio,
+      location: user.location,
+      contactPhone: user.contactPhone,
+      services: user.services,
+      availableDurations: user.availableDurations,
+      rating: user.rating,
+      reviewCount: user.reviewCount,
       role: user.role,
       subscriptionTier: user.subscriptionTier,
-      picture: user.picture, // Using picture instead of avatar as it exists in the schema
+      picture: user.picture,
+    };
+  }
+
+  async findAllPublicProviders(
+    search?: string,
+    location?: string,
+    service?: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<any> {
+    const query: any = {
+      isActive: true,
+      role: UserRole.PROVIDER,
+    };
+
+    // Add search filter
+    if (search) {
+      query.$or = [
+        { businessName: { $regex: search, $options: 'i' } },
+        { firstName: { $regex: search, $options: 'i' } },
+        { lastName: { $regex: search, $options: 'i' } },
+        { bio: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Add location filter
+    if (location) {
+      query.location = { $regex: location, $options: 'i' };
+    }
+
+    // Add service filter
+    if (service) {
+      query.services = { $in: [service] };
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [results, total] = await Promise.all([
+      this.userModel
+        .find(query)
+        .select(
+          'id email firstName lastName businessName bio location contactPhone services availableDurations rating reviewCount subscriptionTier picture',
+        )
+        .skip(skip)
+        .limit(limit)
+        .sort({ rating: -1, reviewCount: -1 })
+        .exec(),
+      this.userModel.countDocuments(query).exec(),
+    ]);
+
+    const totalPages = Math.ceil(total / limit);
+
+    return {
+      providers: results.map((user) => ({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        businessName: user.businessName,
+        bio: user.bio,
+        location: user.location,
+        contactPhone: user.contactPhone,
+        services: user.services,
+        availableDurations: user.availableDurations,
+        rating: user.rating,
+        reviewCount: user.reviewCount,
+        subscriptionTier: user.subscriptionTier,
+        picture: user.picture,
+      })),
+      total,
+      page,
+      pages: totalPages,
     };
   }
 
@@ -312,6 +404,10 @@ export class UsersService {
           ...currentPreferences.calendar.workingHours,
           ...preferences.calendar?.workingHours,
         },
+      },
+      privacy: {
+        ...currentPreferences.privacy,
+        ...(preferences as any).privacy,
       },
       language: preferences.language ?? currentPreferences.language,
       timezone: preferences.timezone ?? currentPreferences.timezone,

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Booking Follow-up</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            border-radius: 5px;
+        }
+        .content {
+            padding: 20px 0;
+        }
+        .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .feedback-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .cta-button {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .booking-summary {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>How Was Your Experience?</h1>
+    </div>
+    
+    <div class="content">
+        <p>Dear {{name}},</p>
+        
+        <p>Thank you for choosing our service. We hope you had a great experience!</p>
+        
+        <div class="booking-summary">
+            <h3>Booking Summary</h3>
+            <p><strong>Service:</strong> {{serviceName}}</p>
+            <p><strong>Date:</strong> {{bookingDate}}</p>
+            <p><strong>Provider:</strong> {{providerName}}</p>
+        </div>
+        
+        <div class="feedback-section">
+            <h3>Share Your Feedback</h3>
+            <p>We'd love to hear about your experience. Your feedback helps us improve our services.</p>
+            <a href="{{feedbackUrl}}" class="cta-button">Leave Feedback</a>
+        </div>
+        
+        {{#if nextBookingPrompt}}
+        <p>Ready to book your next appointment? Click below to schedule:</p>
+        <a href="{{bookingUrl}}" class="cta-button">Book Again</a>
+        {{/if}}
+    </div>
+    
+    <div class="footer">
+        <p>This is an automated message. Please do not reply to this email.</p>
+        <p>&copy; 2025 Eventide. All rights reserved.</p>
+    </div>
+</body>
+</html>

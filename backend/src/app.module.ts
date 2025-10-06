@@ -17,6 +17,7 @@ import { WebsocketsModule } from './core/websockets';
 import { BrowserLogsModule } from './modules/browser-logs/browser-logs.module';
 import { LogManagerService } from './core/log-manager/log-manager.service';
 import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
+import { BookingModule } from './modules/booking/booking.module';
 
 @Module({
   imports: [
@@ -70,7 +71,6 @@ import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
     // FeatureFlagsModule,
     // I18nConfigModule.forRoot(),
     // DeprecationModule,
-    // BookingsModule,
     UsersModule,
     // DashboardModule,
     // AiModule,
@@ -81,6 +81,7 @@ import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
     // ServicesModule,
     // FrontendLogsModule,
     AuthModule,
+    BookingModule,
     BrowserLogsModule,
     BackendLogsModule,
   ],

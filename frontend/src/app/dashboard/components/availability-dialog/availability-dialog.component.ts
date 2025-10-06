@@ -170,11 +170,10 @@ export class AvailabilityDialogComponent implements OnInit {
         }
     }
 
-    onStartTimeChange(event: any): void {
-        const timeValue = event.target.value;
+    onStartTimeChange(timeValue: string): void {
         if (timeValue) {
             const [hours, minutes] = timeValue.split(':').map(Number);
-            const newDate = new Date(this.availability.startTime);
+            const newDate = new Date(this.availability.startTime || new Date());
             newDate.setHours(hours, minutes, 0, 0);
             this.availability.startTime = newDate;
             this.onDurationChange();

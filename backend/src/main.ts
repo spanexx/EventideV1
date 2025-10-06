@@ -46,6 +46,12 @@ async function bootstrap() {
     // Initialize core functionality
     console.log('Initializing core functionality...');
     app.use(helmet());
+    app.useGlobalPipes(new ValidationPipe({
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true
+      }
+    }));
     app.enableCors({
       origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true,
       credentials: true,

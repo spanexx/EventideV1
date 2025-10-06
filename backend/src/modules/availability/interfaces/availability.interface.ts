@@ -1,5 +1,5 @@
 import { Document, Types } from 'mongoose';
-import { AvailabilityType, DayOfWeek } from '../availability.schema';
+import { AvailabilityType, DayOfWeek, AvailabilityStatus } from '../availability.schema';
 
 export interface IAvailability extends Document {
   _id: Types.ObjectId;
@@ -12,6 +12,9 @@ export interface IAvailability extends Document {
   duration: number;
   isBooked: boolean;
   bookingId?: string;
+  maxBookings: number;
+  status: AvailabilityStatus;
+  cancellationReason?: string;
   createdAt: Date;
   updatedAt: Date;
 }

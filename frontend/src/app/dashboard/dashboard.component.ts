@@ -3,7 +3,7 @@ import { RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Store } from '@ngrx/store';
 import { Subject } from 'rxjs';
 import { takeUntil, filter } from 'rxjs/operators';
-import * as DashboardActions from './store/actions/dashboard.actions';
+import * as DashboardActions from './store-dashboard/actions/dashboard.actions';
 import * as AuthSelectors from '../auth/store/auth';
 import { DashboardSocketService } from './services/dashboard-socket.service';
 import { DashboardHeaderComponent } from './components/header/header.component';

@@ -1,0 +1,154 @@
+<div class="cancellation-container">
+  <div class="cancellation-header">
+    <h1>Cancel Booking</h1>
+    <p class="subtitle">Secure cancellation process</p>
+  </div>
+
+  <!-- Success Message -->
+  <mat-card *ngIf="success" class="success-card">
+    <mat-card-content>
+      <div class="success-content">
+        <mat-icon color="primary">check_circle</mat-icon>
+        <h2>Booking Cancelled Successfully</h2>
+        <p>Your booking has been cancelled. A confirmation email has been sent to your email address.</p>
+        <p class="redirect-message">Redirecting you back...</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Cancellation Form -->
+  <mat-card *ngIf="!success" class="cancellation-card">
+    <mat-card-content>
+      <mat-stepper [linear]="true" #stepper>
+        <!-- Step 1: Email Verification -->
+        <mat-step [stepControl]="emailFormGroup">
+          <form [formGroup]="emailFormGroup">
+            <ng-template matStepLabel>Verify Email</ng-template>
+            
+            <div class="step-content">
+              <mat-icon class="step-icon">email</mat-icon>
+              <h3>Enter Your Email</h3>
+              <p>We'll send a verification code to confirm the cancellation.</p>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Email Address</mat-label>
+                <input 
+                  matInput 
+                  type="email"
+                  formControlName="email"
+                  placeholder="your@email.com">
+                <mat-icon matPrefix>email</mat-icon>
+                <mat-error *ngIf="emailFormGroup.get('email')?.hasError('required')">
+                  Email is required
+                </mat-error>
+                <mat-error *ngIf="emailFormGroup.get('email')?.hasError('email')">
+                  Please enter a valid email
+                </mat-error>
+              </mat-form-field>
+
+              <!-- Error Message -->
+              <div *ngIf="error && !codeSent" class="error-message">
+                <mat-icon>error</mat-icon>
+                <span>{{ error }}</span>
+              </div>
+
+              <!-- Success Message -->
+              <div *ngIf="codeSent" class="info-message">
+                <mat-icon>check_circle</mat-icon>
+                <span>Verification code sent! Please check your email.</span>
+              </div>
+
+              <div class="button-group">
+                <button 
+                  mat-button 
+                  (click)="cancelProcess()"
+                  [disabled]="loading">
+                  Cancel
+                </button>
+                <button 
+                  mat-raised-button 
+                  color="primary"
+                  (click)="requestCancellation()"
+                  [disabled]="emailFormGroup.invalid || loading || codeSent"
+                  matStepperNext>
+                  <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+                  <span *ngIf="!loading">Send Code</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </mat-step>
+
+        <!-- Step 2: Code Verification -->
+        <mat-step [stepControl]="codeFormGroup">
+          <form [formGroup]="codeFormGroup">
+            <ng-template matStepLabel>Enter Code</ng-template>
+            
+            <div class="step-content">
+              <mat-icon class="step-icon">lock</mat-icon>
+              <h3>Enter Verification Code</h3>
+              <p>Enter the 6-digit code sent to <strong>{{ emailFormGroup.value.email }}</strong></p>
+
+              <mat-form-field appearance="outline" class="full-width code-input">
+                <mat-label>Verification Code</mat-label>
+                <input 
+                  matInput 
+                  type="text"
+                  formControlName="code"
+                  placeholder="000000"
+                  maxlength="6">
+                <mat-icon matPrefix>vpn_key</mat-icon>
+                <mat-error *ngIf="codeFormGroup.get('code')?.hasError('required')">
+                  Code is required
+                </mat-error>
+                <mat-error *ngIf="codeFormGroup.get('code')?.hasError('pattern')">
+                  Code must be 6 digits
+                </mat-error>
+              </mat-form-field>
+
+              <!-- Error Message -->
+              <div *ngIf="error" class="error-message">
+                <mat-icon>error</mat-icon>
+                <span>{{ error }}</span>
+              </div>
+
+              <div class="resend-section">
+                <p>Didn't receive the code?</p>
+                <button 
+                  mat-button 
+                  color="primary"
+                  (click)="resendCode()"
+                  [disabled]="loading">
+                  Resend Code
+                </button>
+              </div>
+
+              <div class="button-group">
+                <button 
+                  mat-button 
+                  matStepperPrevious
+                  [disabled]="loading">
+                  Back
+                </button>
+                <button 
+                  mat-raised-button 
+                  color="warn"
+                  (click)="verifyCancellation()"
+                  [disabled]="codeFormGroup.invalid || loading">
+                  <mat-spinner *ngIf="loading" diameter="20"></mat-spinner>
+                  <span *ngIf="!loading">Confirm Cancellation</span>
+                </button>
+              </div>
+            </div>
+          </form>
+        </mat-step>
+      </mat-stepper>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Security Notice -->
+  <div class="security-notice">
+    <mat-icon>security</mat-icon>
+    <p>This is a secure cancellation process. The verification code will expire in 15 minutes.</p>
+  </div>
+</div>

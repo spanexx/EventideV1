@@ -39,6 +39,9 @@ export class User {
   @Prop({ default: true })
   isActive: boolean = true;
 
+  @Prop({ default: false })
+  isEmailVerified: boolean = false;
+
   // Google OAuth fields
   @Prop({ type: String, unique: true, sparse: true })
   googleId?: string;
@@ -51,6 +54,38 @@ export class User {
 
   @Prop({ type: String })
   picture?: string;
+
+  // Business/Provider fields
+  @Prop({ type: String })
+  businessName?: string;
+
+  @Prop({ type: String })
+  bio?: string;
+
+  @Prop({ type: String })
+  location?: string;
+
+  @Prop({ type: String })
+  contactPhone?: string;
+
+  @Prop({ type: [String], default: [] })
+  services?: string[];
+
+  @Prop({ type: [Number], default: [30, 60, 90] })
+  availableDurations?: number[];
+
+  @Prop({ type: Number, default: 0 })
+  rating?: number;
+
+  @Prop({ type: Number, default: 0 })
+  reviewCount?: number;
+
+  // Privacy and access control fields
+  @Prop({ type: String })
+  currentAccessCode?: string;
+
+  @Prop({ type: Date })
+  accessCodeGeneratedAt?: Date;
 
   // Password reset fields
   @Prop({ type: String, required: false })

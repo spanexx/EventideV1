@@ -1,50 +1,192 @@
 import { Injectable } from '@angular/core';
 import { ExtractedEntities } from './ai-chat-interfaces';
 
+export type { ExtractedEntities };
+export type { DurationEntity, TimeInfo, TimeRangeEntity, WeekdayPatternEntity, SchedulePatternAnalysis };
+
+interface DurationEntity {
+  duration: number;
+}
+
+interface TimeInfo {
+  times?: string[];
+  startTime?: string;
+  endTime?: string;
+}
+
+interface TimeRangeEntity {
+  startTime: string;
+  endTime: string;
+}
+
+interface WeekdayPatternEntity {
+  pattern: 'daily' | 'weekly' | 'range';
+  daysOfWeek: number[];
+}
+
+interface SchedulePatternAnalysis {
+  period: string;
+  frequency: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AIChatEntityExtractionService {
-
-  extractAdvancedEntities(message: string): ExtractedEntities {
-    const entities: ExtractedEntities = {};
-    
-    // Enhanced date extraction with natural language processing
-    entities.dates = this.extractDatesNLP(message);
-    entities.times = this.extractTimesNLP(message);
-    entities.duration = this.extractDurationNLP(message);
-    entities.context = this.extractContextNLP(message);
-    
-    return entities;
+  extractEntities(message: string): ExtractedEntities {
+    return {
+      dates: this.extractDatesNLP(message),
+      times: this.extractTimesNLP(message),
+      duration: this.extractDurationNLP(message),
+      context: this.extractContextNLP(message),
+      ...(this.extractWeekdayPatternNLP(message) || {})
+    };
   }
 
-  private extractDatesNLP(message: string): any {
-    const dateInfo: any = {};
+  extractAdvancedEntities(message: string): ExtractedEntities {
+    // Combine basic and advanced extraction
+    const basicEntities = this.extractEntities(message);
+    const advancedEntities = this.extractAdvancedPatterns(message);
     
-    // Comprehensive date patterns
+    return {
+      ...basicEntities,
+      ...advancedEntities
+    };
+  }
+
+  private extractAdvancedPatterns(message: string): Partial<ExtractedEntities> {
+    return {};
+  }
+
+
+  private extractDurationNLP(message: string): DurationEntity {
+    const durationPatterns = [
+      /\b(\d+)\s*hours?\b/gi,
+      /\b(\d+)\s*minutes?\b/gi,
+      /\b(\d+)\s*hrs?\b/gi,
+      /\b(\d+)\s*mins?\b/gi
+    ];
+    
+    for (const pattern of durationPatterns) {
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const value = parseInt(match[1]);
+        if (pattern.source.includes('hour') || pattern.source.includes('hr')) {
+          return { duration: value * 60 }; // Convert to minutes
+        } else {
+          return { duration: value };
+        }
+      }
+    }
+    
+    return { duration: 60 }; // Default 1-hour duration
+  }
+
+  private extractWeekdayPatternNLP(message: string): WeekdayPatternEntity | null {
+    const weekdayPatterns = [
+      {
+        regex: /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:through|to|until|and)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i,
+        type: 'range'
+      },
+      {
+        regex: /\b(?:every|each)\s+(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s*,\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday))*\b/i,
+        type: 'list'
+      },
+      {
+        regex: /\b(?:weekdays|monday\s+(?:through|to|until)\s+friday)\b/i,
+        type: 'weekdays'
+      },
+      {
+        regex: /\b(?:weekends|saturday\s+(?:and|through|to|until)\s+sunday)\b/i,
+        type: 'weekends'
+      }
+    ];
+
+    const dayMap: Record<string, number> = {
+      'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,
+      'thursday': 4, 'friday': 5, 'saturday': 6
+    };
+
+    for (const { regex, type } of weekdayPatterns) {
+      const match = message.match(regex);
+      if (match) {
+        let daysOfWeek: number[] = [];
+
+        switch (type) {
+          case 'range': {
+            const startDay = dayMap[match[1].toLowerCase()];
+            const endDay = dayMap[match[2].toLowerCase()];
+            const dayCount = (endDay - startDay + 7) % 7 + 1;
+            for (let i = 0; i < dayCount; i++) {
+              daysOfWeek.push((startDay + i) % 7);
+            }
+            break;
+          }
+          case 'list': {
+            const days = match[0].toLowerCase().match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/g);
+            if (days) {
+              daysOfWeek = days.map(day => dayMap[day]);
+            }
+            break;
+          }
+          case 'weekdays':
+            daysOfWeek = [1, 2, 3, 4, 5]; // Monday to Friday
+            break;
+          case 'weekends':
+            daysOfWeek = [6, 0]; // Saturday and Sunday
+            break;
+        }
+
+        return {
+          pattern: 'weekly',
+          daysOfWeek: [...new Set(daysOfWeek)].sort((a, b) => a - b)
+        };
+      }
+    }
+
+    return null;
+  }
+
+  private extractTimesNLP(message: string): TimeInfo {
+    const timeInfo: TimeInfo = {};
+    
+    // Time patterns
+    const timePatterns = [
+      /\b(\d{1,2}):(\d{2})\s*(am|pm)?\b/gi,
+      /\b(\d{1,2})\s*(am|pm)\b/gi,
+      /\b(morning|afternoon|evening|night)\b/gi,
+      /\bat\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/gi
+    ];
+
+    for (const pattern of timePatterns) {
+      const matches = Array.from(message.matchAll(pattern));
+      if (matches.length > 0) {
+        timeInfo.times = matches.map(match => this.normalizeTimeNLP(match[0]));
+      }
+    }
+    
+    return timeInfo;
+  }
+
+  private extractDatesNLP(message: string): ExtractedEntities['dates'] {
+    const dateInfo: ExtractedEntities['dates'] = {};
+    
+    // Date patterns
     const patterns = {
-      // Relative dates
       today: /\b(today|now)\b/i,
       tomorrow: /\btomorrow\b/i,
       yesterday: /\byesterday\b/i,
-      
-      // Week references
       thisWeek: /\bthis week\b/i,
       nextWeek: /\bnext week\b/i,
       lastWeek: /\blast week\b/i,
-      
-      // Day names with modifiers
       dayNames: /\b(this|next|last)?\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/gi,
-      
-      // Explicit dates
-      dateFormat1: /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g, // MM/DD or MM/DD/YYYY
-      dateFormat2: /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g, // YYYY-MM-DD
-      dateFormat3: /\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b/g, // DD-MM-YYYY
+      dateFormat1: /\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/g,
+      dateFormat2: /\b(\d{4})-(\d{1,2})-(\d{1,2})\b/g,
+      dateFormat3: /\b(\d{1,2})-(\d{1,2})-(\d{2,4})\b/g,
     };
     
     const today = new Date();
     
-    // Process relative dates
     if (patterns.today.test(message)) {
       dateInfo.startDate = today.toISOString().split('T')[0];
     }
@@ -73,127 +215,11 @@ export class AIChatEntityExtractionService {
       dateInfo.endDate = nextWeekEnd.toISOString().split('T')[0];
     }
     
-    // Process day names
-    const dayMatches = message.match(patterns.dayNames);
-    if (dayMatches) {
-      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-      
-      for (const match of dayMatches) {
-        const lowerMatch = match.toLowerCase();
-        const dayIndex = dayNames.findIndex(day => lowerMatch.includes(day));
-        
-        if (dayIndex !== -1) {
-          const currentDay = today.getDay();
-          let daysToAdd;
-          
-          if (lowerMatch.includes('next')) {
-            daysToAdd = (dayIndex - currentDay + 7) % 7;
-            if (daysToAdd === 0) daysToAdd = 7;
-          } else if (lowerMatch.includes('last')) {
-            daysToAdd = (dayIndex - currentDay - 7) % 7;
-            if (daysToAdd === 0) daysToAdd = -7;
-          } else {
-            // 'this' or no modifier - next occurrence
-            daysToAdd = (dayIndex - currentDay + 7) % 7;
-            if (daysToAdd === 0 && !lowerMatch.includes('this')) daysToAdd = 7;
-          }
-          
-          const targetDate = new Date(today);
-          targetDate.setDate(today.getDate() + daysToAdd);
-          dateInfo.startDate = targetDate.toISOString().split('T')[0];
-        }
-      }
-    }
-    
-    // Process explicit date formats
-    const dateFormats = [
-      { pattern: patterns.dateFormat1, format: 'MM/DD/YYYY' },
-      { pattern: patterns.dateFormat2, format: 'YYYY-MM-DD' },
-      { pattern: patterns.dateFormat3, format: 'DD-MM-YYYY' }
-    ];
-    
-    for (const { pattern, format } of dateFormats) {
-      const matches = Array.from(message.matchAll(pattern));
-      if (matches.length > 0) {
-        const match = matches[0];
-        let year, month, day;
-        
-        if (format === 'MM/DD/YYYY') {
-          month = match[1];
-          day = match[2];
-          year = match[3] || today.getFullYear().toString();
-        } else if (format === 'YYYY-MM-DD') {
-          year = match[1];
-          month = match[2];
-          day = match[3];
-        } else if (format === 'DD-MM-YYYY') {
-          day = match[1];
-          month = match[2];
-          year = match[3];
-        }
-        
-        if (year && month && day) {
-          // Ensure 4-digit year
-          if (year.length === 2) {
-            year = '20' + year;
-          }
-          
-          const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-          dateInfo.startDate = formattedDate;
-        }
-      }
-    }
-    
     return dateInfo;
   }
 
-  private extractTimesNLP(message: string): any {
-    const timeInfo: any = {};
-    
-    // Time patterns
-    const timePatterns = [
-      /\b(\d{1,2}):(\d{2})\s*(am|pm)?\b/gi,
-      /\b(\d{1,2})\s*(am|pm)\b/gi,
-      /\b(morning|afternoon|evening|night)\b/gi,
-      /\bat\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/gi
-    ];
-    
-    for (const pattern of timePatterns) {
-      const matches = Array.from(message.matchAll(pattern));
-      if (matches.length > 0) {
-        // Extract and normalize times
-        timeInfo.times = matches.map(match => this.normalizeTimeNLP(match[0]));
-      }
-    }
-    
-    return timeInfo;
-  }
-
-  private extractDurationNLP(message: string): any {
-    const durationPatterns = [
-      /\b(\d+)\s*hours?\b/gi,
-      /\b(\d+)\s*minutes?\b/gi,
-      /\b(\d+)\s*hrs?\b/gi,
-      /\b(\d+)\s*mins?\b/gi
-    ];
-    
-    for (const pattern of durationPatterns) {
-      const match = message.match(pattern);
-      if (match) {
-        const value = parseInt(match[1]);
-        if (pattern.source.includes('hour') || pattern.source.includes('hr')) {
-          return { duration: value * 60 }; // Convert to minutes
-        } else {
-          return { duration: value };
-        }
-      }
-    }
-    
-    return {};
-  }
-
-  private extractContextNLP(message: string): any {
-    const context: any = {};
+  private extractContextNLP(message: string): Required<ExtractedEntities>['context'] {
+    const context: Required<ExtractedEntities>['context'] = {};
     
     // Status filters
     if (/\b(available|free|open)\b/i.test(message)) {
@@ -204,14 +230,53 @@ export class AIChatEntityExtractionService {
     
     // Urgency/priority
     if (/\b(urgent|asap|immediately|now)\b/i.test(message)) {
-      context.priority = 'high';
+      context['priority'] = 'high';
     }
     
     return context;
   }
 
+  private analyzeTimePattern(message: string): SchedulePatternAnalysis | null {
+    const periodPatterns = {
+      morning: /\b(morning|early|dawn|breakfast)\b/i,
+      afternoon: /\b(afternoon|lunch|midday)\b/i,
+      evening: /\b(evening|night|dinner|late)\b/i
+    };
+
+    const frequencyPatterns = {
+      daily: /\b(daily|everyday|each day)\b/i,
+      weekly: /\b(weekly|each week|once a week)\b/i,
+      monthly: /\b(monthly|each month|once a month)\b/i,
+      biweekly: /\b(biweekly|every other week|twice a month)\b/i
+    };
+
+    let period = null;
+    for (const [key, pattern] of Object.entries(periodPatterns)) {
+      if (pattern.test(message)) {
+        period = key;
+        break;
+      }
+    }
+
+    let frequency = null;
+    for (const [key, pattern] of Object.entries(frequencyPatterns)) {
+      if (pattern.test(message)) {
+        frequency = key;
+        break;
+      }
+    }
+
+    if (period || frequency) {
+      return {
+        period: period || 'any',
+        frequency: frequency || 'any'
+      };
+    }
+
+    return null;
+  }
+
   private normalizeTimeNLP(timeStr: string): string {
-    // Enhanced time normalization
     const timeMatch = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
     if (!timeMatch) return timeStr;
     
@@ -228,64 +293,94 @@ export class AIChatEntityExtractionService {
     return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   }
 
-  buildEnhancedParameters(entities: ExtractedEntities, action: string, originalMessage: string): any {
-    const params: any = {};
+  private shouldIncludeMetrics(message: string): boolean {
+    return /\b(analyze|analysis|metrics|statistics|stats|insights|patterns|trends|utilization|performance)\b/i.test(message);
+  }
+
+  private shouldAutoConfirm(message: string): boolean {
+    return /\b(please|just do it|go ahead|confirm|yes|sure)\b/i.test(message);
+  }
+
+  private shouldOnlyDeleteUnbooked(message: string): boolean {
+    return /\b(unbooked|empty|unused|free|available)\b/i.test(message);
+  }
+
+  private shouldNotifyChanges(message: string): boolean {
+    return /\b(notify|inform|tell|alert|email|message)\b/i.test(message);
+  }
+
+  buildEnhancedParameters(entities: ExtractedEntities, action: string, originalMessage: string): Record<string, unknown> {
+    const params: Record<string, unknown> = {};
     
-    // Build parameters based on extracted entities with natural language understanding
+    // Add analysis flags for schedule-related queries
+    const isAnalysisQuery = /\b(analyze|pattern|insight|statistic|trend)\b/i.test(originalMessage);
+    const isOptimizeQuery = /\b(optimize|improve|suggest|recommend)\b/i.test(originalMessage);
+    
+    // Build parameters based on extracted entities
     if (entities.dates) {
       Object.assign(params, entities.dates);
     }
-    
-    if (entities.times && entities.times.times) {
-      const times = entities.times.times;
+
+    const timeInfo = entities.times;
+    if (timeInfo?.times) {
+      const times = timeInfo.times;
       if (times.length >= 2) {
-        params.startTime = times[0];
-        params.endTime = times[1];
+        params['startTime'] = times[0];
+        params['endTime'] = times[1];
       } else if (times.length === 1) {
-        params.startTime = times[0];
+        params['startTime'] = times[0];
         // Intelligent duration inference
         const inferredDuration = this.inferDurationFromContext(originalMessage);
         const start = new Date(`2024-01-01T${times[0]}`);
         start.setMinutes(start.getMinutes() + inferredDuration);
-        params.endTime = start.toTimeString().slice(0, 5);
+        params['endTime'] = start.toTimeString().slice(0, 5);
       }
     }
     
     if (entities.duration && entities.duration.duration) {
-      params.duration = entities.duration.duration;
+      params['duration'] = entities.duration.duration;
     }
     
     if (entities.context) {
       Object.assign(params, entities.context);
     }
+
+    // Add pattern analysis if requested
+    const timePattern = this.analyzeTimePattern(originalMessage);
+    if (timePattern) {
+      params['preferredPeriod'] = timePattern.period;
+      params['preferredFrequency'] = timePattern.frequency;
+    }
     
     // Enhanced action-specific parameter building
     switch (action) {
       case 'get_availability_data':
-        params.includeAnalysis = true;
-        params.includeMetrics = this.shouldIncludeMetrics(originalMessage);
+        params['includeAnalysis'] = true;
+        params['includeMetrics'] = this.shouldIncludeMetrics(originalMessage) || isAnalysisQuery;
+        params['includeOptimization'] = isOptimizeQuery;
+        params['includePatterns'] = isAnalysisQuery;
         break;
         
       case 'create_availability_slot':
-        if (!params.duration && !params.endTime) {
-          params.duration = this.inferDurationFromContext(originalMessage);
+        if (!params['duration'] && !params['endTime']) {
+          params['duration'] = this.inferDurationFromContext(originalMessage);
         }
-        params.autoConfirm = this.shouldAutoConfirm(originalMessage);
+        params['autoConfirm'] = this.shouldAutoConfirm(originalMessage);
         break;
         
       case 'create_bulk_availability':
-        params.pattern = this.inferRecurrencePattern(originalMessage);
-        params.count = this.inferSlotCount(originalMessage);
+        params['pattern'] = this.inferRecurrencePattern(originalMessage);
+        params['count'] = this.inferSlotCount(originalMessage);
         break;
         
       case 'delete_availability_slot':
-        params.confirmDelete = !this.shouldAutoConfirm(originalMessage);
-        params.onlyUnbooked = this.shouldOnlyDeleteUnbooked(originalMessage);
+        params['confirmDelete'] = !this.shouldAutoConfirm(originalMessage);
+        params['onlyUnbooked'] = this.shouldOnlyDeleteUnbooked(originalMessage);
         break;
         
       case 'update_availability_slot':
-        params.preserveBookings = true;
-        params.notifyChanges = this.shouldNotifyChanges(originalMessage);
+        params['preserveBookings'] = true;
+        params['notifyChanges'] = this.shouldNotifyChanges(originalMessage);
         break;
     }
     
@@ -321,22 +416,6 @@ export class AIChatEntityExtractionService {
     }
     
     return 60; // Default 1 hour
-  }
-
-  private shouldIncludeMetrics(message: string): boolean {
-    return /\b(analyze|analysis|metrics|statistics|stats|insights|patterns|trends|utilization|performance)\b/i.test(message);
-  }
-
-  private shouldAutoConfirm(message: string): boolean {
-    return /\b(please|just do it|go ahead|confirm|yes|sure)\b/i.test(message);
-  }
-
-  private shouldOnlyDeleteUnbooked(message: string): boolean {
-    return /\b(unbooked|empty|unused|free|available)\b/i.test(message);
-  }
-
-  private shouldNotifyChanges(message: string): boolean {
-    return /\b(notify|inform|tell|alert|email|message)\b/i.test(message);
   }
 
   private inferRecurrencePattern(message: string): string {

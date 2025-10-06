@@ -1,0 +1,284 @@
+<div class="home-container">
+  <!-- Elegant Hero Section with Animated Background -->
+  <section class="hero-section">
+    <div class="hero-background">
+      <div class="animated-circles">
+        <div class="circle circle-1"></div>
+        <div class="circle circle-2"></div>
+        <div class="circle circle-3"></div>
+      </div>
+    </div>
+
+    <!-- Top Navigation -->
+    <div class="hero-nav">
+      <div class="logo-container">
+        <img src="/logo.png" alt="Eventide" class="logo">
+      </div>
+      
+      <div class="auth-buttons">
+        <button mat-button class="track-booking-btn" (click)="navigateToBookingLookup()">
+          <mat-icon>search</mat-icon>
+          Track Booking
+        </button>
+        <button mat-button class="login-btn" (click)="navigateToLogin()">
+          <mat-icon>login</mat-icon>
+          Login
+        </button>
+        <button mat-raised-button color="primary" class="signup-btn" (click)="navigateToSignup()">
+          <mat-icon>person_add</mat-icon>
+          Sign Up
+        </button>
+      </div>
+    </div>
+    
+    <div class="hero-content">
+      <div class="hero-badge">
+        <mat-icon>verified</mat-icon>
+        <span>Trusted by 10,000+ Users</span>
+      </div>
+      
+      <h1 class="hero-title">
+        Your Gateway to
+        <span class="gradient-text">Seamless Appointments</span>
+      </h1>
+      
+      <p class="hero-subtitle">
+        Experience the future of booking. Connect with verified providers,
+        schedule instantly, and manage everything in one elegant platform.
+      </p>
+      
+      <div class="search-container">
+        <div class="search-wrapper">
+          <mat-icon class="search-icon">search</mat-icon>
+          <input 
+            type="text"
+            class="search-input"
+            placeholder="Search providers, services, or locations..."
+            [(ngModel)]="searchQuery"
+            (keyup.enter)="search()">
+          <button class="search-button" (click)="search()">
+            Search
+            <mat-icon>arrow_forward</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="hero-stats">
+        <div class="stat-item">
+          <div class="stat-number">{{ animatedStats.providers }}</div>
+          <div class="stat-label">Active Providers</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-number">{{ animatedStats.bookings }}</div>
+          <div class="stat-label">Bookings Made</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-number">{{ animatedStats.satisfaction }}%</div>
+          <div class="stat-label">Satisfaction Rate</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Live Statistics Dashboard -->
+  <section class="stats-dashboard">
+    <div class="section-header">
+      <h2 class="section-title">Platform Insights</h2>
+      <p class="section-subtitle">Real-time data from our growing community</p>
+    </div>
+
+    <div class="stats-grid">
+      <mat-card class="stat-card" *ngFor="let stat of statistics">
+        <div class="stat-card-header">
+          <div class="stat-icon" [style.background]="stat.color">
+            <mat-icon>{{ stat.icon }}</mat-icon>
+          </div>
+          <div class="stat-trend">
+            <mat-icon class="trend-icon">trending_up</mat-icon>
+            <span>+12%</span>
+          </div>
+        </div>
+        
+        <div class="stat-value">{{ stat.value.toLocaleString() }}</div>
+        <div class="stat-label">{{ stat.label }}</div>
+        
+        <mat-progress-bar 
+          mode="determinate" 
+          [value]="(stat.value / stat.target) * 100"
+          [color]="'primary'">
+        </mat-progress-bar>
+        
+        <div class="stat-footer">
+          <span class="stat-target">Target: {{ stat.target.toLocaleString() }}</span>
+        </div>
+      </mat-card>
+    </div>
+  </section>
+
+  <!-- Elegant How It Works -->
+  <section class="how-it-works-section">
+    <div class="section-header">
+      <h2 class="section-title">Simple. Elegant. Effective.</h2>
+      <p class="section-subtitle">Your journey to the perfect appointment in three steps</p>
+    </div>
+
+    <div class="timeline-container">
+      <div class="timeline-line"></div>
+      
+      <div class="timeline-step" *ngFor="let step of steps; let i = index">
+        <div class="step-number">{{ i + 1 }}</div>
+        <div class="step-content">
+          <div class="step-icon-wrapper">
+            <mat-icon class="step-icon">{{ step.icon }}</mat-icon>
+          </div>
+          <h3 class="step-title">{{ step.title }}</h3>
+          <p class="step-description">{{ step.description }}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Featured Providers with Enhanced Design -->
+  <section class="featured-section">
+    <div class="section-header">
+      <h2 class="section-title">Meet Our Top Providers</h2>
+      <p class="section-subtitle">Handpicked professionals ready to serve you</p>
+    </div>
+
+    <div *ngIf="loadingProviders" class="loading-state">
+      <mat-spinner diameter="50"></mat-spinner>
+      <p>Discovering amazing providers...</p>
+    </div>
+
+    <div *ngIf="!loadingProviders && featuredProviders.length > 0" class="providers-showcase">
+      <div class="provider-card-enhanced" *ngFor="let provider of featuredProviders" (click)="viewProvider(provider.id)">
+        <div class="provider-image-container">
+          <img *ngIf="provider.picture" [src]="provider.picture" [alt]="getProviderName(provider)" class="provider-image">
+          <div *ngIf="!provider.picture" class="provider-image-placeholder">
+            <mat-icon>person</mat-icon>
+          </div>
+          <div class="provider-badge">
+            <mat-icon>verified</mat-icon>
+          </div>
+        </div>
+
+        <div class="provider-details">
+          <h3 class="provider-name">{{ getProviderName(provider) }}</h3>
+          
+          <div class="provider-meta">
+            <div class="provider-rating" *ngIf="provider.rating && provider.rating > 0">
+              <mat-icon class="star-icon">star</mat-icon>
+              <span class="rating-value">{{ provider.rating }}</span>
+              <span class="rating-count">({{ provider.reviewCount }})</span>
+            </div>
+            
+            <div class="provider-location" *ngIf="provider.location">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ provider.location }}</span>
+            </div>
+          </div>
+
+          <p class="provider-bio" *ngIf="provider.bio">
+            {{ provider.bio | slice:0:120 }}{{ provider.bio && provider.bio.length > 120 ? '...' : '' }}
+          </p>
+
+          <div class="provider-services" *ngIf="provider.services && provider.services.length > 0">
+            <mat-chip *ngFor="let service of provider.services.slice(0, 3)">
+              {{ service }}
+            </mat-chip>
+          </div>
+
+          <div class="provider-actions">
+            <button mat-raised-button color="primary" class="book-btn" (click)="bookProvider($event, provider.id)">
+              <mat-icon>event</mat-icon>
+              Book Now
+            </button>
+            <button mat-stroked-button class="view-btn">
+              View Profile
+              <mat-icon>arrow_forward</mat-icon>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="view-all-section">
+      <button mat-raised-button color="accent" class="view-all-btn" (click)="browseProviders()">
+        Explore All Providers
+        <mat-icon>explore</mat-icon>
+      </button>
+    </div>
+  </section>
+
+  <!-- Trust Indicators -->
+  <section class="trust-section">
+    <div class="trust-grid">
+      <div class="trust-item">
+        <div class="trust-icon">
+          <mat-icon>security</mat-icon>
+        </div>
+        <h3>Secure & Private</h3>
+        <p>Your data is encrypted and protected with industry-leading security</p>
+      </div>
+
+      <div class="trust-item">
+        <div class="trust-icon">
+          <mat-icon>verified_user</mat-icon>
+        </div>
+        <h3>Verified Providers</h3>
+        <p>Every provider is thoroughly vetted and verified before joining</p>
+      </div>
+
+      <div class="trust-item">
+        <div class="trust-icon">
+          <mat-icon>support_agent</mat-icon>
+        </div>
+        <h3>24/7 Support</h3>
+        <p>Our dedicated team is always here to help you</p>
+      </div>
+
+      <div class="trust-item">
+        <div class="trust-icon">
+          <mat-icon>thumb_up</mat-icon>
+        </div>
+        <h3>Satisfaction Guaranteed</h3>
+        <p>98% of our users rate their experience as excellent</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA with Elegant Design -->
+  <section class="final-cta">
+    <div class="cta-content">
+      <h2 class="cta-title">Ready to Experience Excellence?</h2>
+      <p class="cta-subtitle">Join thousands of satisfied users who trust us with their appointments</p>
+      
+      <div class="cta-buttons">
+        <button mat-raised-button color="primary" class="cta-primary" (click)="browseProviders()">
+          Get Started Now
+          <mat-icon>arrow_forward</mat-icon>
+        </button>
+        <button mat-stroked-button class="cta-secondary" (click)="scrollToHowItWorks()">
+          Learn More
+        </button>
+      </div>
+
+      <div class="cta-trust-badges">
+        <div class="trust-badge">
+          <mat-icon>verified</mat-icon>
+          <span>Verified Secure</span>
+        </div>
+        <div class="trust-badge">
+          <mat-icon>lock</mat-icon>
+          <span>SSL Encrypted</span>
+        </div>
+        <div class="trust-badge">
+          <mat-icon>star</mat-icon>
+          <span>4.9/5 Rating</span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

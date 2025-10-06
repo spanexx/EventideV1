@@ -4,6 +4,7 @@ import { User, UserSchema } from './user.schema';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
 import { PublicUsersController } from './public-users.controller';
+import { AccessCodeService } from './services/access-code.service';
 import { EmailModule } from '../../core/email/email.module';
 
 @Module({
@@ -11,8 +12,8 @@ import { EmailModule } from '../../core/email/email.module';
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
     EmailModule,
   ],
-  providers: [UsersService],
+  providers: [UsersService, AccessCodeService],
   controllers: [UsersController, PublicUsersController],
-  exports: [UsersService], // Export for use in AuthModule
+  exports: [UsersService, AccessCodeService], // Export for use in other modules
 })
 export class UsersModule {}

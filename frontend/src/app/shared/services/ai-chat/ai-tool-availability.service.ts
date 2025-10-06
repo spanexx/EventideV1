@@ -61,24 +61,53 @@ export class AIToolAvailabilityService {
   }
 
   async createBulkAvailability(params: any, userId: string): Promise<AIToolResponse> {
-    const { pattern, startDate, endDate, startTime, endTime, duration, quantity, daysOfWeek, breakTime } = params;
+    const { pattern, startDate, endDate, startTime, endTime, duration, daysOfWeek, breakTime } = params;
+    
+    // Validate input for weekly pattern
+    if (pattern === 'weekly' && (!daysOfWeek || daysOfWeek.length === 0)) {
+      return {
+        success: false,
+        error: 'Missing daysOfWeek',
+        message: 'Weekly recurring slots require specifying which days of the week.'
+      };
+    }
+
+    // Convert day names to numbers if needed
+    const dayNumbers = daysOfWeek?.map((day: string | number) => {
+      if (typeof day === 'number') return day;
+      const dayMap: Record<string, number> = {
+        'sunday': 0, 'monday': 1, 'tuesday': 2, 'wednesday': 3,
+        'thursday': 4, 'friday': 5, 'saturday': 6
+      };
+      return dayMap[day.toLowerCase()];
+    });
     
     const bulkData = {
       providerId: userId,
       type: (pattern === 'weekly' ? 'recurring' : 'one_off') as 'one_off' | 'recurring',
       startDate: new Date(startDate),
       endDate: endDate ? new Date(endDate) : undefined,
-      slots: this.generateBulkSlots(params),
+      slots: this.generateBulkSlots({ ...params, daysOfWeek: dayNumbers }),
       skipConflicts: true
     };
 
     try {
       const result = await this.availabilityService.createBulkAIOptimized(bulkData).toPromise();
       
+      // Update store
+      result!.data.forEach(slot => {
+        this.store.dispatch(AvailabilityActions.createAvailabilitySuccess({ availability: slot }));
+      });
+      
+      const weekDayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const dayList = Array.isArray(dayNumbers) ? dayNumbers.map((d: number) => weekDayNames[d]).join(', ') : '';
+
       return {
         success: true,
         data: result!.data,
-        message: `Successfully created ${result!.data.length} availability slots using ${pattern} pattern. Efficiency score: ${result!.aiAnalysis.efficiencyScore}%`
+        message: pattern === 'weekly' 
+          ? `Successfully created recurring availability slots for ${dayList} from ${startTime} to ${endTime}. Efficiency score: ${result!.aiAnalysis.efficiencyScore}%`
+          : `Successfully created ${result!.data.length} availability slots using ${pattern} pattern. Efficiency score: ${result!.aiAnalysis.efficiencyScore}%`
       };
     } catch (error: any) {
       return {
@@ -362,11 +391,35 @@ export class AIToolAvailabilityService {
     return Math.round((end.getTime() - start.getTime()) / (1000 * 60));
   }
 
-  private generateBulkSlots(params: any): any[] {
-    // This would generate slot configurations based on the pattern
-    const { startTime, endTime, duration, quantity = 1, breakTime = 0 } = params;
-    
-    // Simple implementation for now
+  private generateBulkSlots(params: {
+    pattern: string;
+    startTime: string;
+    endTime: string;
+    duration?: number;
+    daysOfWeek?: number[];
+    breakTime?: number;
+  }): Array<{
+    dayOfWeek?: number;
+    startTime: Date;
+    endTime: Date;
+    duration: number;
+  }> {
+    const { pattern, startTime, endTime, duration, daysOfWeek, breakTime = 0 } = params;
+
+    // For recurring weekly slots
+    if (pattern === 'weekly' && Array.isArray(daysOfWeek) && daysOfWeek.length > 0) {
+      return daysOfWeek.map((dayOfWeek: number) => ({
+        dayOfWeek,
+        startTime: new Date(`2024-01-01T${startTime}`),
+        endTime: new Date(`2024-01-01T${endTime}`),
+        duration: duration || this.calculateDuration(
+          new Date(`2024-01-01T${startTime}`),
+          new Date(`2024-01-01T${endTime}`)
+        )
+      }));
+    }
+
+    // Default single slot configuration
     return [{
       startTime: new Date(`2024-01-01T${startTime}`),
       endTime: new Date(`2024-01-01T${endTime}`),

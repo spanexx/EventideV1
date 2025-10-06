@@ -1,0 +1,251 @@
+================================================================================
+BOOKING SERVICES - MODULAR ARCHITECTURE
+================================================================================
+
+OVERVIEW:
+The booking service is split into 4 modular services following clean
+architecture principles and separation of concerns.
+
+================================================================================
+SERVICE STRUCTURE
+================================================================================
+
+1. BookingApiService (booking-api.service.ts)
+   - Handles all HTTP requests to booking endpoints
+   - Pure API layer with no business logic
+   - Methods:
+     * createBooking(booking)
+     * getBookingById(id)
+     * updateBooking(id, updateData)
+     * getProviderBookings(query)
+     * getGuestBookings(email, token)
+     * verifyBookingBySerialKey(serialKey)
+     * getBookingQRCode(serialKey)
+
+2. BookingStateService (booking-state.service.ts)
+   - Manages booking state using BehaviorSubjects
+   - Provides reactive state updates
+   - State properties:
+     * bookings$ - List of bookings
+     * selectedBooking$ - Currently selected booking
+     * loading$ - Loading state
+     * error$ - Error messages
+   - Methods:
+     * setBookings(bookings)
+     * addBooking(booking)
+     * updateBooking(booking)
+     * removeBooking(id)
+     * setSelectedBooking(booking)
+     * filterByStatus(status)
+     * getCountByStatus(status)
+
+3. BookingOperationsService (booking-operations.service.ts)
+   - Business logic layer
+   - Coordinates between API and state
+   - Handles error management
+   - Methods:
+     * createBooking(bookingData)
+     * getBookingById(id)
+     * updateBooking(id, updateData)
+     * cancelBooking(id, guestEmail)
+     * confirmBooking(id)
+     * completeBooking(id)
+     * getProviderBookings(query)
+     * getGuestBookings(email, token)
+     * verifyBooking(serialKey)
+     * getBookingQRCode(serialKey)
+     * refreshProviderBookings(query)
+
+4. BookingFacadeService (booking-facade.service.ts)
+   - Simplified API for components
+   - Main service to inject in components
+   - Exposes all necessary operations
+   - Provides easy access to state observables
+
+================================================================================
+USAGE EXAMPLES
+================================================================================
+
+BASIC USAGE IN COMPONENT:
+--------------------------
+import { BookingFacadeService } from './services/booking';
+
+constructor(private bookingFacade: BookingFacadeService) {}
+
+ngOnInit() {
+  // Subscribe to bookings
+  this.bookingFacade.bookings$.subscribe(bookings => {
+    console.log('Bookings:', bookings);
+  });
+
+  // Load provider bookings
+  this.bookingFacade.getProviderBookings().subscribe();
+}
+
+CREATE BOOKING:
+---------------
+const bookingData = {
+  providerId: 'provider-123',
+  availabilityId: 'slot-456',
+  guestName: 'John Doe',
+  guestEmail: 'john@example.com',
+  guestPhone: '+1234567890',
+  numberOfGuests: 2,
+  notes: 'Special requirements'
+};
+
+this.bookingFacade.createBooking(bookingData).subscribe({
+  next: (booking) => console.log('Booking created:', booking),
+  error: (error) => console.error('Error:', error)
+});
+
+UPDATE BOOKING:
+---------------
+this.bookingFacade.updateBooking('booking-id', {
+  status: BookingStatus.CONFIRMED,
+  notes: 'Updated notes'
+}).subscribe();
+
+CANCEL BOOKING:
+---------------
+this.bookingFacade.cancelBooking('booking-id', 'guest@example.com')
+  .subscribe({
+    next: () => console.log('Booking cancelled'),
+    error: (err) => console.error('Cancellation failed:', err)
+  });
+
+GET PROVIDER BOOKINGS WITH FILTERS:
+------------------------------------
+this.bookingFacade.getProviderBookings({
+  status: BookingStatus.CONFIRMED,
+  startDate: '2025-10-01',
+  endDate: '2025-10-31'
+}).subscribe();
+
+VERIFY BOOKING BY SERIAL KEY:
+------------------------------
+this.bookingFacade.verifyBooking('SERIAL123').subscribe({
+  next: (booking) => console.log('Verified:', booking),
+  error: (err) => console.error('Invalid serial key')
+});
+
+GET QR CODE:
+------------
+this.bookingFacade.getBookingQRCode('SERIAL123').subscribe({
+  next: (qrCode) => {
+    // qrCode is a data URL
+    this.qrCodeImage = qrCode;
+  }
+});
+
+STATE MANAGEMENT:
+-----------------
+// Get current bookings from state (synchronous)
+const bookings = this.bookingFacade.getCurrentBookings();
+
+// Filter by status
+const confirmedBookings = this.bookingFacade.filterByStatus(
+  BookingStatus.CONFIRMED
+);
+
+// Get counts
+const totalCount = this.bookingFacade.getTotalCount();
+const confirmedCount = this.bookingFacade.getCountByStatus(
+  BookingStatus.CONFIRMED
+);
+
+// Set selected booking
+this.bookingFacade.setSelectedBooking(booking);
+
+// Subscribe to selected booking
+this.bookingFacade.selectedBooking$.subscribe(booking => {
+  console.log('Selected:', booking);
+});
+
+ERROR HANDLING:
+---------------
+// Subscribe to errors
+this.bookingFacade.error$.subscribe(error => {
+  if (error) {
+    this.showErrorMessage(error);
+  }
+});
+
+// Clear errors
+this.bookingFacade.clearError();
+
+LOADING STATE:
+--------------
+this.bookingFacade.loading$.subscribe(loading => {
+  this.isLoading = loading;
+});
+
+================================================================================
+API ENDPOINTS COVERED
+================================================================================
+
+✅ POST   /bookings                    - Create booking
+✅ GET    /bookings/:id                - Get booking by ID
+✅ PATCH  /bookings/:id                - Update booking
+✅ GET    /bookings/provider           - Get provider bookings (Auth)
+✅ GET    /bookings/guest/:email       - Get guest bookings
+✅ GET    /bookings/verify/:serialKey  - Verify booking by serial
+✅ GET    /bookings/qr/:serialKey      - Get QR code
+
+================================================================================
+MODELS
+================================================================================
+
+Booking Interface:
+  - _id, id
+  - providerId
+  - availabilityId
+  - guestName, guestEmail, guestPhone
+  - numberOfGuests
+  - status (pending, confirmed, cancelled, completed)
+  - notes
+  - serialKey, qrCode
+  - createdAt, updatedAt
+
+DTOs:
+  - CreateBookingDto
+  - UpdateBookingDto
+  - GetBookingsDto
+  - BookingQRCode
+
+================================================================================
+BENEFITS OF MODULAR ARCHITECTURE
+================================================================================
+
+✅ Separation of Concerns
+   - API, State, Business Logic are separate
+   
+✅ Testability
+   - Each service can be tested independently
+   
+✅ Maintainability
+   - Easy to locate and fix issues
+   - Clear responsibility for each service
+   
+✅ Scalability
+   - Easy to add new features
+   - Can swap implementations without affecting others
+   
+✅ Reusability
+   - Services can be used independently
+   - State management is centralized
+
+================================================================================
+MIGRATION FROM OLD SERVICE
+================================================================================
+
+OLD (booking.service.ts):
+  import { BookingService } from './services/booking.service';
+  
+NEW (booking-facade.service.ts):
+  import { BookingFacadeService } from './services/booking';
+  
+The old BookingService is kept for backward compatibility but is deprecated.
+It extends BookingFacadeService so existing code will continue to work.
+
+================================================================================

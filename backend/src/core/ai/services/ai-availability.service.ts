@@ -3,17 +3,16 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { CachingService } from '../../cache/caching.service';
 import { 
-  AIAvailabilityService, 
-  AIConflictAnalysis, 
-  AIOptimizationResult, 
-  AIValidationResult, 
+  AIConflictAnalysis,
   AIPatternAnalysis,
-  ScheduleConstraints 
+  AIOptimizationResult,
+  AIValidationResult,
+  ScheduleConstraints
 } from '../interfaces/ai-availability.interface';
 import { Availability } from '../../../modules/availability/availability.schema';
 
 @Injectable()
-export class AiAvailabilityService implements AIAvailabilityService {
+export class AiAvailabilityService {
   private readonly logger = new Logger(AiAvailabilityService.name);
   private readonly aiApiUrl: string;
   private readonly aiApiKey: string;
@@ -22,41 +21,190 @@ export class AiAvailabilityService implements AIAvailabilityService {
     private readonly configService: ConfigService,
     private readonly cachingService: CachingService
   ) {
-    this.aiApiUrl = this.configService.get<string>('GEMINI_API_URL', 'https://generativelanguage.googleapis.com/v1beta/models');
-    this.aiApiKey = this.configService.get<string>('GEMINI_API_KEY') || '';
+    this.aiApiUrl = this.configService.get<string>('OPENROUTER_API_URL', 'https://openrouter.ai/api/v1');
+    this.aiApiKey = this.configService.get<string>('OPENROUTER_API_KEY') || '';
   }
 
-  /**
-   * Analyze availability conflicts using AI
-   * Leverages existing caching patterns from CachingService
-   */
-  async analyzeConflicts(availabilityData: Availability[]): Promise<AIConflictAnalysis> {
-    const cacheKey = `ai-conflicts-${this.generateDataHash(availabilityData)}`;
+  private verifyConfig() {
+    if (!this.aiApiKey) {
+      throw new Error('AI service not configured');
+    }
+  }
+
+  private async makeAIRequest(prompt: string, retry = 0): Promise<any> {
+    this.verifyConfig();
     
     try {
-      // Check cache first (leveraging existing CachingService)
-      const cached = await this.cachingService.get<AIConflictAnalysis>(cacheKey);
-      if (cached) {
-        this.logger.debug('Returning cached conflict analysis');
-        return cached;
+      return await axios.post(
+        `${this.aiApiUrl}/chat/completions`,
+        {
+          model: this.configService.get('OPENROUTER_MODEL', 'openai/gpt-4'),
+          messages: [
+            {
+              role: 'system',
+              content: 'You are an AI assistant specializing in schedule analysis and optimization. Respond with JSON only, no markdown formatting.'
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.3,
+          max_tokens: 1000
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${this.aiApiKey}`,
+            'HTTP-Referer': this.configService.get('APP_URL'),
+            'X-Title': this.configService.get('APP_NAME')
+          },
+          timeout: 10000 // 10 second timeout
+        }
+      );
+    } catch (error) {
+      if (retry < 2 && (error.response?.status === 429 || error.response?.status === 503)) {
+        // Wait 2^retry seconds before retrying (exponential backoff)
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retry) * 1000));
+        return this.makeAIRequest(prompt, retry + 1);
+      }
+      throw error;
+    }
+  }
+
+  // First implementation of analyzeConflicts and analyzePatterns removed to avoid duplication
+
+  private cleanJsonResponse(content: string): string {
+    // Remove markdown code blocks and any other non-JSON formatting
+    return content
+      .replace(/```json\n?/g, '') // Remove ```json
+      .replace(/```\n?/g, '')     // Remove closing ```
+      .trim();                    // Remove any extra whitespace
+  }
+
+  private processAIResponse(response: any, type: 'conflicts' | 'patterns' | 'optimization'): any {
+    try {
+      if (!response?.data?.choices?.[0]?.message?.content) {
+        throw new Error('Invalid AI response format');
       }
 
-      // Analyze conflicts using AI
-      const analysis = await this.performConflictAnalysis(availabilityData);
-      
-      // Cache result with 5-minute TTL (following existing pattern)
-      await this.cachingService.set(cacheKey, analysis, 300);
-      
-      return analysis;
+      const content = this.cleanJsonResponse(response.data.choices[0].message.content);
+      const parsed = JSON.parse(content);
+
+      // Validate the parsed response has required fields based on type
+      switch (type) {
+        case 'conflicts':
+          if (!('hasConflicts' in parsed) || !Array.isArray(parsed.conflicts)) {
+            throw new Error('Invalid conflicts response structure');
+          }
+          return parsed;
+
+        case 'patterns':
+          if (!Array.isArray(parsed.patterns) || !parsed.trends || !Array.isArray(parsed.insights)) {
+            throw new Error('Invalid patterns response structure');
+          }
+          return parsed;
+
+        case 'optimization':
+          if (!Array.isArray(parsed.optimizations) || !parsed.summary) {
+            throw new Error('Invalid optimization response structure');
+          }
+          return parsed;
+
+        default:
+          throw new Error(`Unknown response type: ${type}`);
+      }
     } catch (error) {
-      this.logger.error('Error analyzing conflicts:', error);
+      this.logger.error(`Error processing AI response: ${error.message}`);
+      
+      // Return safe default structures based on type
+      if (type === 'conflicts') {
+        return {
+          hasConflicts: false,
+          conflicts: [],
+          summary: 'Failed to analyze conflicts. Manual review recommended.'
+        };
+      }
+      if (type === 'patterns') {
+        return {
+          patterns: [],
+          trends: { 
+            bookingTrends: 'Analysis unavailable',
+            peakHours: [],
+            seasonality: 'Analysis unavailable',
+            utilization: 'Analysis unavailable'
+          },
+          insights: ['AI analysis failed'],
+          summary: 'Failed to analyze patterns. Manual review recommended.'
+        };
+      }
       return {
-        hasConflicts: false,
-        conflicts: [],
-        summary: 'Conflict analysis failed - manual review recommended'
+        optimizations: [],
+        summary: 'Failed to generate optimization suggestions. Manual review recommended.'
       };
     }
   }
+  
+
+  /**
+   * Check availability for given date and time
+   */
+  async checkAvailability(
+    date: string | undefined,
+    time: string | undefined,
+    context: any
+  ): Promise<any[]> {
+    // TODO: Implement real availability check
+    const cacheKey = `availability-${date}-${time}-${context.userId}`;
+    
+    try {
+      const cached = await this.cachingService.get<any[]>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+
+      // Mock response for now
+      const slots = [{
+        id: '1',
+        startTime: new Date().toISOString(),
+        duration: 30,
+        providerId: context.userId,
+        status: 'available'
+      }];
+
+      await this.cachingService.set(cacheKey, slots, 300);
+      return slots;
+    } catch (error) {
+      this.logger.error('Error checking availability:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Book a slot for given date and time
+   */
+  async bookSlot(
+    date: string | undefined,
+    time: string | undefined,
+    context: any
+  ): Promise<any> {
+    // TODO: Implement real booking logic
+    try {
+      return {
+        id: Math.random().toString(36).substring(2, 15),
+        startTime: new Date().toISOString(),
+        duration: 30,
+        providerId: context.userId,
+        userId: context.userId,
+        status: 'booked'
+      };
+    } catch (error) {
+      this.logger.error('Error booking slot:', error);
+      return { error: 'Failed to book slot' };
+    }
+  }
+
+  // First implementation removed to avoid duplication
 
   /**
    * Optimize schedule using AI recommendations
@@ -109,10 +257,24 @@ export class AiAvailabilityService implements AIAvailabilityService {
   }
 
   /**
-   * Analyze patterns in availability data
+   * Analyze patterns in schedule data
    * Uses existing caching strategy
    */
-  async analyzePatterns(availabilityData: Availability[]): Promise<AIPatternAnalysis> {
+  async analyzeSchedulePatterns(availabilityData: Availability[]): Promise<AIPatternAnalysis> {
+    if (!availabilityData?.length) {
+      return {
+        patterns: [],
+        trends: {
+          bookingTrends: 'No data available for analysis',
+          peakHours: [],
+          seasonality: 'No seasonal data available',
+          utilization: 'No utilization data available'
+        },
+        insights: ['No availability data to analyze'],
+        summary: 'No data available for pattern analysis'
+      };
+    }
+
     const cacheKey = `ai-patterns-${this.generateDataHash(availabilityData)}`;
     
     try {
@@ -123,40 +285,55 @@ export class AiAvailabilityService implements AIAvailabilityService {
         return cached;
       }
 
-      // Analyze patterns using AI
-      const patterns = await this.performPatternAnalysis(availabilityData);
+      const prompt = `Analyze these availability slots for patterns and trends. Format data as JSON with the following structure:
+{
+  "patterns": [
+    {
+      "type": "daily|weekly|monthly|seasonal|behavioral",
+      "description": "Pattern description",
+      "confidence": 0-100,
+      "impact": "Business impact description",
+      "recommendation": "Action to take"
+    }
+  ],
+  "trends": {
+    "bookingTrends": "Overall booking trend analysis",
+    "peakHours": ["Peak hour ranges"],
+    "seasonality": "Seasonal pattern description",
+    "utilization": "Utilization analysis"
+  },
+  "insights": ["Key insight 1", "Key insight 2"],
+  "summary": "Overall analysis summary"
+}
+
+Data to analyze:
+${JSON.stringify(availabilityData, null, 2)}`;
+
+      const response = await this.makeAIRequest(prompt);
+      const result = this.processAIResponse(response, 'patterns');
       
-      // Cache result
-      await this.cachingService.set(cacheKey, patterns, 300);
+      // Cache successful results for 5 minutes
+      await this.cachingService.set(cacheKey, result, 300);
       
-      return patterns;
+      return result;
     } catch (error) {
       this.logger.error('Error analyzing patterns:', error);
-      return {
-        patterns: [],
-        trends: {
-          bookingTrends: 'Pattern analysis failed',
-          peakHours: [],
-          seasonality: 'Unable to detect seasonal patterns',
-          utilization: 'Utilization analysis failed'
-        },
-        insights: [],
-        summary: 'Pattern analysis failed - manual review recommended'
-      };
+      throw error; // Let the calling code handle the error
     }
   }
 
   /**
-   * Perform conflict analysis using Gemini AI
-   * Follows existing AI service patterns from frontend
+   * Analyze conflicts in schedule data
+   * Uses existing caching strategy
    */
-  private async performConflictAnalysis(availabilityData: Availability[]): Promise<AIConflictAnalysis> {
+  async analyzeScheduleConflicts(availabilityData: Availability[]): Promise<AIConflictAnalysis> {
     if (!this.aiApiKey) {
       throw new Error('AI service not configured');
     }
 
-    const dataContext = this.createConflictAnalysisContext(availabilityData);
-    const prompt = `Analyze the following availability data for conflicts and scheduling issues:
+    try {
+      const dataContext = this.createConflictAnalysisContext(availabilityData);
+      const prompt = `Analyze the following availability data for conflicts and scheduling issues:
 
 ${dataContext}
 
@@ -182,12 +359,27 @@ Respond with JSON:
   "summary": "Overall summary of conflict analysis"
 }`;
 
-    const response = await this.callGeminiAPI(prompt, {
-      temperature: 0.3,
-      maxOutputTokens: 800
-    });
+      const response = await this.makeAIRequest(prompt);
+      
+      if (!response?.data?.choices?.[0]?.message?.content) {
+        throw new Error('Invalid AI response format');
+      }
 
-    return JSON.parse(this.cleanAIResponse(response));
+      const result = JSON.parse(response.data.choices[0].message.content);
+      
+      if (!result.hasConflicts || !Array.isArray(result.conflicts) || !result.summary) {
+        throw new Error('Invalid conflict analysis result format');
+      }
+
+      return result;
+    } catch (error) {
+      this.logger.error('Error analyzing conflicts:', error);
+      return {
+        hasConflicts: false,
+        conflicts: [],
+        summary: `AI analysis failed: ${error.message}. Manual review recommended.`
+      };
+    }
   }
 
   /**

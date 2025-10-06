@@ -87,15 +87,27 @@ export class CreateBulkAvailabilityDto {
   @Type(() => BulkSlotConfig)
   slots?: BulkSlotConfig[];
 
-  @ApiPropertyOptional({ description: 'Whether to skip conflicts or fail on conflicts' })
+    @ApiPropertyOptional()
   @IsOptional()
-  @IsBoolean()
-  skipConflicts?: boolean;
+  @IsNumber()
+  @Min(15)
+  minutesPerSlot?: number;
 
-  @ApiPropertyOptional({ description: 'If true, replace conflicts with new slots' })
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  breakTime?: number = 15;
+
+  @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
-  replaceConflicts?: boolean;
+  skipConflicts?: boolean = false;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  replaceConflicts?: boolean = false;
 
   @ApiPropertyOptional({ description: 'If true, validate only and return conflicts without creating' })
   @IsOptional()

@@ -104,7 +104,7 @@ export class AvailabilityController {
   @ApiBody({ type: CreateBulkAvailabilityDto })
   async createBulk(
     @Body() createBulkAvailabilityDto: CreateBulkAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<{ created: IAvailability[]; conflicts: any[] }> {
     this.logger.log(
       `Creating bulk availability slots for provider ${createBulkAvailabilityDto.providerId}`,
     );
@@ -143,11 +143,16 @@ export class AvailabilityController {
     @Query() query: GetAvailabilityDto,
   ): Promise<IAvailability[]> {
     this.logger.log(`Retrieving availability for provider ${providerId}`);
-    return this.availabilityService.findByProviderAndDateRange(
+    this.logger.log(`Date range: ${query.startDate} to ${query.endDate}`);
+    
+    const result = await this.availabilityService.findByProviderAndDateRange(
       providerId,
       query.startDate,
       query.endDate,
     );
+    
+    this.logger.log(`Returning ${result.length} availability slots`);
+    return result;
   }
 
   /**
@@ -155,7 +160,7 @@ export class AvailabilityController {
    * @param id - The availability slot ID
    * @returns The availability slot
    */
-  @Get(':id')
+  @Get('slot/:id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get a specific availability slot by ID' })
   @ApiResponse({ status: 200, description: 'Availability slot retrieved successfully', type: Object })
