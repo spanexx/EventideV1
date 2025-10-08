@@ -240,6 +240,26 @@ export class AuthService {
       );
   }
 
+  /**
+   * Verify email address
+   */
+  verifyEmail(token: string): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/verify-email`, { token })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Resend verification email
+   */
+  resendVerificationEmail(): Observable<void> {
+    return this.http.post<void>(`${this.API_URL}/resend-verification`, {})
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
   // Private methods
 
   private setSession(response: LoginResponse | RefreshTokenResponse): void {

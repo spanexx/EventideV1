@@ -8,6 +8,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../modules/users/users.service';
 import * as bcrypt from 'bcryptjs';
 import { SecurityMonitoringService } from '../core/security/security-monitoring.service';
+import { EmailService } from '../core/email/email.service';
 import { CreateUserDto } from '../modules/users/dto/create-user.dto';
 import { UserDocument } from '../modules/users/user.schema';
 import {
@@ -26,6 +27,7 @@ export class AuthService {
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly securityMonitoringService: SecurityMonitoringService,
+    private readonly emailService: EmailService,
   ) {}
 
   async validateUser(
@@ -81,6 +83,22 @@ export class AuthService {
         userId,
       );
 
+      // Send security alert for new login
+      try {
+        await this.emailService.sendTemplatedEmail({
+          to: user.email,
+          template: 'security-alert',
+          context: {
+            device: 'Web Browser', // TODO: Add device detection
+            location: ip || 'unknown',
+            timestamp: new Date().toISOString()
+          }
+        });
+      } catch (error) {
+        // Log but don't fail the login
+        this.logger.warn(`Failed to send security alert email: ${error.message}`);
+      }
+
       const payload: TokenPayload = {
         sub: userId,
         email: user.email as unknown as string,
@@ -92,12 +110,38 @@ export class AuthService {
         expiresIn: '1h',
       };
     } catch (error) {
-      // Log failed authentication
+      // Log failed authentication attempt
       this.securityMonitoringService.logAuthenticationAttempt(
         false,
         ip || 'unknown',
         email,
       );
+
+      // Check if account should be locked
+      const failedAttempts = await this.securityMonitoringService.getFailedAttempts(email);
+      if (failedAttempts >= 5) {  // After 5 failed attempts
+        const user = await this.usersService.findByEmail(email);
+        if (user) {
+          // Lock the account
+          await this.usersService.updateUser(user.id, { isActive: false });
+
+          // Generate unlock token
+          const unlockToken = this.jwtService.sign(
+            { sub: user.id, email: user.email, action: 'unlock' },
+            { expiresIn: '24h' }
+          );
+
+          // Send account locked notification
+          const unlockLink = `${process.env.FRONTEND_URL}/unlock-account?token=${unlockToken}`;
+          await this.emailService.sendTemplatedEmail({
+            to: email,
+            template: 'account-locked',
+            context: {
+              unlockLink
+            }
+          }).catch((err) => this.logger.warn(`Failed to send account locked email: ${err.message}`));
+        }
+      }
 
       // Re-throw the error
       throw error;
@@ -150,11 +194,28 @@ export class AuthService {
         true,
         'unknown', // IP would be available in the controller
         user.email,
-        user.id as string,
+        (user as UserDocument).id,
       );
 
+      // Send security alert for OAuth sign-in
+      try {
+        await this.emailService.sendTemplatedEmail({
+          to: user.email,
+          template: 'security-alert',
+          context: {
+            device: 'Google OAuth Sign-In',
+            location: 'unknown',
+            timestamp: new Date().toISOString(),
+            provider: 'Google'
+          }
+        });
+      } catch (error) {
+        // Log but don't fail the login
+        this.logger.warn(`Failed to send OAuth security alert email: ${error.message}`);
+      }
+
       // Ensure we have a valid user ID
-      const userId = user.id?.toString() || (user as any)._id?.toString();
+      const userId = (user as UserDocument).id;
       if (!userId) {
         throw new UnauthorizedException('User ID is missing');
       }
@@ -212,6 +273,22 @@ export class AuthService {
         throw new Error('User email is required');
       }
 
+      // Generate verification token
+      const verificationToken = this.jwtService.sign(
+        { sub: (user as UserDocument).id, email: user.email },
+        { expiresIn: '24h' }
+      );
+
+      // Send verification email
+      const verificationLink = `${process.env.FRONTEND_URL}/auth/verify-email?token=${verificationToken}`;
+      await this.emailService.sendTemplatedEmail({
+        to: user.email,
+        template: 'email-verification',
+        context: {
+          verificationLink
+        }
+      });
+
       this.logger.log(
         `User created successfully with ID: ${(user as any).id || (user as any)._id}`,
       );
@@ -225,6 +302,27 @@ export class AuthService {
         error,
       );
       throw error;
+    }
+  }
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    try {
+      const decoded = this.jwtService.verify(token) as { email: string };
+      const user = await this.usersService.findByEmail(decoded.email);
+      
+      if (!user) {
+        throw new UnauthorizedException('Invalid verification token');
+      }
+
+      if (user.isEmailVerified) {
+        return { message: 'Email already verified' };
+      }
+
+      await this.usersService.markEmailAsVerified(user.id);
+      return { message: 'Email verified successfully' };
+    } catch (error) {
+      this.logger.error(`Email verification failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired verification token');
     }
   }
 }

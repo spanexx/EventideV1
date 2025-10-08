@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { DashboardStats, Activity } from '../models/dashboard.models';
-import { Booking, BookingStatus } from '../models/booking.models';
+import { Booking, BookingStatus } from '../../shared/models/booking.models';
 import { Availability } from '../models/availability.models';
 
 @Injectable({
@@ -56,28 +56,30 @@ export class MockDashboardService {
       {
         id: '1',
         providerId: 'provider-123',
-        customerId: 'customer-1',
-        customerName: 'John Doe',
-        customerEmail: 'john@example.com',
-        service: 'Consultation',
+        availabilityId: 'avail-1',
+        guestName: 'John Doe',
+        guestEmail: 'john@example.com',
+        guestPhone: '+1234567890',
         duration: 30,
         startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000),
         endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 30 * 60 * 1000),
         status: BookingStatus.CONFIRMED,
+        notes: 'Consultation appointment',
         createdAt: new Date(),
         updatedAt: new Date()
       },
       {
         id: '2',
         providerId: 'provider-123',
-        customerId: 'customer-2',
-        customerName: 'Jane Smith',
-        customerEmail: 'jane@example.com',
-        service: 'Follow-up',
+        availabilityId: 'avail-2',
+        guestName: 'Jane Smith',
+        guestEmail: 'jane@example.com',
+        guestPhone: '+0987654321',
         duration: 60,
         startTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
         endTime: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
         status: BookingStatus.CONFIRMED,
+        notes: 'Follow-up appointment',
         createdAt: new Date(),
         updatedAt: new Date()
       }

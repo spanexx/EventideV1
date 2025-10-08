@@ -23,6 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { UsersService } from './users.service';
+import { AccessCodeService } from './services/access-code.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
 import { UserPreferencesResponseDto } from './dto/user-preferences-response.dto';
@@ -38,7 +39,10 @@ import type { Request } from 'express';
 @UseGuards(ThrottlerGuard)
 @UseInterceptors(ClassSerializerInterceptor)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly accessCodeService: AccessCodeService,
+  ) {}
 
   // User preferences endpoints - MUST be before parameterized routes
   @Get('me')
@@ -202,5 +206,38 @@ export class UsersController {
   @ApiResponse({ status: 404, description: 'User not found' })
   async remove(@Param('id') id: string): Promise<void> {
     await this.usersService.deactivateUser(id);
+  }
+
+  // Access code management endpoints
+  @Get('me/access-code')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get current access code for private profile' })
+  @ApiResponse({ status: 200, description: 'Access code retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async getMyAccessCode(@Req() req: Request): Promise<{ accessCode: string; expiresAt?: Date }> {
+    const userId = (req.user as any).userId;
+    const accessCode = await this.accessCodeService.getOrGenerateAccessCode(userId);
+    const user = await this.usersService.findById(userId);
+    
+    return {
+      accessCode,
+      expiresAt: user.accessCodeGeneratedAt,
+    };
+  }
+
+  @Post('me/access-code/rotate')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Manually rotate access code' })
+  @ApiResponse({ status: 200, description: 'Access code rotated' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  async rotateMyAccessCode(@Req() req: Request): Promise<{ accessCode: string }> {
+    const userId = (req.user as any).userId;
+    const accessCode = await this.accessCodeService.forceRotateAccessCode(userId);
+    
+    return { accessCode };
   }
 }

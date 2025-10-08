@@ -306,7 +306,7 @@ export class AvailabilityService {
     return this.http.get<AIEnhancedAvailabilityResponse>(`${this.AI_API_URL}/${providerId}/enhanced`, { params }).pipe(
       map(response => ({
         ...response,
-        data: response.data.map(slot => ({
+        data: (response.data || []).map(slot => ({
           ...slot,
           id: slot.id || (slot as any)._id,
           date: slot.date ? new Date(slot.date) : undefined,

@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ProcessChatRequestDto, ChatResponseDto, ToolCallDto } from '../dto/ai-chat.dto';
 import { AiAvailabilityService } from './ai-availability.service';
 import { AvailabilityService } from '../../../modules/availability/availability.service';
+import { Availability } from '../../../modules/availability/availability.schema';
 
 interface AITool {
   name: string;
@@ -194,7 +195,24 @@ export class AiChatService {
 
     // Generate response and tool calls
     const toolCalls = await this.generateToolCalls(intent, entities, request.context);
-    const response = this.generateResponse(intent, toolCalls, entities);
+    
+    // Execute tool calls
+    const results: any[] = [];
+    for (const toolCall of toolCalls) {
+      const tool = this.tools.get(toolCall.name);
+      if (tool) {
+        try {
+          const result = await tool.handler(toolCall.parameters, request.context);
+          results.push(result);
+        } catch (error) {
+          this.logger.error(`Failed to execute tool ${toolCall.name}:`, error);
+        }
+      }
+    }
+    
+    const response = results.length > 0 
+      ? `I've completed your request. ${this.generateResponse(intent, toolCalls, entities)}`
+      : this.generateResponse(intent, toolCalls, entities);
     const suggestedActions = this.generateSuggestedActions(intent, request.context);
 
     return {
@@ -286,9 +304,42 @@ export class AiChatService {
   }
 
   private async handleCreateBulkSlots(params: any, context: any): Promise<any> {
+    const isRecurring = params.pattern === 'weekly';
+    
+    // Map weekday names to DayOfWeek enum values
+    const weekdayMap: { [key: string]: number } = {
+      'monday': 1, 'tuesday': 2, 'wednesday': 3, 'thursday': 4, 'friday': 5, 'saturday': 6, 'sunday': 0
+    };
+
+    // For recurring slots, we need to create one slot per day of week
+    if (isRecurring && params.daysOfWeek && params.daysOfWeek.length > 0) {
+      const results: any[] = [];
+      for (const day of params.daysOfWeek) {
+        const bulkDto = {
+          providerId: params.providerId || context.userId,
+          type: 'recurring',
+          dayOfWeek: weekdayMap[day.toLowerCase()],
+          slots: [{
+            startTime: new Date(`2024-01-01T${params.startTime}`),
+            endTime: new Date(`2024-01-01T${params.endTime}`),
+            duration: params.duration || this.calculateDuration(params.startTime, params.endTime)
+          }]
+        };
+        try {
+          const result = await this.availabilityService.createBulkSlots(bulkDto as any);
+          results.push(result);
+        } catch (error) {
+          // Log error but continue with other days
+          this.logger.error(`Failed to create recurring slot for ${day}: ${error.message}`);
+        }
+      }
+      return results.flat();
+    }
+
+    // For one-off slots, create them within the date range
     const bulkDto = {
       providerId: params.providerId || context.userId,
-      type: (params.pattern === 'weekly' ? 'recurring' : 'one_off') as any,
+      type: 'one_off',
       startDate: new Date(params.startDate),
       endDate: params.endDate ? new Date(params.endDate) : undefined,
       quantity: params.quantity || 1,
@@ -338,7 +389,8 @@ export class AiChatService {
       params.endDate ? new Date(params.endDate) : undefined
     );
 
-    return await this.aiAvailabilityService.analyzePatterns(data);
+    // Cast to Availability[] for the AI service
+    return await this.aiAvailabilityService.analyzeSchedulePatterns(data as Availability[]);
   }
 
   // Helper methods
@@ -347,21 +399,24 @@ export class AiChatService {
     const lowerMessage = message.toLowerCase();
     
     if (lowerMessage.includes('create') || lowerMessage.includes('add') || lowerMessage.includes('new')) {
-      if (lowerMessage.includes('multiple') || lowerMessage.includes('bulk') || lowerMessage.includes('all day')) {
+      if (lowerMessage.includes('multiple') || lowerMessage.includes('bulk') || lowerMessage.includes('all day') || 
+          (lowerMessage.includes('monday') && lowerMessage.includes('friday')) || 
+          lowerMessage.includes('next week') ||
+          lowerMessage.includes('every')) {
         return 'create_bulk';
       }
       return 'create_single';
     }
     
     if (lowerMessage.includes('update') || lowerMessage.includes('modify') || lowerMessage.includes('change') || lowerMessage.includes('move')) {
-      return 'update';
+      return 'update_slot';
     }
     
     if (lowerMessage.includes('delete') || lowerMessage.includes('remove') || lowerMessage.includes('cancel')) {
       if (lowerMessage.includes('all') || lowerMessage.includes('bulk') || lowerMessage.includes('multiple')) {
-        return 'delete_bulk';
+        return 'delete_bulk_slots';
       }
-      return 'delete_single';
+      return 'delete_slot';
     }
     
     if (lowerMessage.includes('show') || lowerMessage.includes('display') || lowerMessage.includes('get') || lowerMessage.includes('list')) {
@@ -380,7 +435,7 @@ export class AiChatService {
       providerId: context.userId
     };
 
-    // Extract dates
+    // Extract dates and date ranges
     const dateRegex = /(\d{4}-\d{2}-\d{2})|tomorrow|today|next week|this week/gi;
     const dateMatch = message.match(dateRegex);
     if (dateMatch) {
@@ -390,13 +445,27 @@ export class AiChatService {
         entities.date = tomorrow.toISOString().split('T')[0];
       } else if (dateMatch[0].includes('today')) {
         entities.date = new Date().toISOString().split('T')[0];
+      } else if (dateMatch[0].includes('next week')) {
+        const nextMonday = new Date();
+        nextMonday.setDate(nextMonday.getDate() + (8 - nextMonday.getDay()));
+        const nextFriday = new Date(nextMonday);
+        nextFriday.setDate(nextFriday.getDate() + 4);
+        entities.startDate = nextMonday.toISOString().split('T')[0];
+        entities.endDate = nextFriday.toISOString().split('T')[0];
       } else if (dateMatch[0].match(/\d{4}-\d{2}-\d{2}/)) {
         entities.date = dateMatch[0];
       }
     }
 
+    // Extract days of week
+    const weekdayRegex = /(monday|tuesday|wednesday|thursday|friday|saturday|sunday)/gi;
+    const weekdayMatches = message.match(weekdayRegex);
+    if (weekdayMatches) {
+      entities.daysOfWeek = weekdayMatches.map(day => day.toLowerCase());
+    }
+
     // Extract times
-    const timeRegex = /(\d{1,2}):?(\d{2})?\s*(am|pm)/gi;
+    const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/gi;
     const timeMatches = message.match(timeRegex);
     if (timeMatches && timeMatches.length >= 2) {
       entities.startTime = this.normalizeTime(timeMatches[0]);
@@ -444,17 +513,39 @@ export class AiChatService {
         break;
         
       case 'create_bulk':
-        if (entities.date && entities.startTime && entities.endTime) {
+        if ((entities.startDate || entities.date) && entities.startTime && entities.endTime) {
+          const startDate = entities.startDate || entities.date;
+          const endDate = entities.endDate || startDate;
+          const duration = entities.duration || 60; // Default 1-hour slots
+          
           toolCalls.push({
             name: 'create_bulk_availability',
             parameters: {
               providerId: entities.providerId,
-              pattern: 'daily',
-              startDate: entities.date,
+              pattern: entities.daysOfWeek ? 'weekly' : 'daily',
+              startDate: startDate,
+              endDate: endDate,
               startTime: entities.startTime,
               endTime: entities.endTime,
-              duration: entities.duration,
-              quantity: entities.quantity || 1
+              duration: duration,
+              quantity: Math.floor((new Date(`2024-01-01T${entities.endTime}`).getTime() - 
+                                  new Date(`2024-01-01T${entities.startTime}`).getTime()) / 
+                                  (duration * 60 * 1000)),
+              daysOfWeek: entities.daysOfWeek || ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+            }
+          });
+        }
+        break;
+
+      case 'update_slot':
+        if (context.slotId && entities.startTime) {
+          toolCalls.push({
+            name: 'update_availability_slot',
+            parameters: {
+              slotId: context.slotId,
+              startTime: entities.startTime,
+              endTime: entities.endTime || undefined,
+              date: entities.date || undefined
             }
           });
         }
@@ -480,6 +571,32 @@ export class AiChatService {
             startDate: entities.date
           }
         });
+        break;
+
+      case 'delete_slot':
+        if (context.slotId) {
+          toolCalls.push({
+            name: 'delete_availability_slot',
+            parameters: {
+              slotId: context.slotId
+            }
+          });
+        }
+        break;
+
+      case 'delete_bulk_slots':
+        if (entities.date) {
+          toolCalls.push({
+            name: 'delete_bulk_availability',
+            parameters: {
+              providerId: entities.providerId,
+              criteria: 'date_range',
+              startDate: entities.date,
+              endDate: entities.date,
+              confirm: true
+            }
+          });
+        }
         break;
     }
 
@@ -532,12 +649,12 @@ export class AiChatService {
   }
 
   private normalizeTime(timeStr: string): string {
-    const match = timeStr.match(/(\d{1,2}):?(\d{2})?\s*(am|pm)/i);
+    const match = timeStr.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
     if (!match) return timeStr;
     
     let hours = parseInt(match[1]);
     const minutes = match[2] ? parseInt(match[2]) : 0;
-    const period = match[3].toLowerCase();
+    const period = match[3]?.toLowerCase();
     
     if (period === 'pm' && hours !== 12) {
       hours += 12;

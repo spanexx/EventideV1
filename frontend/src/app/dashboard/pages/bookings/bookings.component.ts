@@ -6,8 +6,8 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
-import * as DashboardActions from '../../store/actions/dashboard.actions';
-import * as DashboardSelectors from '../../store/selectors/dashboard.selectors';
+import * as DashboardActions from '../../store-dashboard/actions/dashboard.actions';
+import * as DashboardSelectors from '../../store-dashboard/selectors/dashboard.selectors';
 import { Booking, BookingStatus } from '../../models/booking.models';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -61,14 +61,20 @@ export class BookingsComponent implements OnInit {
 
   cancelBooking(booking: Booking): void {
     if (confirm('Are you sure you want to cancel this booking?')) {
-      this.store.dispatch(DashboardActions.cancelBooking({ bookingId: booking.id }));
+      const bookingId = booking.id || booking._id || '';
+      if (bookingId) {
+        this.store.dispatch(DashboardActions.cancelBooking({ bookingId }));
+      }
     }
   }
 
   updateBookingStatus(booking: Booking, status: BookingStatus): void {
-    this.store.dispatch(DashboardActions.updateBookingStatus({ 
-      bookingId: booking.id, 
-      status 
-    }));
+    const bookingId = booking.id || booking._id || '';
+    if (bookingId) {
+      this.store.dispatch(DashboardActions.updateBookingStatus({ 
+        bookingId, 
+        status 
+      }));
+    }
   }
 }

@@ -22,7 +22,7 @@ import { CreateBulkAvailabilityDto } from '../dto/create-bulk-availability.dto';
 import { UpdateDaySlotQuantityDto } from '../dto/update-day-slot-quantity.dto';
 import { AIBulkValidationResultDto } from '../../../core/ai/dto/ai-validation-result.dto';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
-import { IAvailability } from '../interfaces/availability.interface';
+import { IAvailabilityBase } from '../interfaces/availability.interface';
 
 @ApiTags('availability-bulk')
 @Controller('availability/bulk')
@@ -46,7 +46,7 @@ export class AvailabilityBulkController {
   @ApiBody({ type: CreateBulkAvailabilityDto })
   async createBulk(
     @Body() createBulkAvailabilityDto: CreateBulkAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<{ created: IAvailabilityBase[]; conflicts: any[] }> {
     this.logger.log(
       `Creating bulk availability slots for provider ${createBulkAvailabilityDto.providerId}`,
     );
@@ -64,7 +64,7 @@ export class AvailabilityBulkController {
   @ApiBody({ type: CreateAllDayAvailabilityDto })
   async createAllDay(
     @Body() createAllDayAvailabilityDto: CreateAllDayAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     this.logger.log(
       `Creating all-day availability slots for provider ${createAllDayAvailabilityDto.providerId}`,
     );
@@ -82,7 +82,7 @@ export class AvailabilityBulkController {
   @ApiBody({ type: UpdateDaySlotQuantityDto })
   async updateDaySlotQuantity(
     @Body() updateDto: UpdateDaySlotQuantityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     this.logger.log(
       `Adjusting day slot quantity for provider ${updateDto.providerId} on ${updateDto.date}`,
     );
@@ -110,7 +110,7 @@ export class AvailabilityBulkController {
   async createBulkWithAI(
     @Body() createBulkDto: CreateBulkAvailabilityDto,
   ): Promise<{
-    data: IAvailability[];
+    data: IAvailabilityBase[];
     aiAnalysis: {
       validation: AIBulkValidationResultDto;
       conflicts: any;
@@ -126,7 +126,7 @@ export class AvailabilityBulkController {
     
     // AI validation and analysis
     const [conflicts, optimizations] = await Promise.all([
-      this.aiAvailabilityService.analyzeConflicts(bulkData as any),
+      this.aiAvailabilityService.analyzeScheduleConflicts(bulkData as any),
       this.aiAvailabilityService.optimizeSchedule({ 
         bufferTime: 15,
         maxDailyBookings: 10 
@@ -156,10 +156,13 @@ export class AvailabilityBulkController {
     ];
 
     return {
-      data: created,
+      data: created.created,
       aiAnalysis: {
         validation,
-        conflicts,
+        conflicts: {
+          ...conflicts,
+          creationConflicts: created.conflicts
+        },
         optimizations,
         efficiencyScore,
         recommendations
@@ -185,7 +188,7 @@ export class AvailabilityBulkController {
   async createAllDayWithAI(
     @Body() createAllDayDto: CreateAllDayAvailabilityDto,
   ): Promise<{
-    data: IAvailability[];
+    data: IAvailabilityBase[];
     aiAnalysis: {
       demandDistribution: string;
       revenueProjection: number;

@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
-import * as DashboardActions from '../store/actions/dashboard.actions';
+import * as DashboardActions from '../store-dashboard/actions/dashboard.actions';
 import * as AuthSelectors from '../../auth/store/auth';
 
 @Injectable({

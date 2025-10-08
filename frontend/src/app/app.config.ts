@@ -12,8 +12,8 @@ import { routes } from './app.routes';
 
 import { responseInterceptor } from './core/interceptors/response.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
-import { DashboardEffects } from './dashboard/store/effects/dashboard.effects';
-import { dashboardReducer } from './dashboard/store/reducers/dashboard.reducer';
+import { DashboardEffects } from './dashboard/store-dashboard/effects/dashboard.effects';
+import { dashboardReducer } from './dashboard/store-dashboard/reducers/dashboard.reducer';
 import { AuthService } from './services/auth.service';
 import { Store } from '@ngrx/store';
 import * as AuthActions from './auth/store/auth';
@@ -24,6 +24,12 @@ import { availabilityReducer } from './dashboard/store-availability';
 import { AvailabilityEffects } from './dashboard/store-availability';
 import { calendarReducer } from './dashboard/store-calendar';
 import { CalendarEffects } from './dashboard/store-calendar';
+import { bookingReducer } from './booking-wizard/store-bookings/reducers/booking.reducer';
+import { BookingEffects } from './booking-wizard/store-bookings/effects/booking.effects';
+import { searchFiltersReducer } from './store/search-filters/search-filters.reducer';
+import { providersReducer } from './store/providers/providers.reducer';
+import { ProvidersEffects } from './store/providers/providers.effects';
+
 
 // Function to initialize the app with existing auth state
 function initializeAppFactory(logService: LogService, authService: AuthService, store: Store) {
@@ -57,9 +63,12 @@ export const appConfig: ApplicationConfig = {
       dashboard: dashboardReducer,
       analytics: analyticsReducer,
       availability: availabilityReducer,
-      calendar: calendarReducer
+      calendar: calendarReducer,
+      booking: bookingReducer,
+      searchFilters: searchFiltersReducer,
+      providers: providersReducer
     }),
-    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects]),
+    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects, BookingEffects, ProvidersEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     LogService,
     {

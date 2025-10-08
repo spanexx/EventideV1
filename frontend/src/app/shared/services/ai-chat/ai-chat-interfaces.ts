@@ -42,8 +42,22 @@ export interface IntentDetectionResult {
 }
 
 export interface ExtractedEntities {
-  dates?: any;
-  times?: any;
-  duration?: any;
-  context?: any;
+  dates?: {
+    startDate?: string;
+    endDate?: string;
+  };
+  times?: {
+    times?: string[];
+    startTime?: string;
+    endTime?: string;
+  };
+  duration?: {
+    duration: number;
+  };
+  context?: {
+    status?: 'available' | 'booked' | 'all';
+    [key: string]: any;
+  };
+  pattern?: 'daily' | 'weekly' | 'range';
+  daysOfWeek?: number[];
 }

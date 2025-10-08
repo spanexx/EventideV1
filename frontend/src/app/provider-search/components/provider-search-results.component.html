@@ -1,0 +1,178 @@
+<!-- Loading State -->
+<div *ngIf="loading" class="loading">
+  <mat-spinner diameter="40"></mat-spinner>
+  <p>Searching providers...</p>
+</div>
+
+<!-- No Results -->
+<div *ngIf="!loading && providers.length === 0" class="no-results">
+  <mat-icon>search_off</mat-icon>
+  <p>No providers found matching your criteria.</p>
+  <p class="hint">Try adjusting your filters or search terms.</p>
+</div>
+
+<!-- Search Results -->
+<div class="search-results" *ngIf="!loading && providers.length > 0">
+  <div class="results-info">
+    About {{ providers.length }} result{{ providers.length !== 1 ? 's' : '' }}
+    <span *ngIf="selectedRating > 0" class="filter-badge">
+      • Showing {{ selectedRating }}{{ selectedRating < 5 ? '-' + (selectedRating + 0.9) : '' }} star providers first
+    </span>
+  </div>
+  
+  <div class="provider-item" 
+       *ngFor="let provider of providers; let i = index"
+       [class.below-rating]="isOutsideRatingRange(provider)"
+       [class.first-below-rating]="isFirstBelowRating(i)"
+       [class.perfect-match]="getMatchQuality(provider) === 'perfect'"
+       [class.good-match]="getMatchQuality(provider) === 'good'"
+       [class.fair-match]="getMatchQuality(provider) === 'fair'">
+    
+    <!-- Match Quality Badge -->
+    <div *ngIf="showMatchBadge(provider)" 
+         class="match-badge" 
+         [ngClass]="'match-badge-' + getMatchQuality(provider)">
+      <mat-icon>{{ getMatchQuality(provider) === 'perfect' ? 'verified' : getMatchQuality(provider) === 'good' ? 'check_circle' : 'info' }}</mat-icon>
+      <span>{{ getMatchBadgeText(provider) }}</span>
+    </div>
+    
+    <div class="provider-header">
+      <div class="provider-avatar-small">
+        <mat-icon>person</mat-icon>
+      </div>
+      <div class="provider-title-section">
+        <h3 class="provider-title" (click)="viewProvider.emit(provider._id || provider.id)">
+          {{ provider.businessName || getFullName(provider) }}
+        </h3>
+        <div class="provider-url">
+          <span class="username" *ngIf="provider.username">@{{ provider.username }}</span>
+          <span *ngIf="provider.username && provider.location"> • </span>
+          <span *ngIf="provider.location">{{ provider.location }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="provider-description">
+      <p *ngIf="provider.bio">{{ provider.bio }}</p>
+    </div>
+
+    <div class="provider-meta">
+      <div class="meta-item" *ngIf="provider.rating && provider.rating > 0">
+        <mat-icon class="meta-icon">star</mat-icon>
+        <span>{{ provider.rating.toFixed(1) }}</span>
+        <span class="meta-light" *ngIf="provider.reviewCount">({{ provider.reviewCount }})</span>
+      </div>
+
+      <div class="meta-item" *ngIf="provider.contactPhone">
+        <mat-icon class="meta-icon">phone</mat-icon>
+        <span>{{ provider.contactPhone }}</span>
+      </div>
+
+      <div class="meta-item" *ngIf="provider.availableDurations && provider.availableDurations.length > 0">
+        <mat-icon class="meta-icon">schedule</mat-icon>
+        <span>{{ provider.availableDurations.join(', ') }} min</span>
+      </div>
+    </div>
+
+    <div class="provider-services" *ngIf="getServices(provider).length > 0">
+      <span class="service-tag" *ngFor="let service of getServices(provider).slice(0, 4)">
+        {{ service }}
+      </span>
+    </div>
+
+    <div class="provider-actions">
+      <button 
+        mat-icon-button 
+        color="primary" 
+        (click)="viewProvider.emit(provider._id || provider.id)"
+        matTooltip="View Profile"
+        class="action-btn">
+        <mat-icon>visibility</mat-icon>
+      </button>
+      <button 
+        mat-icon-button 
+        color="accent" 
+        (click)="bookProvider.emit(provider._id || provider.id)"
+        matTooltip="Book Appointment"
+        class="action-btn">
+        <mat-icon>event</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Pagination Controls -->
+  <div class="pagination-controls">
+
+    <!-- Location Filters (Left Side) -->
+    <div class="location-filters">
+      <!-- Country Filter -->
+      <mat-form-field appearance="outline" class="filter-select">
+        <mat-label>
+          <mat-icon>public</mat-icon>
+          Country
+        </mat-label>
+        <mat-select 
+          [value]="selectedCountry" 
+          (selectionChange)="countryChange.emit($event.value)">
+          <mat-option value="">All Countries</mat-option>
+          <mat-option *ngFor="let country of availableCountries" [value]="country">
+            {{ country }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <!-- City Filter (only show if country selected) -->
+      <mat-form-field 
+        appearance="outline" 
+        class="filter-select"
+        *ngIf="selectedCountry">
+        <mat-label>
+          <mat-icon>location_city</mat-icon>
+          City
+        </mat-label>
+        <mat-select 
+          [value]="selectedCity" 
+          (selectionChange)="cityChange.emit($event.value)">
+          <mat-option value="">All Cities</mat-option>
+          <mat-option *ngFor="let city of availableCities" [value]="city">
+            {{ city }}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
+    </div>
+
+    <!-- Pagination Info (Center) -->
+    <div class="pagination-info">
+      Showing {{ (currentPage - 1) * pageSize + 1 }} - {{ Math.min(currentPage * pageSize, totalProviders) }} of {{ totalProviders }} providers
+    </div>
+    
+    <div class="pagination-buttons">
+      <button 
+        mat-icon-button 
+        (click)="previousPage.emit()" 
+        [disabled]="currentPage === 1"
+        matTooltip="Previous page">
+        <mat-icon>chevron_left</mat-icon>
+      </button>
+      
+      <div class="page-numbers">
+        <button 
+          *ngFor="let page of getPageNumbers()" 
+          mat-button 
+          [class.active]="page === currentPage"
+          (click)="handlePageClick(page)"
+          [disabled]="page === '...'">
+          {{ page }}
+        </button>
+      </div>
+      
+      <button 
+        mat-icon-button 
+        (click)="nextPage.emit()" 
+        [disabled]="currentPage === totalPages"
+        matTooltip="Next page">
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

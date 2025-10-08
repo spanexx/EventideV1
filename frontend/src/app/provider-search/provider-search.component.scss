@@ -1,0 +1,34 @@
+.provider-search-container {
+  min-height: 100vh;
+  background: #fff;
+}
+
+// Error Message
+.error-message {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  margin: 20px 40px;
+  background: #fef7f7;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  color: #721c24;
+
+  mat-icon {
+    color: #f44336;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+// Responsive Design
+@media (max-width: 768px) {
+  .error-message {
+    margin: 20px;
+  }
+}

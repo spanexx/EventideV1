@@ -1,0 +1,189 @@
+<div class="booking-lookup-container">
+  <div class="top-nav">
+    <div class="logo-container">
+      <img src="/logo-variant.png" alt="Eventide" class="logo" (click)="navigateToHome()">
+    </div>
+  </div>
+  
+  <div class="lookup-header">
+    <h1>Find Your Booking</h1>
+    <p class="subtitle">Enter your booking code to view details</p>
+  </div>
+
+  <!-- Search Form -->
+  <mat-card class="search-card" *ngIf="!(booking$ | async)">
+    <mat-card-content>
+      <div class="search-form">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Booking Code</mat-label>
+          <input 
+            matInput 
+            [(ngModel)]="serialKey" 
+            placeholder="e.g., EVT-20251015-489B72"
+            (keyup.enter)="findBooking()"
+            [disabled]="(loading$ | async) || false">
+          <mat-icon matPrefix>search</mat-icon>
+        </mat-form-field>
+        
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="findBooking()"
+          [disabled]="(loading$ | async) || !serialKey"
+          class="search-button">
+          <mat-icon *ngIf="!(loading$ | async)">search</mat-icon>
+          <mat-spinner *ngIf="loading$ | async" diameter="20"></mat-spinner>
+          {{ (loading$ | async) ? 'Searching...' : 'Find Booking' }}
+        </button>
+      </div>
+
+      <div class="help-text">
+        <mat-icon>info</mat-icon>
+        <p>Your booking code was sent to your email after booking confirmation</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Error Message -->
+  <mat-card class="error-card" *ngIf="(error$ | async) && !(loading$ | async)">
+    <mat-card-content>
+      <div class="error-content">
+        <mat-icon color="warn">error</mat-icon>
+        <p>{{ error$ | async }}</p>
+      </div>
+      <button mat-button color="primary" (click)="reset()">Try Again</button>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading Spinner -->
+  <div class="loading-container" *ngIf="(loading$ | async) && !(booking$ | async)">
+    <mat-spinner></mat-spinner>
+    <p>Loading booking details...</p>
+  </div>
+
+  <!-- Booking Details -->
+  <mat-card class="booking-card" *ngIf="(booking$ | async) as booking">
+    <mat-card-header>
+      <div class="booking-header">
+        <div>
+          <mat-card-title>Booking Details</mat-card-title>
+          <mat-card-subtitle>{{ booking.serialKey }}</mat-card-subtitle>
+        </div>
+        <span class="status-badge" [ngClass]="getStatusClass(booking.status)">
+          {{ booking.status | uppercase }}
+        </span>
+      </div>
+    </mat-card-header>
+
+    <mat-card-content>
+      <div class="booking-details">
+        <!-- Guest Information -->
+        <div class="detail-section">
+          <h3><mat-icon>person</mat-icon> Guest Information</h3>
+          <div class="detail-row">
+            <span class="label">Name:</span>
+            <span class="value">{{ booking.guestName }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Email:</span>
+            <span class="value">{{ booking.guestEmail }}</span>
+          </div>
+          <div class="detail-row" *ngIf="booking.guestPhone">
+            <span class="label">Phone:</span>
+            <span class="value">{{ booking.guestPhone }}</span>
+          </div>
+        </div>
+
+        <!-- Booking Information -->
+        <div class="detail-section">
+          <h3><mat-icon>event</mat-icon> Booking Information</h3>
+          <div class="detail-row">
+            <span class="label">Date:</span>
+            <span class="value">{{ booking.startTime | date:'fullDate' }}</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Time:</span>
+            <span class="value">
+              {{ booking.startTime | date:'shortTime' }} - {{ booking.endTime | date:'shortTime' }}
+            </span>
+          </div>
+          <div class="detail-row" *ngIf="booking.duration">
+            <span class="label">Duration:</span>
+            <span class="value">{{ booking.duration }} minutes</span>
+          </div>
+          <div class="detail-row">
+            <span class="label">Provider ID:</span>
+            <span class="value">{{ booking.providerId }}</span>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="detail-section" *ngIf="booking.notes">
+          <h3><mat-icon>notes</mat-icon> Notes</h3>
+          <p class="notes-text">{{ booking.notes }}</p>
+        </div>
+
+        <!-- Timestamps -->
+        <div class="detail-section timestamps">
+          <div class="detail-row" *ngIf="booking.createdAt">
+            <span class="label">Booked on:</span>
+            <span class="value">{{ booking.createdAt | date:'medium' }}</span>
+          </div>
+          <div class="detail-row" *ngIf="booking.updatedAt">
+            <span class="label">Last updated:</span>
+            <span class="value">{{ booking.updatedAt | date:'medium' }}</span>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+
+    <mat-card-actions>
+      <button 
+        mat-icon-button 
+        color="primary" 
+        (click)="getQRCode()"
+        *ngIf="booking.status !== 'cancelled'"
+        matTooltip="View QR Code"
+        matTooltipPosition="above">
+        <mat-icon>qr_code</mat-icon>
+      </button>
+      
+      <button 
+        mat-icon-button 
+        color="primary" 
+        (click)="downloadPDF(booking)"
+        matTooltip="Download PDF"
+        matTooltipPosition="above">
+        <mat-icon>picture_as_pdf</mat-icon>
+      </button>
+      
+      <button 
+        mat-icon-button 
+        color="primary" 
+        (click)="downloadWord(booking)"
+        matTooltip="Download Word Document"
+        matTooltipPosition="above">
+        <mat-icon>description</mat-icon>
+      </button>
+      
+      <button 
+        mat-icon-button 
+        color="warn" 
+        (click)="cancelBooking(booking)"
+        *ngIf="canCancel(booking)"
+        [disabled]="(loading$ | async) || false"
+        matTooltip="Request Cancellation"
+        matTooltipPosition="above">
+        <mat-icon>cancel</mat-icon>
+      </button>
+
+      <button 
+        mat-icon-button 
+        (click)="reset()"
+        matTooltip="Find Another Booking"
+        matTooltipPosition="above">
+        <mat-icon>search</mat-icon>
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>

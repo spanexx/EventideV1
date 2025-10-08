@@ -10,6 +10,12 @@ import {
   IsMongoId,
 } from 'class-validator';
 
+export enum AvailabilityStatus {
+  ACTIVE = 'active',
+  CANCELLED = 'cancelled',
+  OVERRIDE = 'override',
+}
+
 export enum AvailabilityType {
   RECURRING = 'recurring',
   ONE_OFF = 'one_off',
@@ -41,6 +47,37 @@ export class Availability {
   })
   @IsEnum(AvailabilityType)
   type: AvailabilityType;
+
+  @Prop({ type: String, required: false, index: true })
+  @IsString()
+  @IsOptional()
+  templateId?: string;
+
+  @Prop({ type: Boolean, default: false })
+  @IsBoolean()
+  isTemplate: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  @IsBoolean()
+  isInstantiated: boolean;
+
+  @Prop({
+    type: String,
+    enum: AvailabilityStatus,
+    default: AvailabilityStatus.ACTIVE,
+    required: true,
+  })
+  @IsEnum(AvailabilityStatus)
+  status: AvailabilityStatus;
+
+  @Prop({ type: Number, default: 1, min: 1, required: true })
+  @IsNumber()
+  maxBookings: number;
+
+  @Prop({ type: String })
+  @IsOptional()
+  @IsString()
+  cancellationReason?: string;
 
   // For recurring availability
   @Prop({ type: Number, enum: DayOfWeek, required: false })
@@ -85,8 +122,32 @@ export const AvailabilitySchema = SchemaFactory.createForClass(Availability);
 // Index for efficient querying by provider and date
 AvailabilitySchema.index({ providerId: 1, date: 1 });
 AvailabilitySchema.index({ providerId: 1, dayOfWeek: 1 });
-// Unique index to prevent overlapping duplicates at the exact same start time
-AvailabilitySchema.index({ providerId: 1, startTime: 1 }, { unique: true });
+// Unique compound indexes to prevent duplicates based on slot type
+AvailabilitySchema.index(
+  { 
+    providerId: 1, 
+    type: 1,
+    dayOfWeek: 1,
+    startTime: 1 
+  }, 
+  { 
+    unique: true,
+    partialFilterExpression: { type: AvailabilityType.RECURRING }
+  }
+);
+
+AvailabilitySchema.index(
+  { 
+    providerId: 1,
+    type: 1,
+    date: 1,
+    startTime: 1 
+  }, 
+  { 
+    unique: true,
+    partialFilterExpression: { type: AvailabilityType.ONE_OFF }
+  }
+);
 
 // Ensure the virtual id property is correctly set up
 AvailabilitySchema.virtual('id').get(function () {

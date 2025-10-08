@@ -18,10 +18,7 @@ const routes: Routes = [
         path: 'availability', 
         loadComponent: () => import('./pages/availability/availability.component').then(m => m.AvailabilityComponent) 
       },
-      // { 
-      //   path: 'availability-improved', 
-      //   loadComponent: () => import('./pages/availability/availability-improved.component').then(m => m.AvailabilityImprovedComponent) 
-      // },
+
       { 
         path: 'bookings', 
         loadComponent: () => import('./pages/bookings/bookings.component').then(m => m.BookingsComponent) 

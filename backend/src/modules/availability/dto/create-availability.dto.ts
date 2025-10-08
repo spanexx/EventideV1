@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AvailabilityType, DayOfWeek } from '../availability.schema';
+import { AvailabilityType, DayOfWeek, AvailabilityStatus } from '../availability.schema';
 
 export class CreateAvailabilityDto {
   @ApiProperty({ description: 'The provider ID for this availability slot' })
@@ -51,6 +51,21 @@ export class CreateAvailabilityDto {
   @IsOptional()
   @IsBoolean()
   isBooked?: boolean;
+
+  @ApiPropertyOptional({ description: 'The maximum number of bookings allowed for this slot', default: 1, minimum: 1 })
+  @IsOptional()
+  @IsNumber()
+  maxBookings?: number = 1;
+
+  @ApiPropertyOptional({ description: 'The status of the availability slot', enum: AvailabilityStatus, default: AvailabilityStatus.ACTIVE })
+  @IsOptional()
+  @IsEnum(AvailabilityStatus)
+  status?: AvailabilityStatus = AvailabilityStatus.ACTIVE;
+
+  @ApiPropertyOptional({ description: 'The reason for cancellation if the slot is cancelled' })
+  @IsOptional()
+  @IsString()
+  cancellationReason?: string;
 
   @ApiPropertyOptional({ description: 'The booking ID if this slot is booked' })
   @IsOptional()

@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
-import * as DashboardActions from '../../store/actions/dashboard.actions';
-import * as DashboardSelectors from '../../store/selectors/dashboard.selectors';
+import * as DashboardActions from '../../store-dashboard/actions/dashboard.actions';
+import * as DashboardSelectors from '../../store-dashboard/selectors/dashboard.selectors';
 import { DashboardStats } from '../../models/dashboard.models';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';

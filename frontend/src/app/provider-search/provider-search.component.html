@@ -1,0 +1,49 @@
+<div class="provider-search-container">
+  <!-- Header Component -->
+  <app-provider-search-header
+    [searchQuery]="searchQuery"
+    [selectedRating]="selectedRating"
+    (searchQueryChange)="searchQuery = $event"
+    (search)="search()"
+    (ratingSelect)="selectRating($event)"
+    (ratingClear)="clearRating()">
+  </app-provider-search-header>
+
+  <!-- Category Component -->
+  <app-provider-search-category
+    [loading]="loading"
+    [availableCategories]="availableCategories"
+    [selectedCategory]="selectedCategory"
+    [visibleCategories]="getVisibleCategories()"
+    [hiddenCategories]="getHiddenCategories()"
+    (categorySelect)="selectCategory($event)">
+  </app-provider-search-category>
+
+  <!-- Error Message -->
+  <div *ngIf="error" class="error-message">
+    <mat-icon>error</mat-icon>
+    <p>{{ error }}</p>
+  </div>
+
+  <!-- Results Component -->
+  <app-provider-search-results
+  [loading]="loading"
+  [providers]="getPaginatedProviders()"
+  [selectedRating]="selectedRating"
+  [selectedCountry]="selectedCountry"
+  [selectedCity]="selectedCity"
+  [availableCountries]="availableCountries"
+  [availableCities]="availableCities"
+  [currentPage]="currentPage"
+  [pageSize]="pageSize"
+  [totalProviders]="totalProviders"
+  [totalPages]="totalPages"
+  (viewProvider)="viewProvider($event)"
+  (bookProvider)="bookProvider($event)"
+  (countryChange)="selectCountry($event)"
+  (cityChange)="selectCity($event)"
+  (pageChange)="onPageChange($event)"
+  (previousPage)="previousPage()"
+  (nextPage)="nextPage()">
+</app-provider-search-results>
+</div>

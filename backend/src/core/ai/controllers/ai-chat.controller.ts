@@ -1,7 +1,11 @@
 import {
   Controller,
   Post,
+  Get,
   Body,
+  Param,
+  Query,
+  Request,
   UseGuards,
   Logger,
   HttpCode,
@@ -16,6 +20,8 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { AiChatService } from '../services/ai-chat.service';
+import { AiChatMessageService } from '../services/ai-chat-message.service';
+import { AiChatSessionService } from '../services/ai-chat-session.service';
 import { ProcessChatRequestDto, ChatResponseDto } from '../dto/ai-chat.dto';
 
 @ApiTags('ai-chat')
@@ -23,7 +29,11 @@ import { ProcessChatRequestDto, ChatResponseDto } from '../dto/ai-chat.dto';
 export class AiChatController {
   private readonly logger = new Logger(AiChatController.name);
 
-  constructor(private readonly aiChatService: AiChatService) {}
+  constructor(
+    private readonly aiChatService: AiChatService,
+    private readonly chatMessageService: AiChatMessageService,
+    private readonly chatSessionService: AiChatSessionService
+  ) {}
 
   /**
    * Process natural language chat message and execute appropriate actions
@@ -134,5 +144,88 @@ export class AiChatController {
     );
     
     return validation;
+  }
+
+  /**
+   * Create a new chat session
+   */
+  @Post('sessions')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Create new chat session',
+    description: 'Creates a new chat session for the authenticated user'
+  })
+  @ApiResponse({ 
+    status: 201, 
+    description: 'Chat session created successfully'
+  })
+  async createSession(
+    @Request() req: any
+  ) {
+    this.logger.log(`Creating chat session for user: ${req.user.id}`);
+    return this.chatSessionService.createChatSession(req.user.id);
+  }
+
+  /**
+   * Get chat session details
+   */
+  @Get('sessions/:sessionId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get chat session details',
+    description: 'Retrieves details of a specific chat session'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Chat session retrieved successfully'
+  })
+  async getSession(
+    @Param('sessionId') sessionId: string
+  ) {
+    return this.chatSessionService.getChatSession(sessionId);
+  }
+
+  /**
+   * Get recent messages from a chat session
+   */
+  @Get('sessions/:sessionId/messages')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Get chat messages',
+    description: 'Retrieves recent messages from a chat session'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Chat messages retrieved successfully'
+  })
+  async getMessages(
+    @Param('sessionId') sessionId: string,
+    @Query('limit') limit?: number
+  ) {
+    return this.chatSessionService.getRecentMessages(sessionId, limit);
+  }
+
+  /**
+   * Update chat session context
+   */
+  @Post('sessions/:sessionId/context')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Update chat context',
+    description: 'Updates the context for a specific chat session'
+  })
+  @ApiResponse({ 
+    status: 200, 
+    description: 'Chat context updated successfully'
+  })
+  async updateContext(
+    @Param('sessionId') sessionId: string,
+    @Body() context: any
+  ) {
+    return this.chatSessionService.updateContext(sessionId, context);
   }
 }
