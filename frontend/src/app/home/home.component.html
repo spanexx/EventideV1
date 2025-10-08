@@ -49,13 +49,12 @@
       
       <div class="search-container">
         <div class="search-wrapper">
-          <mat-icon class="search-icon">search</mat-icon>
-          <input 
-            type="text"
-            class="search-input"
-            placeholder="Search providers, services, or locations..."
-            [(ngModel)]="searchQuery"
-            (keyup.enter)="search()">
+          <div class="search-input-container">
+            <app-search-suggestions
+              [(searchQuery)]="searchQuery"
+              (search)="search()">
+            </app-search-suggestions>
+          </div>
           <button class="search-button" (click)="search()">
             Search
             <mat-icon>arrow_forward</mat-icon>

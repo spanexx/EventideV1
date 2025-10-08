@@ -1,363 +1,490 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
+import { Router, ActivatedRoute } from '@angular/router';
 import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
-
-interface Provider {
-  _id: string;
-  name: string;
-  email: string;
-  role: string;
-  businessName?: string;
-  businessDescription?: string;
-  specialties?: string[];
-  rating?: number;
-}
+import { Store } from '@ngrx/store';
+import { Subject, combineLatest } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { ProviderSearchHeaderComponent } from './components/provider-search-header.component';
+import { ProviderSearchCategoryComponent } from './components/provider-search-category.component';
+import { ProviderSearchResultsComponent } from './components/provider-search-results.component';
+import { Provider, ProviderService } from './services/provider.service';
+import { ProviderScoringService } from './services/provider-scoring.service';
+import { ProviderFilterService } from './services/provider-filter.service';
+import * as SearchFiltersActions from '../store/search-filters/search-filters.actions';
+import * as SearchFiltersSelectors from '../store/search-filters/search-filters.selectors';
+import * as ProvidersActions from '../store/providers/providers.actions';
+import * as ProvidersSelectors from '../store/providers/providers.selectors';
 
 @Component({
   selector: 'app-provider-search',
   standalone: true,
   imports: [
     CommonModule,
-    FormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatButtonModule,
-    MatCardModule,
     MatIconModule,
-    MatProgressSpinnerModule
+    ProviderSearchHeaderComponent,
+    ProviderSearchCategoryComponent,
+    ProviderSearchResultsComponent
   ],
-  template: `
-    <div class="provider-search-container">
-      <div class="search-header">
-        <h1>Find a Provider</h1>
-        <p>Search for service providers by name, specialty, or business</p>
-      </div>
-
-      <div class="search-box">
-        <mat-form-field appearance="outline" class="search-field">
-          <mat-label>Search providers...</mat-label>
-          <input 
-            matInput 
-            [(ngModel)]="searchQuery" 
-            (keyup.enter)="search()"
-            placeholder="Enter name, specialty, or business name">
-          <mat-icon matSuffix>search</mat-icon>
-        </mat-form-field>
-        <button mat-raised-button color="primary" (click)="search()">
-          Search
-        </button>
-      </div>
-
-      <div *ngIf="loading" class="loading">
-        <mat-spinner diameter="40"></mat-spinner>
-        <p>Searching providers...</p>
-      </div>
-
-      <div *ngIf="error" class="error-message">
-        <mat-icon>error</mat-icon>
-        <p>{{ error }}</p>
-      </div>
-
-      <div *ngIf="!loading && providers.length === 0 && searched" class="no-results">
-        <mat-icon>search_off</mat-icon>
-        <p>No providers found matching your search.</p>
-        <p class="hint">Try different keywords or browse all providers.</p>
-      </div>
-
-      <div class="providers-grid" *ngIf="!loading && providers.length > 0">
-        <mat-card *ngFor="let provider of providers" class="provider-card">
-          <mat-card-header>
-            <div class="provider-avatar" mat-card-avatar>
-              <mat-icon>person</mat-icon>
-            </div>
-            <mat-card-title>{{ provider.businessName || provider.name }}</mat-card-title>
-            <mat-card-subtitle>{{ provider.email }}</mat-card-subtitle>
-          </mat-card-header>
-          
-          <mat-card-content>
-            <p *ngIf="provider.businessDescription" class="description">
-              {{ provider.businessDescription }}
-            </p>
-            
-            <div *ngIf="provider.specialties && provider.specialties.length > 0" class="specialties">
-              <mat-icon>local_offer</mat-icon>
-              <span *ngFor="let specialty of provider.specialties" class="specialty-tag">
-                {{ specialty }}
-              </span>
-            </div>
-            
-            <div *ngIf="provider.rating" class="rating">
-              <mat-icon>star</mat-icon>
-              <span>{{ provider.rating }} / 5</span>
-            </div>
-          </mat-card-content>
-          
-          <mat-card-actions>
-            <button mat-button color="primary" (click)="viewProvider(provider._id)">
-              <mat-icon>visibility</mat-icon>
-              View Profile
-            </button>
-            <button mat-raised-button color="accent" (click)="bookProvider(provider._id)">
-              <mat-icon>event</mat-icon>
-              Book Now
-            </button>
-          </mat-card-actions>
-        </mat-card>
-      </div>
-    </div>
-  `,
-  styles: [`
-    .provider-search-container {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 40px 20px;
-    }
-
-    .search-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-
-    .search-header h1 {
-      font-size: 2.5rem;
-      margin-bottom: 10px;
-      color: #333;
-    }
-
-    .search-header p {
-      font-size: 1.1rem;
-      color: #666;
-    }
-
-    .search-box {
-      display: flex;
-      gap: 10px;
-      max-width: 600px;
-      margin: 0 auto 40px;
-    }
-
-    .search-field {
-      flex: 1;
-    }
-
-    .loading {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-      padding: 60px 20px;
-      color: #666;
-    }
-
-    .error-message {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 20px;
-      background: #ffebee;
-      border-radius: 8px;
-      color: #c62828;
-      margin-bottom: 20px;
-    }
-
-    .no-results {
-      text-align: center;
-      padding: 60px 20px;
-      color: #666;
-    }
-
-    .no-results mat-icon {
-      font-size: 64px;
-      width: 64px;
-      height: 64px;
-      color: #999;
-      margin-bottom: 20px;
-    }
-
-    .no-results .hint {
-      font-size: 0.9rem;
-      color: #999;
-    }
-
-    .providers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-      gap: 20px;
-    }
-
-    .provider-card {
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .provider-avatar {
-      background: #e3f2fd;
-      border-radius: 50%;
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .provider-avatar mat-icon {
-      color: #1976d2;
-    }
-
-    mat-card-content {
-      flex: 1;
-    }
-
-    .description {
-      margin: 10px 0;
-      color: #666;
-      line-height: 1.5;
-    }
-
-    .specialties {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      margin: 15px 0;
-    }
-
-    .specialties mat-icon {
-      font-size: 18px;
-      width: 18px;
-      height: 18px;
-      color: #666;
-    }
-
-    .specialty-tag {
-      background: #e3f2fd;
-      color: #1976d2;
-      padding: 4px 12px;
-      border-radius: 16px;
-      font-size: 0.85rem;
-    }
-
-    .rating {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: #ff9800;
-      margin-top: 10px;
-    }
-
-    .rating mat-icon {
-      font-size: 20px;
-      width: 20px;
-      height: 20px;
-    }
-
-    mat-card-actions {
-      display: flex;
-      gap: 10px;
-      padding: 16px;
-    }
-
-    mat-card-actions button {
-      flex: 1;
-    }
-
-    @media (max-width: 768px) {
-      .providers-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .search-box {
-        flex-direction: column;
-      }
-    }
-  `]
+  templateUrl: './provider-search.component.html',
+  styleUrls: ['./provider-search.component.scss']
 })
-export class ProviderSearchComponent implements OnInit {
+export class ProviderSearchComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   providers: Provider[] = [];
+  allProviders: Provider[] = [];
   loading: boolean = false;
   error: string | null = null;
   searched: boolean = false;
+  
+  // Pagination
+  currentPage: number = 1;
+  pageSize: number = 10;
+  totalProviders: number = 0;
+  totalPages: number = 0;
 
-  private API_URL = `${environment.apiUrl}/users`;
+
+  
+  // Filters
+  selectedCategory: string = '';
+  selectedRating: number = 0;
+  selectedCountry: string = '';
+  selectedCity: string = '';
+  hoverRating: number = 0;
+  availableCategories: string[] = [];
+  availableCountries: string[] = [];
+  availableCities: string[] = [];
+  maxVisibleCategories: number = 6;
+  
+  // Expose Math to template
+  Math = Math;
+
+  private destroy$ = new Subject<void>();
 
   constructor(
-    private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private route: ActivatedRoute,
+    private store: Store,
+    private providerService: ProviderService,
+    private scoringService: ProviderScoringService,
+    private filterService: ProviderFilterService
   ) {}
 
   ngOnInit() {
-    // Load all providers initially
-    this.loadAllProviders();
+    console.log('🌍 Initializing provider search component');
+
+    const searchQuery$ = this.store.select(SearchFiltersSelectors.selectSearchQuery);
+    const selectedCategory$ = this.store.select(SearchFiltersSelectors.selectSelectedCategory);
+    const selectedRating$ = this.store.select(SearchFiltersSelectors.selectSelectedRating);
+    const selectedCountry$ = this.store.select(SearchFiltersSelectors.selectSelectedCountry);
+    const selectedCity$ = this.store.select(SearchFiltersSelectors.selectSelectedCity);
+    const availableCountries$ = this.store.select(SearchFiltersSelectors.selectAvailableCountries);
+    const availableCities$ = this.store.select(SearchFiltersSelectors.selectAvailableCities);
+    const availableCategories$ = this.store.select(SearchFiltersSelectors.selectAvailableCategories);
+
+    // Subscribe to store values
+    searchQuery$.subscribe(q => {
+      console.log('🌍 Search query from store:', q);
+      this.searchQuery = q;
+    });
+    selectedCategory$.subscribe(c => {
+      console.log('🌍 Selected category from store:', c);
+      this.selectedCategory = c;
+    });
+    selectedRating$.subscribe(r => {
+      console.log('🌍 Selected rating from store:', r);
+      this.selectedRating = r;
+    });
+    selectedCountry$.subscribe(c => {
+      console.log('🌍 Selected country from store:', c);
+      this.selectedCountry = c;
+    });
+    selectedCity$.subscribe(c => {
+      console.log('🏙️ Selected city from store:', c);
+      this.selectedCity = c;
+    });
+    availableCountries$.subscribe(c => {
+      console.log('🌍 Available countries from store:', c);
+      this.availableCountries = c;
+    });
+    availableCities$.subscribe(c => {
+      console.log('🏙️ Available cities from store:', c);
+      this.availableCities = c;
+    });
+    availableCategories$.subscribe(c => {
+      console.log('📁 Available categories from store:', c);
+      this.availableCategories = c;
+    });
+
+    // Handle query params
+    this.route.queryParams.subscribe(params => {
+      console.log('🌍 Route params:', params);
+      if (params['search']) {
+        this.store.dispatch(SearchFiltersActions.setSearchQuery({ query: params['search'] }));
+      }
+      if (params['category']) {
+        this.store.dispatch(SearchFiltersActions.setSelectedCategory({ category: params['category'] }));
+      }
+      if (params['rating']) {
+        this.store.dispatch(SearchFiltersActions.setSelectedRating({ rating: parseInt(params['rating']) }));
+      }
+      if (params['country']) {
+        console.log('🌍 Setting country from params:', params['country']);
+        this.store.dispatch(SearchFiltersActions.setSelectedCountry({ country: params['country'] }));
+        this.selectedCountry = params['country'];
+        // Extract cities for the selected country
+        if (this.allProviders.length > 0) {
+          this.extractCitiesForCountry(params['country']);
+        }
+      }
+      if (params['city']) {
+        // Normalize the city name to match the case in available cities
+        const normalizedCity = this.filterService.normalizeCityName(params['city'], this.availableCities);
+        this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: normalizedCity }));
+        this.selectedCity = normalizedCity;
+      }
+      
+      this.loadAllProviders();
+    });
   }
 
-  loadAllProviders() {
-    this.loading = true;
-    this.error = null;
 
-    this.http.get<Provider[]>(`${this.API_URL}/providers`).subscribe({
-      next: (providers) => {
-        this.providers = providers;
-        this.loading = false;
-        console.log('✅ Loaded providers:', providers.length);
-      },
-      error: (err) => {
-        this.error = 'Failed to load providers. Please try again.';
-        this.loading = false;
-        console.error('❌ Error loading providers:', err);
+  loadAllProviders() {
+    // Subscribe to providers from store first
+    combineLatest([
+      this.store.select(ProvidersSelectors.selectAllProviders),
+      this.store.select(ProvidersSelectors.selectProvidersLoading),
+      this.store.select(ProvidersSelectors.selectProvidersError),
+      this.store.select(ProvidersSelectors.selectIsCacheValid)
+    ]).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(([providers, loading, error, isCacheValid]) => {
+      this.allProviders = providers;
+      this.loading = loading;
+      this.error = error;
+      
+      // If we have cached providers, use them immediately
+      if (providers.length > 0 && isCacheValid) {
+        console.log('✅ Using cached providers:', providers.length);
+        this.loading = false; // Set loading to false for cached data
+        
+        // Extract filter options
+        this.extractCategories();
+        this.extractCountries();
+        
+        // If country is selected, extract cities
+        if (this.selectedCountry) {
+          this.extractCitiesForCountry(this.selectedCountry);
+          
+          // Normalize city name if needed
+          if (this.selectedCity) {
+            const normalizedCity = this.filterService.getProperCasedCity(this.selectedCity, this.availableCities);
+            if (normalizedCity !== this.selectedCity) {
+              this.selectedCity = normalizedCity;
+              this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: normalizedCity }));
+            }
+          }
+        }
+        
+        this.applyFilters();
+      } else if (providers.length > 0 && !loading) {
+        // Fresh data loaded
+        console.log('✅ Providers loaded from API:', providers.length);
+        
+        // Extract filter options
+        this.extractCategories();
+        this.extractCountries();
+        
+        // If country is selected, extract cities
+        if (this.selectedCountry) {
+          this.extractCitiesForCountry(this.selectedCountry);
+          
+          // Normalize city name if needed
+          if (this.selectedCity) {
+            const normalizedCity = this.filterService.getProperCasedCity(this.selectedCity, this.availableCities);
+            if (normalizedCity !== this.selectedCity) {
+              this.selectedCity = normalizedCity;
+              this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: normalizedCity }));
+            }
+          }
+        }
+        
+        this.applyFilters();
       }
     });
+    
+    // Dispatch action to load providers (will use cache if valid)
+    this.store.dispatch(ProvidersActions.loadProviders());
+  }
+
+  extractCategories() {
+    this.availableCategories = this.filterService.extractCategories(this.allProviders);
+    this.store.dispatch(SearchFiltersActions.setAvailableCategories({ categories: this.availableCategories }));
+  }
+
+  extractCountries() {
+    this.availableCountries = this.filterService.extractCountries(this.allProviders);
+    this.store.dispatch(SearchFiltersActions.setAvailableCountries({ countries: this.availableCountries }));
+  }
+  
+  extractCitiesForCountry(country: string) {
+    this.availableCities = this.filterService.extractCitiesForCountry(this.allProviders, country);
+    this.store.dispatch(SearchFiltersActions.setAvailableCities({ cities: this.availableCities }));
+    
+    // Normalize selected city if needed
+    if (this.selectedCity) {
+      const normalizedCity = this.filterService.getProperCasedCity(this.selectedCity, this.availableCities);
+      if (normalizedCity !== this.selectedCity) {
+        this.selectedCity = normalizedCity;
+        this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: normalizedCity }));
+      }
+    }
+  }
+
+  applyFilters() {
+    console.log('🔍 Applying scoring and filters:', {
+      searchQuery: this.searchQuery,
+      selectedCategory: this.selectedCategory,
+      selectedRating: this.selectedRating,
+      selectedCountry: this.selectedCountry,
+      selectedCity: this.selectedCity,
+      totalProviders: this.allProviders.length
+    });
+  
+    // Use scoring service to score and sort providers
+    const scored = this.scoringService.scoreProviders(this.allProviders, {
+      category: this.selectedCategory,
+      city: this.selectedCity,
+      country: this.selectedCountry,
+      searchQuery: this.searchQuery
+    });
+    
+    console.log('📊 Top 10 scored providers:', scored.slice(0, 10).map(p => 
+      `${p.username}(score:${p.matchScore}, rating:${p.rating}, reasons:${p.matchReasons?.join(', ')})`
+    ));
+  
+    // Apply hard filters using scoring service
+    const usernameSearch = this.searchQuery.startsWith('@') ? this.searchQuery.substring(1) : undefined;
+    const filtered = this.scoringService.applyHardFilters(scored, {
+      rating: this.selectedRating,
+      usernameSearch
+    });
+  
+    this.providers = filtered;
+    this.totalProviders = filtered.length;
+    this.totalPages = Math.ceil(this.totalProviders / this.pageSize);
+    this.currentPage = 1;
+  
+    console.log('📊 Scored and filtered results:', this.totalProviders, 'providers');
+    console.log('Top 5 by relevance:', this.providers.slice(0, 5).map(p => 
+      `${p.username}(score:${p.matchScore}, rating:${p.rating})`
+    ));
   }
 
   search() {
-    if (!this.searchQuery.trim()) {
-      this.loadAllProviders();
-      return;
-    }
-
-    this.loading = true;
-    this.error = null;
+    this.store.dispatch(SearchFiltersActions.setSearchQuery({ query: this.searchQuery }));
     this.searched = true;
-
-    const query = this.searchQuery.trim().toLowerCase();
-    
-    this.http.get<Provider[]>(`${this.API_URL}/providers`).subscribe({
-      next: (allProviders) => {
-        // Filter providers based on search query
-        this.providers = allProviders.filter(provider => 
-          provider.name.toLowerCase().includes(query) ||
-          provider.email.toLowerCase().includes(query) ||
-          provider.businessName?.toLowerCase().includes(query) ||
-          provider.businessDescription?.toLowerCase().includes(query) ||
-          provider.specialties?.some(s => s.toLowerCase().includes(query))
-        );
-        
-        this.loading = false;
-        console.log('✅ Search results:', this.providers.length);
-      },
-      error: (err) => {
-        this.error = 'Search failed. Please try again.';
-        this.loading = false;
-        console.error('❌ Search error:', err);
-      }
-    });
+    this.applyFilters();
   }
 
-  viewProvider(providerId: string) {
+  selectCategory(category: string) {
+    this.store.dispatch(SearchFiltersActions.setSelectedCategory({ category }));
+    this.selectedCategory = category;
+    this.applyFilters();
+  }
+
+  selectRating(rating: number) {
+    this.store.dispatch(SearchFiltersActions.setSelectedRating({ rating }));
+    this.selectedRating = rating;
+    this.hoverRating = 0;
+    console.log(`🌟 Selected rating: ${rating}`);
+    this.applyFilters();
+  }
+
+  clearRating() {
+    this.selectedRating = 0;
+    this.hoverRating = 0;
+    console.log('🌟 Rating filter cleared');
+    this.applyFilters();
+  }
+
+  getVisibleCategories(): string[] {
+    return this.availableCategories.slice(0, this.maxVisibleCategories);
+  }
+
+  getHiddenCategories(): string[] {
+    return this.availableCategories.slice(this.maxVisibleCategories);
+  }
+
+  clearFilters() {
+    this.store.dispatch(SearchFiltersActions.clearFilters());
+    this.selectedCategory = '';
+    this.selectedRating = 0;
+    this.selectedCountry = '';
+    this.selectedCity = '';
+    this.hoverRating = 0;
+    this.searchQuery = '';
+    this.availableCities = []; // Clear cities when clearing filters
+    console.log('🧹 Filters cleared');
+    this.applyFilters();
+  }
+  selectCountry(country: string) {
+    console.log('🌍 Selecting country:', country);
+    console.log('🌍 Available countries:', this.availableCountries);
+    this.store.dispatch(SearchFiltersActions.setSelectedCountry({ country }));
+    this.selectedCountry = country;
+    if (country) {
+      console.log(`🌍 Extracting cities for country: ${country}`);
+      this.extractCitiesForCountry(country);
+      // Clear the selected city if it doesn't match the new country's cities
+      if (this.selectedCity) {
+        const normalizedCity = this.filterService.normalizeCityName(this.selectedCity, this.availableCities);
+        if (normalizedCity !== this.selectedCity) {
+          this.selectedCity = normalizedCity;
+          this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: normalizedCity }));
+        }
+      }
+    } else {
+      this.availableCities = [];
+      this.selectedCity = '';
+      this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: '' }));
+    }
+    this.applyFilters();
+  }
+
+  selectCity(city: string) {
+    // Normalize the city name to match the case in available cities
+    const normalizedCity = this.filterService.normalizeCityName(city, this.availableCities);
+    this.store.dispatch(SearchFiltersActions.setSelectedCity({ city: normalizedCity }));
+    this.selectedCity = normalizedCity;
+    this.applyFilters();
+  }
+
+  getFullName(provider: Provider): string {
+    if (provider.firstName && provider.lastName) {
+      return `${provider.firstName} ${provider.lastName}`;
+    }
+    return provider.name || provider.email;
+  }
+
+  getServices(provider: Provider): string[] {
+    return provider.services || provider.specialties || [];
+  }
+
+  getPaginatedProviders(): Provider[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    return this.providers.slice(start, end);
+  }
+
+  isOutsideRatingRange(provider: Provider): boolean {
+    if (this.selectedRating === 0) return false;
+    
+    const rating = provider.rating || 0;
+    const minRating = this.selectedRating;
+    const maxRating = this.selectedRating < 5 ? this.selectedRating + 0.9 : 5.0;
+    
+    return rating < minRating || rating > maxRating;
+  }
+
+  isFirstBelowRating(index: number): boolean {
+    if (this.selectedRating === 0) return false;
+    
+    const paginatedProviders = this.getPaginatedProviders();
+    const provider = paginatedProviders[index];
+    const rating = provider.rating || 0;
+    
+    const minRating = this.selectedRating;
+    const maxRating = this.selectedRating < 5 ? this.selectedRating + 0.9 : 5.0;
+    
+    // Check if this provider is outside the rating range
+    const isOutsideRange = rating < minRating || rating > maxRating;
+    if (!isOutsideRange) return false;
+    
+    // Check if previous provider was in range (or doesn't exist)
+    if (index === 0) {
+      return true;
+    }
+    
+    const previousProvider = paginatedProviders[index - 1];
+    const prevRating = previousProvider.rating || 0;
+    const prevInRange = prevRating >= minRating && prevRating <= maxRating;
+    
+    return prevInRange;
+  }
+
+  viewProvider(providerId: string | undefined) {
+    if (!providerId) return;
     this.router.navigate(['/provider', providerId]);
   }
 
-  bookProvider(providerId: string) {
+  bookProvider(providerId: string | undefined) {
+    if (!providerId) return;
     this.router.navigate(['/booking', providerId, 'duration']);
+  }
+
+  onPageChange(page: number) {
+    this.currentPage = page;
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.onPageChange(this.currentPage + 1);
+    }
+  }
+
+  previousPage() {
+    if (this.currentPage > 1) {
+      this.onPageChange(this.currentPage - 1);
+    }
+  }
+
+  handlePageClick(page: number | string) {
+    if (typeof page === 'number') {
+      this.onPageChange(page);
+    }
+  }
+
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const maxVisible = 5;
+    
+    if (this.totalPages <= maxVisible) {
+      // Show all pages if total is small
+      for (let i = 1; i <= this.totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      if (this.currentPage > 3) {
+        pages.push('...');
+      }
+      
+      // Show pages around current page
+      const start = Math.max(2, this.currentPage - 1);
+      const end = Math.min(this.totalPages - 1, this.currentPage + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (this.currentPage < this.totalPages - 2) {
+        pages.push('...');
+      }
+      
+      // Always show last page
+      pages.push(this.totalPages);
+    }
+    
+    return pages;
+  }
+
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 }
