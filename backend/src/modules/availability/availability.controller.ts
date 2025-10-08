@@ -29,7 +29,7 @@ import { CreateAllDayAvailabilityDto } from './dto/create-all-day-availability.d
 import { CreateBulkAvailabilityDto } from './dto/create-bulk-availability.dto';
 import { UpdateDaySlotQuantityDto } from './dto/update-day-slot-quantity.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { IAvailability } from './interfaces/availability.interface';
+import { IAvailabilityBase } from './interfaces/availability.interface';
 
 @ApiTags('availability')
 @Controller('availability')
@@ -49,7 +49,7 @@ export class AvailabilityController {
   @ApiBody({ type: CreateAvailabilityDto })
   async create(
     @Body() createAvailabilityDto: CreateAvailabilityDto,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     this.logger.log(
       `Creating availability slot for provider ${createAvailabilityDto.providerId}`,
     );
@@ -67,7 +67,7 @@ export class AvailabilityController {
   @ApiBody({ type: UpdateDaySlotQuantityDto })
   async updateDaySlotQuantity(
     @Body() updateDto: UpdateDaySlotQuantityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     this.logger.log(
       `Adjusting day slot quantity for provider ${updateDto.providerId} on ${updateDto.date}`,
     );
@@ -85,7 +85,7 @@ export class AvailabilityController {
   @ApiBody({ type: CreateAllDayAvailabilityDto })
   async createAllDay(
     @Body() createAllDayAvailabilityDto: CreateAllDayAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     this.logger.log(
       `Creating all-day availability slots for provider ${createAllDayAvailabilityDto.providerId}`,
     );
@@ -104,7 +104,7 @@ export class AvailabilityController {
   @ApiBody({ type: CreateBulkAvailabilityDto })
   async createBulk(
     @Body() createBulkAvailabilityDto: CreateBulkAvailabilityDto,
-  ): Promise<{ created: IAvailability[]; conflicts: any[] }> {
+  ): Promise<{ created: IAvailabilityBase[]; conflicts: any[] }> {
     this.logger.log(
       `Creating bulk availability slots for provider ${createBulkAvailabilityDto.providerId}`,
     );
@@ -141,7 +141,7 @@ export class AvailabilityController {
   async findByProvider(
     @Param('providerId') providerId: string,
     @Query() query: GetAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     this.logger.log(`Retrieving availability for provider ${providerId}`);
     this.logger.log(`Date range: ${query.startDate} to ${query.endDate}`);
     
@@ -166,7 +166,7 @@ export class AvailabilityController {
   @ApiResponse({ status: 200, description: 'Availability slot retrieved successfully', type: Object })
   @ApiResponse({ status: 404, description: 'Availability slot not found' })
   @ApiParam({ name: 'id', description: 'The availability slot ID', type: String })
-  async findById(@Param('id') id: string): Promise<IAvailability> {
+  async findById(@Param('id') id: string): Promise<IAvailabilityBase> {
     this.logger.log(`Retrieving availability slot with ID ${id}`);
     return this.availabilityService.findById(id);
   }
@@ -191,7 +191,7 @@ export class AvailabilityController {
   async update(
     @Param('id') id: string,
     @Body() updateAvailabilityDto: UpdateAvailabilityDto,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     this.logger.log(`Updating availability slot with ID ${id}`);
     return this.availabilityService.update(id, updateAvailabilityDto);
   }

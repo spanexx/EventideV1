@@ -1,16 +1,76 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Availability, AvailabilityDocument, AvailabilityType } from '../availability.schema';
+import { Model, Types } from 'mongoose';
+import { Availability, AvailabilityDocument, AvailabilityType, AvailabilityStatus } from '../availability.schema';
 import { CreateAvailabilityDto } from '../dto/create-availability.dto';
 import { UpdateAvailabilityDto } from '../dto/update-availability.dto';
 import { CreateAllDayAvailabilityDto } from '../dto/create-all-day-availability.dto';
 import { CreateBulkAvailabilityDto } from '../dto/create-bulk-availability.dto';
-import { IAvailability } from '../interfaces/availability.interface';
+import { IAvailabilityBase, IAvailabilityDocument } from '../interfaces/availability.interface';
 import { AvailabilityValidationService } from './availability-validation.service';
 import { AvailabilityCacheService } from './availability-cache.service';
 import { AvailabilityEventsService } from './availability-events.service';
 import { AvailabilitySlotGeneratorService } from './availability-slot-generator.service';
+
+/**
+ * Type guard to check if a value is an AvailabilityDocument
+ * @param value - Value to check
+ * @returns True if value is an AvailabilityDocument
+ */
+export function isAvailabilityDocument(value: any): value is AvailabilityDocument {
+  return value?._id instanceof Types.ObjectId && 
+         typeof value?.providerId === 'string' &&
+         value?.type in AvailabilityType;
+}
+
+/**
+ * Type guard to check if a value is an IAvailabilityBase
+ * @param value - Value to check
+ * @returns True if value is an IAvailabilityBase
+ */
+export function isAvailabilityBase(value: any): value is IAvailabilityBase {
+  return typeof value?.id === 'string' &&
+         typeof value?.providerId === 'string' &&
+         value?.type in AvailabilityType &&
+         value?.startTime instanceof Date &&
+         value?.endTime instanceof Date;
+}
+
+/**
+ * Type to represent availability data with optional fields
+ */
+export type PartialAvailabilityData = Partial<IAvailabilityBase> & {
+  providerId: string;
+  type: AvailabilityType;
+};
+
+/**
+ * Convert a Mongoose document to a plain object with proper typing
+ * @param doc - Mongoose availability document  
+ * @returns Plain object representation with required fields
+ */
+export function toAvailabilityBase(doc: AvailabilityDocument | IAvailabilityDocument): IAvailabilityBase {
+  return {
+    id: doc._id.toString(),
+    providerId: doc.providerId,
+    type: doc.type,
+    dayOfWeek: doc.dayOfWeek,
+    date: doc.date,
+    startTime: doc.startTime,
+    endTime: doc.endTime,
+    duration: doc.duration,
+    isBooked: doc.isBooked,
+    maxBookings: doc.maxBookings,
+    status: doc.status as AvailabilityStatus,
+    isTemplate: doc.isTemplate || false,
+    isInstantiated: doc.isInstantiated || false,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+    templateId: doc.templateId,
+    bookingId: doc.bookingId,
+    cancellationReason: doc.cancellationReason
+  };
+}
 
 @Injectable()
 export class AvailabilityCreationService {
@@ -27,18 +87,30 @@ export class AvailabilityCreationService {
 
   /**
    * Create a single availability slot
+   * @param createAvailabilityDto - DTO containing availability slot data
+   * @returns Created availability slot
+   * @throws NotFoundException if validation fails
    */
-  async create(createAvailabilityDto: CreateAvailabilityDto): Promise<IAvailability> {
+  async create(createAvailabilityDto: CreateAvailabilityDto): Promise<IAvailabilityBase> {
     try {
       // Check idempotency
       if (createAvailabilityDto.idempotencyKey) {
-        const cached = await this.cacheService.getIdempotencyCache<IAvailability>(
+        const cached = await this.cacheService.getIdempotencyCache<IAvailabilityBase>(
           `create:${createAvailabilityDto.idempotencyKey}`
         );
         if (cached) {
           this.logger.log('Returning cached idempotent create result');
           return cached;
         }
+      }
+
+      // Set template flags for recurring slots
+      if (createAvailabilityDto.type === AvailabilityType.RECURRING) {
+        createAvailabilityDto['isTemplate'] = true;
+        createAvailabilityDto['isInstantiated'] = false;
+      } else {
+        createAvailabilityDto['isTemplate'] = false;
+        createAvailabilityDto['isInstantiated'] = false;
       }
 
       // Validate conflicts
@@ -57,11 +129,11 @@ export class AvailabilityCreationService {
       if (createAvailabilityDto.idempotencyKey) {
         await this.cacheService.setIdempotencyCache(
           `create:${createAvailabilityDto.idempotencyKey}`,
-          result
+          toAvailabilityBase(result)
         );
       }
 
-      return result;
+      return toAvailabilityBase(result);
     } catch (error) {
       this.logger.error(
         `Failed to create availability slot: ${error.message}`,
@@ -76,7 +148,7 @@ export class AvailabilityCreationService {
    */
   async createAllDaySlots(
     createAllDayAvailabilityDto: CreateAllDayAvailabilityDto
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     const { 
       providerId, 
       date,
@@ -139,14 +211,14 @@ export class AvailabilityCreationService {
       idempotencyKey?: string;
     } = {}
   ): Promise<{
-    created: IAvailability[];
+    created: IAvailabilityBase[];
     conflicts: any[];
   }> {
     try {
       // Check idempotency
       if (options.idempotencyKey) {
         const cached = await this.cacheService.getIdempotencyCache<{
-          created: IAvailability[];
+          created: IAvailabilityBase[];
           conflicts: any[];
         }>(`bulk:${options.idempotencyKey}`);
         if (cached) {
@@ -155,7 +227,7 @@ export class AvailabilityCreationService {
         }
       }
 
-      const createdSlots: IAvailability[] = [];
+      const createdSlots: IAvailabilityBase[] = [];
       const conflicts: any[] = [];
 
       // Validate and create slots
@@ -175,7 +247,7 @@ export class AvailabilityCreationService {
           }
 
           const result = await this.availabilityModel.create(slot);
-          createdSlots.push(result);
+          createdSlots.push(toAvailabilityBase(result));
         } catch (error) {
           this.logger.error(
             `Failed to create slot in batch: ${error.message}`,

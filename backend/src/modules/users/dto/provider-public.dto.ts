@@ -10,6 +10,11 @@ export class ProviderPublicDto {
   @IsEmail()
   email: string;
 
+  @ApiProperty({ description: 'Username', required: false })
+  @IsString()
+  @IsOptional()
+  username?: string;
+
   @ApiProperty({ description: 'First name', required: false })
   @IsString()
   @IsOptional()
@@ -45,10 +50,20 @@ export class ProviderPublicDto {
   @IsOptional()
   contactPhone?: string;
 
-  @ApiProperty({ description: 'Services offered', required: false })
+  @ApiProperty({ description: 'Services', required: false })
   @IsArray()
   @IsOptional()
   services?: string[];
+
+  @ApiProperty({ description: 'Industry categories', required: false })
+  @IsArray()
+  @IsOptional()
+  categories?: string[];
+
+  @ApiProperty({ description: 'Custom categories', required: false })
+  @IsArray()
+  @IsOptional()
+  customCategories?: string[];
 
   @ApiProperty({ description: 'Available appointment durations', required: false })
   @IsArray()

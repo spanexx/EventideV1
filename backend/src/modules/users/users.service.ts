@@ -125,6 +125,7 @@ export class UsersService {
     return {
       id: user.id,
       email: user.email,
+      username: user.username,
       firstName: user.firstName,
       lastName: user.lastName,
       businessName: user.businessName,
@@ -132,6 +133,8 @@ export class UsersService {
       location: user.location,
       contactPhone: user.contactPhone,
       services: user.services,
+      categories: user.categories,
+      customCategories: user.customCategories,
       availableDurations: user.availableDurations,
       rating: user.rating,
       reviewCount: user.reviewCount,
@@ -156,6 +159,7 @@ export class UsersService {
     // Add search filter
     if (search) {
       query.$or = [
+        { username: { $regex: search, $options: 'i' } },
         { businessName: { $regex: search, $options: 'i' } },
         { firstName: { $regex: search, $options: 'i' } },
         { lastName: { $regex: search, $options: 'i' } },
@@ -179,7 +183,7 @@ export class UsersService {
       this.userModel
         .find(query)
         .select(
-          'id email firstName lastName businessName bio location contactPhone services availableDurations rating reviewCount subscriptionTier picture',
+          'id email username firstName lastName businessName bio location locationDetails contactPhone services categories customCategories availableDurations rating reviewCount subscriptionTier picture',
         )
         .skip(skip)
         .limit(limit)
@@ -194,13 +198,17 @@ export class UsersService {
       providers: results.map((user) => ({
         id: user.id,
         email: user.email,
+        username: user.username,
         firstName: user.firstName,
         lastName: user.lastName,
         businessName: user.businessName,
         bio: user.bio,
         location: user.location,
+        locationDetails: user.locationDetails,
         contactPhone: user.contactPhone,
         services: user.services,
+        categories: user.categories,
+        customCategories: user.customCategories,
         availableDurations: user.availableDurations,
         rating: user.rating,
         reviewCount: user.reviewCount,
@@ -252,12 +260,21 @@ export class UsersService {
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<UserDocument> {
-    const user = await this.findById(id);
-
+    // Remove password from updates (use updatePassword method instead)
     delete updates.password;
 
-    Object.assign(user, updates);
-    return user.save();
+    // Use findByIdAndUpdate to avoid full document validation
+    const user = await this.userModel.findByIdAndUpdate(
+      id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).exec();
+
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found`);
+    }
+
+    return user;
   }
 
   async updatePassword(id: string, newPassword: string): Promise<void> {

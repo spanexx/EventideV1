@@ -3,7 +3,7 @@ import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { FormBuilder, Validators, AbstractControl, ValidationErrors, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { Subject, combineLatest } from 'rxjs';
-import { take, filter, takeUntil } from 'rxjs/operators';
+import { take, filter, takeUntil, tap } from 'rxjs/operators';
 import * as BookingActions from '../../store-bookings/actions/booking.actions';
 import * as BookingSelectors from '../../store-bookings/selectors/booking.selectors';
 import { GuestInfo, Booking } from '../../../shared/models/booking.models';
@@ -11,7 +11,6 @@ import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
-
 
 @Component({
   selector: 'app-guest-information',
@@ -48,7 +47,7 @@ import { MatButtonModule } from '@angular/material/button';
         </mat-form-field>
         
         <div class="actions">
-          <button mat-button (click)="goBack()">Back</button>
+          <button mat-button type="button" (click)="goBack()">Back</button>
           <button mat-raised-button color="primary" type="submit" [disabled]="guestForm.invalid || (loading$ | async)">
             <span *ngIf="!(loading$ | async)">Confirm Booking</span>
             <span *ngIf="loading$ | async">Processing...</span>
@@ -98,15 +97,15 @@ import { MatButtonModule } from '@angular/material/button';
     MatFormFieldModule,
     MatInputModule,
     MatButtonModule
-  ]
+  ],
+  standalone: true
 })
 export class GuestInformationComponent implements OnInit, OnDestroy {
-  guestForm!: any;
+  guestForm: ReturnType<typeof FormBuilder.prototype.group>;
   private destroy$ = new Subject<void>();
-  private providerId!: string;
-  
-  loading$!: any;
-  error$!: any;
+  private providerId: string = '';
+  loading$: ReturnType<typeof Store.prototype.select>;
+  error$: ReturnType<typeof Store.prototype.select>;
   
   constructor(
     private fb: FormBuilder,
@@ -114,11 +113,10 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute,
     private store: Store
   ) {
-    // Add custom phone validator
     this.guestForm = this.fb.group({
       name: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
-      phone: [''],
+      phone: ['', [Validators.pattern(/^(\+\d{1,3})?\d{10,15}$/)]],
       notes: ['']
     }, {
       validators: [this.validatePhoneIfProvided]
@@ -126,9 +124,6 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
     
     this.loading$ = this.store.select(BookingSelectors.selectBookingLoading);
     this.error$ = this.store.select(BookingSelectors.selectBookingError);
-    
-    // Add custom phone validator
-    this.guestForm.get('phone')?.setValidators([Validators.pattern(/^(\+\d{1,3})?\d{10,15}$/)]);
   }
   
   ngOnInit(): void {
@@ -158,9 +153,11 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
       });
 
     // Log booking state
-    this.store.select(BookingSelectors.selectBookingState).subscribe(state => {
-      console.log('📦 [Guest Information] Full booking state:', state);
-    });
+    this.store.select(BookingSelectors.selectBookingState)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(state => {
+        console.log('📦 [Guest Information] Full booking state:', state);
+      });
   }
   
   ngOnDestroy() {
@@ -201,15 +198,20 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
     // Build complete booking request from store
     console.log('🔄 [Guest Information] Building complete booking from store...');
     combineLatest([
-      this.store.select(BookingSelectors.selectDuration),
       this.store.select(BookingSelectors.selectSelectedSlot),
       this.store.select(BookingSelectors.selectGuestInfo)
     ]).pipe(
       take(1),
-      filter(([duration, slot, info]) => !!duration && !!slot && !!info)
-    ).subscribe(([duration, slot, info]) => {
+      filter(([slot, info]) => !!slot && !!info),
+      tap(([slot, info]) => {
+        console.log('📦 [Guest Information] Data for booking:', { 
+          slot,
+          info,
+          duration: slot?.duration
+        });
+      })
+    ).subscribe(([slot, info]) => {
       console.log('📦 [Guest Information] Store data retrieved:');
-      console.log('   - Duration:', duration);
       console.log('   - Selected slot:', slot);
       console.log('   - Guest info:', info);
       
@@ -221,28 +223,67 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
         guestPhone: info!.phone || undefined,
         startTime: slot!.startTime,
         endTime: slot!.endTime,
+        duration: slot!.duration,
         notes: info!.notes || undefined
       };
       
+      if (!booking.availabilityId || !booking.guestEmail || !booking.guestName) {
+        console.error('❌ [Guest Information] Missing required booking data:', booking);
+        return;
+      }
+
       console.log('📋 [Guest Information] Complete booking payload:', booking);
       
       // Dispatch create booking action
       console.log('📤 [Guest Information] Dispatching createBooking action');
       this.store.dispatch(BookingActions.createBooking({ booking }));
-    });
-    
-    // Listen for successful booking creation and navigate
-    this.store.select(BookingSelectors.selectBooking)
+
+      // Wait for loading to start
+      this.store.select(BookingSelectors.selectBookingLoading)
+        .pipe(
+          filter(loading => loading === true),
+          take(1)
+        )
+        .subscribe(() => {
+          console.log('⏳ [Guest Information] Booking creation started...');
+        });
+      
+      // Listen for successful booking creation and navigate
+      combineLatest([
+        this.store.select(BookingSelectors.selectBooking),
+        this.store.select(BookingSelectors.selectBookingError),
+        this.store.select(BookingSelectors.selectBookingLoading)
+      ])
       .pipe(
-        filter(booking => !!booking),
-        take(1),
-        takeUntil(this.destroy$)
+        takeUntil(this.destroy$),
+        tap(([booking, error, loading]: [Booking | null, string | null, boolean]) => {
+          console.log('🔄 [Guest Information] Booking state update:', { 
+            bookingId: booking?.id,
+            error,
+            loading,
+            hasBooking: !!booking,
+            hasError: !!error
+          });
+        }),
+        filter(([_, __, loading]) => loading === false), // Wait for loading to complete
+        take(1)
       )
-      .subscribe((booking) => {
-        console.log('✅ [Guest Information] Booking created successfully:', booking);
-        console.log('🚀 [Guest Information] Navigating to confirmation');
-        this.router.navigate(['/booking', this.providerId, 'confirmation']);
+      .subscribe(([booking, error, _]) => {
+        if (booking) {
+          console.log('✅ [Guest Information] Booking created successfully:', {
+            id: booking.id,
+            status: booking.status,
+            serialKey: booking.serialKey
+          });
+          console.log('🚀 [Guest Information] Navigating to confirmation');
+          this.router.navigate(['/booking', this.providerId, 'confirmation']);
+        } else if (error) {
+          console.error('❌ [Guest Information] Booking creation failed:', error);
+        } else {
+          console.error('⚠️ [Guest Information] No booking and no error received');
+        }
       });
+    });
   }
   
   goBack() {

@@ -38,11 +38,9 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
               mat-raised-button
               [color]="selectedSlot?.id === slot.id ? 'primary' : 'basic'"
               (click)="selectSlot(slot)"
-              [disabled]="slot.isBooked"
               class="slot-button">
               <div class="slot-date">{{ slot.startTime | date:'EEE, MMM d' }}</div>
               <div class="slot-time">{{ slot.startTime | date:'shortTime' }}</div>
-              <span *ngIf="slot.isBooked" class="booked-indicator">Booked</span>
             </button>
           </div>
           
@@ -222,15 +220,16 @@ export class AvailabilitySlotsComponent implements OnInit, OnDestroy {
         const currentDateOnly = new Date(this.currentDate);
         currentDateOnly.setHours(0, 0, 0, 0);
         
-        // Filter slots that match BOTH duration AND date
+        // Filter slots that match BOTH duration AND date AND are not booked
         const filtered = slots.filter((slot: any) => {
           const slotDate = new Date(slot.startTime);
           slotDate.setHours(0, 0, 0, 0);
           
           const durationMatches = slot.duration === this.selectedDuration;
           const dateMatches = slotDate.getTime() === currentDateOnly.getTime();
+          const notBooked = !slot.isBooked;
           
-          return durationMatches && dateMatches;
+          return durationMatches && dateMatches && notBooked;
         });
         
         console.log('📊 [Availability Slots] Filtered slots (duration + date match):', filtered.length);

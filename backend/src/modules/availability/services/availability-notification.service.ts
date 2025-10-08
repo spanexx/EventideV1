@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { EmailService } from '../../../core/email/email.service';
-import { IAvailability } from '../interfaces/availability.interface';
+import { IAvailabilityBase } from '../interfaces/availability.interface';
 import { format } from 'date-fns';
 
 @Injectable()
@@ -26,7 +26,7 @@ export class AvailabilityNotificationService {
     }
   }
 
-  async notifyCancellation(availability: IAvailability, recipientEmail: string) {
+  async notifyCancellation(availability: IAvailabilityBase, recipientEmail: string) {
     try {
       await this.emailService.sendTemplatedEmail({
         to: recipientEmail,
@@ -45,8 +45,8 @@ export class AvailabilityNotificationService {
   }
 
   async notifyOverride(
-    original: IAvailability, 
-    override: IAvailability, 
+    original: IAvailabilityBase, 
+    override: IAvailabilityBase, 
     recipientEmail: string
   ) {
     try {
@@ -69,8 +69,8 @@ export class AvailabilityNotificationService {
   }
 
   async notifyUpdate(
-    original: IAvailability, 
-    updated: IAvailability, 
+    original: IAvailabilityBase, 
+    updated: IAvailabilityBase, 
     recipientEmail: string
   ) {
     try {
@@ -92,7 +92,7 @@ export class AvailabilityNotificationService {
     }
   }
 
-  private getChanges(original: IAvailability, updated: IAvailability): string[] {
+  private getChanges(original: IAvailabilityBase, updated: IAvailabilityBase): string[] {
     const changes: string[] = [];
     
     if (format(original.startTime, 'HH:mm') !== format(updated.startTime, 'HH:mm')) {

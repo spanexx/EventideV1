@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
 import { CreateBookingDto } from '../dto/create-booking.dto';
 import { IBooking } from '../interfaces/booking.interface';
-import { IAvailability } from '../../availability/interfaces/availability.interface';
+import { IAvailability, IAvailabilityDocument } from '../../availability/interfaces/availability.interface';
 import { AvailabilityService } from '../../availability/availability.service';
 import { BookingSerialKeyService } from './booking-serial-key.service';
 import { BookingBaseService } from './booking-base.service';
@@ -70,8 +70,18 @@ export class BookingCreationService {
 
     // For single bookings on recurring slots, create a specific instance for the requested date
     let availability = template;
-    if (template.type === 'recurring') {
-      this.logger.log('[BookingCreation] Single booking on recurring slot - validating day match');
+    
+    // Check if this is an instantiated recurring slot (ID format: templateId_YYYY-MM-DD)
+    const isInstantiatedSlot = createBookingDto.availabilityId.includes('_') && 
+                                createBookingDto.availabilityId.match(/_\d{4}-\d{2}-\d{2}$/);
+    
+    if (template.type === 'recurring' && !isInstantiatedSlot) {
+      // Only validate day match if booking directly on a template (not an instance)
+      this.logger.log('[BookingCreation] Single booking on recurring template - validating day match');
+      availability = await this._handleRecurringSlot(template, createBookingDto, session);
+    } else if (template.type === 'recurring' && isInstantiatedSlot) {
+      // This is an instantiated slot - skip day validation, just create the instance
+      this.logger.log('[BookingCreation] Single booking on instantiated recurring slot - skipping day validation');
       availability = await this._handleRecurringSlot(template, createBookingDto, session);
     } else {
       this.logger.log(`[BookingCreation] Single booking on ${template.type} slot - no day validation needed`);
@@ -98,41 +108,50 @@ export class BookingCreationService {
     const provider = await this.usersService.findById(template.providerId);
     const providerTimezone = provider?.preferences?.timezone || 'UTC';
     
-    // Compare times in provider's timezone, not UTC
-    const requestedTimeStr = requestedDate.toLocaleString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false,
-      timeZone: providerTimezone 
-    });
-    const templateTimeStr = templateStartDate.toLocaleString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false,
-      timeZone: providerTimezone 
-    });
+    // Check if this is an instantiated slot (ID has date suffix)
+    const isInstantiatedSlot = createBookingDto.availabilityId.includes('_') && 
+                                createBookingDto.availabilityId.match(/_\d{4}-\d{2}-\d{2}$/);
     
-    // Get day of week in provider's timezone
-    // Convert to provider timezone and get day of week
-    const requestedInProviderTZ = new Date(requestedDate.toLocaleString('en-US', { timeZone: providerTimezone }));
-    const templateInProviderTZ = new Date(templateStartDate.toLocaleString('en-US', { timeZone: providerTimezone }));
-    const requestedDayOfWeek = requestedInProviderTZ.getDay();
-    const actualTemplateDayOfWeek = templateInProviderTZ.getDay();
-
-    // Map day numbers to names for better error messages
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-    // Validate day of week matches in provider's timezone
-    if (actualTemplateDayOfWeek !== requestedDayOfWeek) {
-      const requestedDayName = dayNames[requestedDayOfWeek];
-      const templateDayName = dayNames[actualTemplateDayOfWeek];
-      const requestedDateStr = requestedDate.toLocaleDateString('en-US', { timeZone: providerTimezone });
+    // Only validate day match for non-instantiated slots
+    if (!isInstantiatedSlot) {
+      // Compare times in provider's timezone, not UTC
+      const requestedTimeStr = requestedDate.toLocaleString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false,
+        timeZone: providerTimezone 
+      });
+      const templateTimeStr = templateStartDate.toLocaleString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false,
+        timeZone: providerTimezone 
+      });
       
-      throw new BadRequestException(
-        `Day mismatch: You're trying to book ${requestedDayName} (${requestedDateStr}), ` +
-        `but this recurring slot is for ${templateDayName}s at ${templateTimeStr} (${providerTimezone}). ` +
-        `Please select a ${templateDayName} or choose a different availability slot.`
-      );
+      // Get day of week in provider's timezone
+      // Convert to provider timezone and get day of week
+      const requestedInProviderTZ = new Date(requestedDate.toLocaleString('en-US', { timeZone: providerTimezone }));
+      const templateInProviderTZ = new Date(templateStartDate.toLocaleString('en-US', { timeZone: providerTimezone }));
+      const requestedDayOfWeek = requestedInProviderTZ.getDay();
+      const actualTemplateDayOfWeek = templateInProviderTZ.getDay();
+
+      // Map day numbers to names for better error messages
+      const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+      // Validate day of week matches in provider's timezone
+      if (actualTemplateDayOfWeek !== requestedDayOfWeek) {
+        const requestedDayName = dayNames[requestedDayOfWeek];
+        const templateDayName = dayNames[actualTemplateDayOfWeek];
+        const requestedDateStr = requestedDate.toLocaleDateString('en-US', { timeZone: providerTimezone });
+        
+        throw new BadRequestException(
+          `Day mismatch: You're trying to book ${requestedDayName} (${requestedDateStr}), ` +
+          `but this recurring slot is for ${templateDayName}s at ${templateTimeStr} (${providerTimezone}). ` +
+          `Please select a ${templateDayName} or choose a different availability slot.`
+        );
+      }
+    } else {
+      this.logger.log(`[BookingCreation] Skipping day validation for instantiated slot: ${createBookingDto.availabilityId}`);
     }
 
     // Keep the date from the booking request but use hours from the template
@@ -306,7 +325,7 @@ export class BookingCreationService {
     // Mark all instances as booked in parallel
     const markBookedPromises = instances.map((instance, index) =>
       this.availabilityService.markAsBooked(
-        instance._id.toString(),
+        instance._id?.toString() || instance.id || '',
         createdBookings[index]._id.toString(),
         session
       )
@@ -364,7 +383,8 @@ export class BookingCreationService {
     const newBooking = await this.baseService.create(bookingData, session);
     const provider = await this.usersService.findById(availability.providerId);
     
-    await this._handleBookingNotifications(newBooking, provider, availability._id.toString(), session);
+    const availabilityId = availability._id?.toString() || availability.id || '';
+    await this._handleBookingNotifications(newBooking, provider, availabilityId, session);
     await this._handleBookingCache(createBookingDto, newBooking);
 
     return newBooking;

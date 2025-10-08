@@ -2,6 +2,7 @@ import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { ProcessChatRequestDto, ChatResponseDto, ToolCallDto } from '../dto/ai-chat.dto';
 import { AiAvailabilityService } from './ai-availability.service';
 import { AvailabilityService } from '../../../modules/availability/availability.service';
+import { Availability } from '../../../modules/availability/availability.schema';
 
 interface AITool {
   name: string;
@@ -388,7 +389,8 @@ export class AiChatService {
       params.endDate ? new Date(params.endDate) : undefined
     );
 
-    return await this.aiAvailabilityService.analyzeSchedulePatterns(data);
+    // Cast to Availability[] for the AI service
+    return await this.aiAvailabilityService.analyzeSchedulePatterns(data as Availability[]);
   }
 
   // Helper methods

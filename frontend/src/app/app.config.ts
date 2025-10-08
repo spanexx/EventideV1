@@ -26,6 +26,10 @@ import { calendarReducer } from './dashboard/store-calendar';
 import { CalendarEffects } from './dashboard/store-calendar';
 import { bookingReducer } from './booking-wizard/store-bookings/reducers/booking.reducer';
 import { BookingEffects } from './booking-wizard/store-bookings/effects/booking.effects';
+import { searchFiltersReducer } from './store/search-filters/search-filters.reducer';
+import { providersReducer } from './store/providers/providers.reducer';
+import { ProvidersEffects } from './store/providers/providers.effects';
+
 
 // Function to initialize the app with existing auth state
 function initializeAppFactory(logService: LogService, authService: AuthService, store: Store) {
@@ -60,9 +64,11 @@ export const appConfig: ApplicationConfig = {
       analytics: analyticsReducer,
       availability: availabilityReducer,
       calendar: calendarReducer,
-      booking: bookingReducer
+      booking: bookingReducer,
+      searchFilters: searchFiltersReducer,
+      providers: providersReducer
     }),
-    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects, BookingEffects]),
+    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects, BookingEffects, ProvidersEffects]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     LogService,
     {

@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-Logs
+# Logs
 logs
 *.log
 
@@ -26,7 +26,7 @@ build/
 *.sqlite
 
 # Documentation
-# docs/
+docs/
 *.md
 
 # Temporary files

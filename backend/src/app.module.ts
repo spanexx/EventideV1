@@ -18,6 +18,7 @@ import { BrowserLogsModule } from './modules/browser-logs/browser-logs.module';
 import { LogManagerService } from './core/log-manager/log-manager.service';
 import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
 import { BookingModule } from './modules/booking/booking.module';
+import { SearchModule } from './modules/search/search.module';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { BookingModule } from './modules/booking/booking.module';
     BookingModule,
     BrowserLogsModule,
     BackendLogsModule,
+    SearchModule,
   ],
   controllers: [AppController],
   providers: [AppService, LogManagerService],

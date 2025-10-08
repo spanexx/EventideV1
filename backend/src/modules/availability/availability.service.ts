@@ -7,7 +7,7 @@ import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { CreateAllDayAvailabilityDto } from './dto/create-all-day-availability.dto';
 import { CreateBulkAvailabilityDto } from './dto/create-bulk-availability.dto';
 import { UpdateDaySlotQuantityDto } from './dto/update-day-slot-quantity.dto';
-import { IAvailability } from './interfaces/availability.interface';
+import { IAvailabilityBase } from './interfaces/availability.interface';
 import { AvailabilityBaseService } from './services/availability-base.service';
 import { AvailabilityCacheService } from './services/availability-cache.service';
 import { AvailabilityEventsService } from './services/availability-events.service';
@@ -50,11 +50,11 @@ export class AvailabilityService implements OnModuleInit {
   async findByIdAndLock(
     id: string,
     session: any,
-  ): Promise<IAvailability | null> {
+  ): Promise<IAvailabilityBase | null> {
     return this.baseService.findByIdAndLock(id, session);
   }
 
-  async findAllInstances(providerId: string, startDate: Date, endDate: Date): Promise<IAvailability[]> {
+  async findAllInstances(providerId: string, startDate: Date, endDate: Date): Promise<IAvailabilityBase[]> {
     return this.availabilityModel.find({
       providerId,
       type: 'one_off',
@@ -70,7 +70,7 @@ export class AvailabilityService implements OnModuleInit {
     date: Date,
     startTime: Date,
     session?: any
-  ): Promise<IAvailability | null> {
+  ): Promise<IAvailabilityBase | null> {
     const query = this.availabilityModel.findOne({
       providerId,
       type: 'one_off',
@@ -89,12 +89,12 @@ export class AvailabilityService implements OnModuleInit {
    * Create a specific instance from a recurring availability template
    */
   async createInstanceFromRecurring(
-    template: IAvailability,
+    template: IAvailabilityBase,
     date: Date,
     startTime: Date,
     endTime: Date,
     session: any,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     // Reset any existing instances for this date (development only)
     await this.availabilityModel.deleteMany({
       providerId: template.providerId,
@@ -193,7 +193,7 @@ export class AvailabilityService implements OnModuleInit {
     id: string,
     bookingId: string,
     session: any,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     return this.baseService.markAsBooked(id, bookingId, session);
   }
 
@@ -203,7 +203,7 @@ export class AvailabilityService implements OnModuleInit {
   async markAsAvailable(
     id: string,
     session: any,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     return this.baseService.markAsAvailable(id, session);
   }
 
@@ -212,7 +212,7 @@ export class AvailabilityService implements OnModuleInit {
    */
   async create(
     createAvailabilityDto: CreateAvailabilityDto,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     return this.creationService.create(createAvailabilityDto);
   }
 
@@ -223,14 +223,14 @@ export class AvailabilityService implements OnModuleInit {
     providerId: string,
     startDate?: Date,
     endDate?: Date,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     return this.baseService.findByProviderAndDateRange(providerId, startDate, endDate);
   }
 
   /**
    * Find an availability slot by ID
    */
-  async findById(id: string): Promise<IAvailability> {
+  async findById(id: string): Promise<IAvailabilityBase> {
     return this.baseService.findById(id);
   }
 
@@ -240,7 +240,7 @@ export class AvailabilityService implements OnModuleInit {
   async update(
     id: string,
     updateAvailabilityDto: UpdateAvailabilityDto,
-  ): Promise<IAvailability> {
+  ): Promise<IAvailabilityBase> {
     const original = await this.baseService.findById(id);
     if (!original) {
       throw new NotFoundException(`Availability slot with ID ${id} not found`);
@@ -282,14 +282,14 @@ export class AvailabilityService implements OnModuleInit {
    */
   async createAllDaySlots(
     createAllDayAvailabilityDto: CreateAllDayAvailabilityDto,
-  ): Promise<IAvailability[]> {
+  ): Promise<IAvailabilityBase[]> {
     return this.creationService.createAllDaySlots(createAllDayAvailabilityDto);
   }
 
   /**
    * Adjust the number of slots for a specific day
    */
-  async adjustDaySlotQuantity(updateDto: UpdateDaySlotQuantityDto): Promise<IAvailability[]> {
+  async adjustDaySlotQuantity(updateDto: UpdateDaySlotQuantityDto): Promise<IAvailabilityBase[]> {
     return this.baseService.adjustDaySlotQuantity(updateDto);
   }
 
@@ -298,7 +298,7 @@ export class AvailabilityService implements OnModuleInit {
    */
   async createBulkSlots(
     createBulkAvailabilityDto: CreateBulkAvailabilityDto,
-  ): Promise<{ created: IAvailability[]; conflicts: any[] }> {
+  ): Promise<{ created: IAvailabilityBase[]; conflicts: any[] }> {
     // Convert BulkSlotConfig[] to CreateAvailabilityDto[]
     const slots = createBulkAvailabilityDto.slots?.map(slot => ({
       ...slot,

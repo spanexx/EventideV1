@@ -1,9 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { Availability, AvailabilityDocument, AvailabilityType } from '../availability.schema';
+import { Model, Types } from 'mongoose';
+import { Availability, AvailabilityDocument, AvailabilityType, AvailabilityStatus } from '../availability.schema';
+import { Booking, BookingDocument } from '../../booking/booking.schema';
 import { CachingService } from '../../../core/cache/caching.service';
-import { IAvailability } from '../interfaces/availability.interface';
+import { IAvailabilityBase, IAvailabilityDocument } from '../interfaces/availability.interface';
+
+type AvailabilityLean = Omit<AvailabilityDocument, keyof Document> & { _id: Types.ObjectId };
+type AvailabilityData = Omit<IAvailabilityBase, 'id'> & { _id: Types.ObjectId };
 
 @Injectable()
 export class AvailabilityCacheService {
@@ -12,6 +16,8 @@ export class AvailabilityCacheService {
   constructor(
     @InjectModel(Availability.name)
     private readonly availabilityModel: Model<AvailabilityDocument>,
+    @InjectModel(Booking.name)
+    private readonly bookingModel: Model<BookingDocument>,
     private readonly cacheService: CachingService,
   ) {}
 
@@ -22,37 +28,136 @@ export class AvailabilityCacheService {
     providerId: string,
     startDate?: Date,
     endDate?: Date,
-  ): Promise<IAvailability[]> {
-    const cacheKey = `availability:${providerId}`;
+    includeTemplates: boolean = false,
+  ): Promise<IAvailabilityBase[]> {
+    // If no date range provided, return all slots
+    if (!startDate || !endDate) {
+      return await this.availabilityModel.find({ providerId });
+    }
+
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+
+    const cacheKey = `availability:${providerId}:${start.toISOString()}:${end.toISOString()}`;
 
     try {
       // Try to get the result from the cache first
-      const cachedAvailabilities = await this.cacheService.get<IAvailability[]>(cacheKey);
+      const cachedAvailabilities = await this.cacheService.get<IAvailabilityBase[]>(cacheKey);
       if (cachedAvailabilities) {
         this.logger.debug(`Cache HIT for key: ${cacheKey}`);
-        
-        // If we have date filters, filter the cached results
-        if (startDate && endDate) {
-          return this.filterAvailabilityByDateRange(cachedAvailabilities, startDate, endDate);
-        }
-        
         return cachedAvailabilities;
       }
 
       this.logger.debug(`Cache MISS for key: ${cacheKey}. Fetching from DB.`);
 
-      // If cache miss, fetch from the database
-      const result = await this.availabilityModel.find({ providerId });
+      // Get one-off slots for the date range
+      const oneOffSlots = await this.availabilityModel.find({
+        providerId,
+        type: AvailabilityType.ONE_OFF,
+        date: { $gte: start, $lte: end },
+        status: { $ne: 'cancelled' }
+      }).lean<AvailabilityData[]>();
 
-      // Store the database result in the cache for future requests
-      await this.cacheService.set(cacheKey, result);
+      // Get recurring templates that might apply to this date range
+      // IMPORTANT: Only get templates (isTemplate: true), not instantiated recurring slots
+      const recurringTemplates = await this.availabilityModel.find({
+        providerId,
+        type: AvailabilityType.RECURRING,
+        isTemplate: true,  // Only get templates, not instances
+        status: { $ne: 'cancelled' }
+      }).lean<AvailabilityData[]>();
 
-      // If we have date filters, filter the results
-      if (startDate && endDate) {
-        return this.filterAvailabilityByDateRange(result, startDate, endDate);
+      // Get booked slots
+      const bookedSlots = await this.getBookedSlots(providerId, start, end);
+
+      // Get current time for filtering past slots
+      const now = new Date();
+      
+      // Filter one-off slots that aren't booked, aren't in the past, and convert to IAvailability
+      const availableOneOffSlots = oneOffSlots
+        .filter(slot => {
+          const slotStartTime = new Date(slot.startTime);
+          return !slot.isBooked && 
+                 !bookedSlots[slot._id.toString()] && 
+                 slotStartTime > now; // Exclude past slots
+        })
+        .map(slot => ({
+          id: slot._id.toString(),
+          providerId: slot.providerId,
+          type: slot.type,
+          dayOfWeek: slot.dayOfWeek,
+          date: slot.date,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          duration: slot.duration,
+          isBooked: slot.isBooked,
+          maxBookings: slot.maxBookings,
+          status: slot.status as AvailabilityStatus,
+          isTemplate: false,
+          isInstantiated: false,
+          createdAt: slot.createdAt,
+          updatedAt: slot.updatedAt
+        }));
+
+      // Create a map of existing one-off slots by date+time to prevent duplicates
+      // Include BOTH available and booked slots to prevent conflicts
+      const oneOffSlotMap = new Map<string, boolean>();
+      
+      // Add available slots
+      availableOneOffSlots.forEach(slot => {
+        const key = `${new Date(slot.startTime).toISOString()}_${slot.duration}`;
+        oneOffSlotMap.set(key, true);
+      });
+      
+      // Also add booked one-off slots to prevent recurring instances at same time
+      oneOffSlots.forEach(slot => {
+        if (slot.isBooked || bookedSlots[slot._id.toString()]) {
+          const key = `${new Date(slot.startTime).toISOString()}_${slot.duration}`;
+          oneOffSlotMap.set(key, true);
+        }
+      });
+
+      // Generate instances from recurring templates
+      const recurringInstances: IAvailabilityBase[] = [];
+      for (const template of recurringTemplates) {
+        const instances = this.generateRecurringInstances(template, start, end);
+        
+        // Filter out: booked slots, past slots, and slots that conflict with existing one-off slots
+        const filteredInstances = instances.filter(instance => {
+          if (!instance.id || bookedSlots[instance.id]) {
+            return false; // Skip booked slots
+          }
+          
+          // Skip past slots
+          const instanceStartTime = new Date(instance.startTime);
+          if (instanceStartTime <= now) {
+            return false; // Skip past slots
+          }
+          
+          // Check if a one-off slot already exists at this exact time
+          const key = `${new Date(instance.startTime).toISOString()}_${instance.duration}`;
+          if (oneOffSlotMap.has(key)) {
+            this.logger.debug(`Skipping recurring instance ${instance.id} - conflicts with existing one-off slot at ${instance.startTime}`);
+            return false; // Skip if one-off slot exists
+          }
+          
+          return true;
+        });
+        
+        recurringInstances.push(...filteredInstances);
       }
 
-      return result;
+      // Combine and sort all available slots
+      const availableSlots: IAvailabilityBase[] = [...availableOneOffSlots, ...recurringInstances].sort(
+        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      );
+
+      // Cache the result
+      await this.cacheService.set(cacheKey, availableSlots, 5 * 60); // Cache for 5 minutes
+
+      return availableSlots;
     } catch (error) {
       this.logger.error(
         `Failed to retrieve cached availability: ${error.message}`,
@@ -66,10 +171,11 @@ export class AvailabilityCacheService {
    * Filter availability by date range, handling both recurring and one-off slots
    */
   private filterAvailabilityByDateRange(
-    slots: IAvailability[],
+    slots: IAvailabilityBase[],
     startDate: Date,
     endDate: Date,
-  ): IAvailability[] {
+    bookedSlots: { [key: string]: boolean },
+  ): IAvailabilityBase[] {
     const start = new Date(startDate);
     start.setHours(0, 0, 0, 0);
     
@@ -78,7 +184,7 @@ export class AvailabilityCacheService {
 
     this.logger.debug(`Filtering availability from ${start.toISOString()} to ${end.toISOString()}`);
 
-    const filteredSlots: IAvailability[] = [];
+    const filteredSlots: IAvailabilityBase[] = [];
 
     for (const slot of slots) {
       // Handle ONE-OFF slots
@@ -87,16 +193,38 @@ export class AvailabilityCacheService {
         slotDate.setHours(0, 0, 0, 0);
         
         if (slotDate >= start && slotDate <= end) {
-          filteredSlots.push(slot);
-          this.logger.debug(`Including ONE-OFF slot: ${slot.id} on ${slotDate.toISOString()}`);
+          // Enhanced debug logging
+          this.logger.debug(`ONE-OFF slot ${slot.id} details:
+            - isBooked: ${slot.isBooked}
+            - bookedSlots: ${JSON.stringify(bookedSlots)}
+            - slotDate: ${slotDate.toISOString()}
+            - start: ${start.toISOString()}
+            - end: ${end.toISOString()}`
+          );
+          
+          // Exclude if booked
+          if (!slot.isBooked && slot.id && !bookedSlots[slot.id]) {
+            filteredSlots.push(slot);
+            this.logger.debug(`Including ONE-OFF slot: ${slot.id} on ${slotDate.toISOString()}`);
+          } else {
+            this.logger.debug(`Excluding ONE-OFF slot ${slot.id} due to booking status`);
+          }
         }
       }
       
       // Handle RECURRING slots - generate instances for matching days
       else if (slot.type === AvailabilityType.RECURRING && slot.dayOfWeek !== undefined) {
-        const instances = this.generateRecurringInstances(slot, start, end);
-        filteredSlots.push(...instances);
-        
+        const slotData: AvailabilityData = {
+          ...slot,
+          _id: new Types.ObjectId(slot.id)
+        };
+        const instances = this.generateRecurringInstances(slotData, start, end);
+        for (const instance of instances) {
+          // Exclude if booked
+          if (instance.id && !bookedSlots[instance.id]) {
+            filteredSlots.push(instance);
+          }
+        }
         if (instances.length > 0) {
           this.logger.debug(
             `Generated ${instances.length} instances from RECURRING template (dayOfWeek: ${slot.dayOfWeek})`
@@ -108,29 +236,88 @@ export class AvailabilityCacheService {
     this.logger.debug(`Filtered result: ${filteredSlots.length} slots`);
     return filteredSlots;
   }
+  /**
+   * Get all booked slots for a provider in a date range
+   */
+  private async getBookedSlots(providerId: string, startDate: Date, endDate: Date): Promise<{ [key: string]: boolean }> {
+    this.logger.debug(`Checking booked slots for provider ${providerId} from ${startDate.toISOString()} to ${endDate.toISOString()}`);
+
+    // Get all bookings and booked availabilities in parallel
+    const [bookings, bookedAvailabilities] = await Promise.all([
+      this.bookingModel.find({
+        providerId,
+        startTime: { $gte: startDate, $lte: endDate },
+        status: { $ne: 'cancelled' }
+      }).select('availabilityId startTime serialKey').lean(),
+      
+      this.availabilityModel.find({
+        providerId,
+        isBooked: true,
+        $or: [
+          { date: { $gte: startDate, $lte: endDate } },
+          { type: AvailabilityType.RECURRING }
+        ]
+      }).select('_id type dayOfWeek startTime').lean()
+    ]);
+
+    this.logger.debug(`Found ${bookings.length} bookings and ${bookedAvailabilities.length} booked availabilities`);
+
+    const bookedSlots: { [key: string]: boolean } = {};
+    
+    // Process bookings
+    bookings.forEach(booking => {
+      if (booking.availabilityId) {
+        // For one-off slots
+        bookedSlots[booking.availabilityId] = true;
+        
+        // For recurring slots, also mark the date-specific instance
+        if (booking.startTime && booking.serialKey) {
+          const dateKey = `${booking.availabilityId}_${booking.startTime.toISOString().split('T')[0]}`;
+          bookedSlots[dateKey] = true;
+        }
+      }
+    });
+    
+    // Process booked availabilities
+    bookedAvailabilities.forEach(availability => {
+      bookedSlots[availability._id.toString()] = true;
+    });
+
+    return bookedSlots;
+  }
 
   /**
    * Generate specific instances from a recurring template for a date range
    */
   private generateRecurringInstances(
-    template: IAvailability,
+    template: AvailabilityData,
     startDate: Date,
     endDate: Date,
-  ): IAvailability[] {
-    const instances: IAvailability[] = [];
+  ): IAvailabilityBase[] {
+    const instances: IAvailabilityBase[] = [];
     const current = new Date(startDate);
     
-    // Iterate through each day in the range
+    // Calculate days until first match of dayOfWeek
+    const daysUntilFirst = (template.dayOfWeek! - current.getDay() + 7) % 7;
+    current.setDate(current.getDate() + daysUntilFirst);
+    
+    // Now we're at first matching day, generate instances weekly
     while (current <= endDate) {
-      // Check if this day matches the template's dayOfWeek
-      if (current.getDay() === template.dayOfWeek) {
-        // Create an instance for this specific date
-        const instance = this.createInstanceFromTemplate(template, current);
+      // Only create instance if we haven't passed end date
+      if (current <= endDate) {
+        const instance = this.createInstanceFromTemplate(template, new Date(current));
         instances.push(instance);
+        
+        this.logger.debug(`Generated instance for template ${template._id}:
+          date: ${current.toISOString()}
+          dayOfWeek: ${current.getDay()}
+          startTime: ${instance.startTime}
+          endTime: ${instance.endTime}`
+        );
       }
       
-      // Move to next day
-      current.setDate(current.getDate() + 1);
+      // Jump to next week
+      current.setDate(current.getDate() + 7);
     }
     
     return instances;
@@ -140,9 +327,9 @@ export class AvailabilityCacheService {
    * Create a specific instance from a recurring template for a given date
    */
   private createInstanceFromTemplate(
-    template: IAvailability,
+    template: AvailabilityData,
     date: Date,
-  ): IAvailability {
+  ): IAvailabilityBase {
     // Get the time components from the template
     const templateStart = new Date(template.startTime);
     const templateEnd = new Date(template.endTime);
@@ -166,8 +353,8 @@ export class AvailabilityCacheService {
     
     // Create the instance with the same properties as the template
     // but with specific date and times
-    const instance: IAvailability = {
-      id: `${template.id}_${date.toISOString().split('T')[0]}`, // Unique ID for this instance
+    const instance: IAvailabilityBase = {
+      id: `${template._id.toString()}_${date.toISOString().split('T')[0]}`, // Unique ID for this instance
       providerId: template.providerId, // Preserve provider ID
       type: AvailabilityType.ONE_OFF, // Instances are treated as one-off
       status: template.status,
@@ -178,9 +365,12 @@ export class AvailabilityCacheService {
       duration: template.duration, // Preserve duration
       isBooked: false, // New instances are not booked
       dayOfWeek: undefined, // Remove dayOfWeek from instances
+      isTemplate: false,
+      isInstantiated: true,
+      templateId: template._id.toString(),
       createdAt: template.createdAt,
-      updatedAt: template.updatedAt,
-    } as IAvailability;
+      updatedAt: template.updatedAt
+    };
     
     return instance;
   }

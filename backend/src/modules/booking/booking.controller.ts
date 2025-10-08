@@ -35,7 +35,15 @@ export class BookingController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() createBookingDto: CreateBookingDto): Promise<IBooking | IBooking[]> {
-    return this.bookingService.create(createBookingDto);
+    console.log('🎯 [Booking Controller] Create endpoint called with data:', createBookingDto);
+    try {
+      const result = await this.bookingService.create(createBookingDto);
+      console.log('✅ [Booking Controller] Successfully created booking:', result);
+      return result;
+    } catch (error) {
+      console.error('❌ [Booking Controller] Error creating booking:', error);
+      throw error;
+    }
   }
 
   /**

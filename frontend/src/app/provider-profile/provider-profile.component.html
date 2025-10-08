@@ -1,0 +1,129 @@
+<div class="provider-profile-container">
+  <!-- Top Navigation with Logo -->
+  <div class="profile-nav">
+    <div class="logo-container" (click)="goBack()">
+      <img src="/logo.png" alt="Eventide" class="logo">
+    </div>
+    
+    <button mat-icon-button (click)="goBack()" matTooltip="Back to search" class="back-button">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading" class="loading-container">
+    <mat-spinner diameter="50"></mat-spinner>
+    <p>Loading provider information...</p>
+  </div>
+
+  <!-- Error State -->
+  <div *ngIf="error" class="error-container">
+    <mat-icon class="error-icon">error</mat-icon>
+    <h2>Provider Not Found</h2>
+    <p>{{ error }}</p>
+    <button mat-raised-button color="primary" (click)="goBack()">
+      Go Back
+    </button>
+  </div>
+
+  <!-- Profile Content -->
+  <div *ngIf="provider && !loading" class="profile-content">
+    <!-- Header Section -->
+    <div class="profile-header">
+      <div class="header-main">
+        <div class="provider-avatar">
+          <img 
+            *ngIf="provider.picture" 
+            [src]="provider.picture" 
+            [alt]="getProviderName()"
+            class="avatar-image">
+          <div *ngIf="!provider.picture" class="avatar-placeholder">
+            <mat-icon>person</mat-icon>
+          </div>
+        </div>
+        
+        <div class="provider-info">
+          <h1 class="provider-name">{{ getProviderName() }}</h1>
+          <p class="username" *ngIf="provider.username">@{{ provider.username }}</p>
+          <p class="business-name" *ngIf="provider.businessName && provider.businessName !== getProviderName()">
+            {{ provider.businessName }}
+          </p>
+          
+          <!-- Rating -->
+          <div class="rating-section" *ngIf="provider.rating && provider.rating > 0">
+            <div class="stars">
+              <mat-icon *ngFor="let star of getStars()" class="star-icon filled">star</mat-icon>
+              <mat-icon *ngFor="let star of getEmptyStars()" class="star-icon empty">star_border</mat-icon>
+            </div>
+            <span class="rating-text">{{ provider.rating.toFixed(1) }}</span>
+            <span class="review-count" *ngIf="provider.reviewCount">({{ provider.reviewCount }} reviews)</span>
+          </div>
+
+          <!-- Contact Info -->
+          <div class="contact-info">
+            <div class="info-item" *ngIf="provider.location">
+              <mat-icon>location_on</mat-icon>
+              <span>{{ provider.location }}</span>
+            </div>
+            <div class="info-item" *ngIf="provider.contactPhone">
+              <mat-icon>phone</mat-icon>
+              <span>{{ provider.contactPhone }}</span>
+            </div>
+            <div class="info-item">
+              <mat-icon>email</mat-icon>
+              <span>{{ provider.email }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Book Button -->
+      <div class="header-actions">
+        <button mat-raised-button color="primary" class="book-button" (click)="bookAppointment()">
+          <mat-icon>event</mat-icon>
+          Book Appointment
+        </button>
+      </div>
+    </div>
+
+    <!-- About Section -->
+    <div class="profile-section" *ngIf="provider.bio">
+      <h2 class="section-title">About</h2>
+      <p class="bio-text">{{ provider.bio }}</p>
+    </div>
+
+    <!-- Services Section -->
+    <div class="profile-section" *ngIf="provider.services && provider.services.length > 0">
+      <h2 class="section-title">Services Offered</h2>
+      <div class="services-grid">
+        <div class="service-card" *ngFor="let service of provider.services">
+          <mat-icon class="service-icon">check_circle</mat-icon>
+          <span class="service-name">{{ service }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Availability Section -->
+    <div class="profile-section" *ngIf="provider.availableDurations && provider.availableDurations.length > 0">
+      <h2 class="section-title">Available Appointment Durations</h2>
+      <div class="durations-list">
+        <div class="duration-chip" *ngFor="let duration of provider.availableDurations">
+          <mat-icon>schedule</mat-icon>
+          <span>{{ duration }} minutes</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Footer -->
+    <div class="profile-footer">
+      <button mat-stroked-button (click)="goBack()" class="secondary-button">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Search
+      </button>
+      <button mat-raised-button color="primary" (click)="bookAppointment()" class="primary-button">
+        <mat-icon>event</mat-icon>
+        Book Appointment
+      </button>
+    </div>
+  </div>
+</div>

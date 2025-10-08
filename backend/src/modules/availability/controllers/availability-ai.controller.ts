@@ -31,7 +31,7 @@ import { AIEnhancedResultDto } from '../../../core/ai/dto/ai-enhanced-result.dto
 import { AIValidationResultDto } from '../../../core/ai/dto/ai-validation-result.dto';
 import { AIConflictAnalysis } from '../../../core/ai/interfaces/ai-availability.interface';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
-import { IAvailability } from '../interfaces/availability.interface';
+import { IAvailabilityBase } from '../interfaces/availability.interface';
 
 @ApiTags('availability-ai')
 @Controller('availability/ai')
@@ -62,7 +62,7 @@ export class AvailabilityAiController {
   async createWithAI(
     @Body() createAvailabilityDto: CreateAvailabilityDto,
   ): Promise<{
-    data: IAvailability | null;
+    data: IAvailabilityBase | null;
     aiAnalysis: {
       validation: AIValidationResultDto;
       conflicts?: AIConflictAnalysis;

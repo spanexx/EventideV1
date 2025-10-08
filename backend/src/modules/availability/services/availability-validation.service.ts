@@ -4,7 +4,8 @@ import { Model, Types } from 'mongoose';
 import { Availability, AvailabilityDocument, AvailabilityType } from '../availability.schema';
 import { CreateAvailabilityDto } from '../dto/create-availability.dto';
 import { UpdateAvailabilityDto } from '../dto/update-availability.dto';
-import { IAvailability } from '../interfaces/availability.interface';
+import { IAvailabilityBase, IAvailability } from '../interfaces/availability.interface';
+import { Booking, BookingDocument } from '../../booking/booking.schema';
 
 @Injectable()
 export class AvailabilityValidationService {
@@ -13,6 +14,8 @@ export class AvailabilityValidationService {
   constructor(
     @InjectModel(Availability.name)
     private readonly availabilityModel: Model<AvailabilityDocument>,
+    @InjectModel(Booking.name)
+    private readonly bookingModel: Model<BookingDocument>,
   ) {}
 
   /**
@@ -22,6 +25,7 @@ export class AvailabilityValidationService {
     availabilityDto: CreateAvailabilityDto | UpdateAvailabilityDto,
     excludeId?: string,
   ): Promise<void> {
+    // Check for conflicts with existing availability slots
     const conflicts = await this.findConflicts(availabilityDto, excludeId);
     if (conflicts.length > 0) {
       throw new ConflictException({
@@ -33,6 +37,42 @@ export class AvailabilityValidationService {
         }))
       });
     }
+    
+    // Check for conflicts with existing bookings
+    const bookingConflicts = await this.checkBookingConflicts(availabilityDto);
+    if (bookingConflicts.length > 0) {
+      throw new ConflictException({
+        message: `Cannot create availability slot - conflicts with ${bookingConflicts.length} existing booking(s)`,
+        data: bookingConflicts.map(b => ({
+          bookingId: b.serialKey,
+          startTime: b.startTime,
+          endTime: b.endTime
+        }))
+      });
+    }
+  }
+  
+  /**
+   * Check for conflicts with existing bookings
+   */
+  private async checkBookingConflicts(
+    availabilityDto: CreateAvailabilityDto | UpdateAvailabilityDto
+  ): Promise<any[]> {
+    const { providerId, startTime, endTime } = availabilityDto as any;
+    
+    // Find bookings that overlap with this time slot
+    const bookings = await this.bookingModel.find({
+      providerId,
+      status: { $in: ['confirmed', 'pending', 'in_progress'] },
+      $or: [
+        {
+          startTime: { $lt: endTime },
+          endTime: { $gt: startTime }
+        }
+      ]
+    }).select('serialKey startTime endTime').lean();
+    
+    return bookings;
   }
 
   /**

@@ -3,6 +3,8 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Booking, BookingDocument, BookingStatus } from '../booking.schema';
 import { BookingNotificationService } from './booking-notification.service';
+import { Availability, AvailabilityDocument } from '../../availability/availability.schema';
+import { AvailabilityCacheService } from '../../availability/services/availability-cache.service';
 
 interface CancellationCode {
   bookingId: string;
@@ -21,7 +23,9 @@ export class BookingCancellationService {
 
   constructor(
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
+    @InjectModel(Availability.name) private availabilityModel: Model<AvailabilityDocument>,
     private readonly notificationService: BookingNotificationService,
+    private readonly availabilityCacheService: AvailabilityCacheService,
   ) {
     // Clean up expired codes every 5 minutes
     setInterval(() => this.cleanupExpiredCodes(), 5 * 60 * 1000);
@@ -135,6 +139,18 @@ export class BookingCancellationService {
     booking.status = BookingStatus.CANCELLED;
     booking.updatedAt = new Date();
     await booking.save();
+
+    // Update availability slot's isBooked status
+    if (booking.availabilityId) {
+      const availability = await this.availabilityModel.findById(booking.availabilityId);
+      if (availability) {
+        availability.isBooked = false;
+        await availability.save();
+        
+        // Clear the availability cache to ensure the slot shows up as available
+        await this.availabilityCacheService.clearProviderCache(availability.providerId);
+      }
+    }
 
     // Remove the code
     this.cancellationCodes.delete(key);

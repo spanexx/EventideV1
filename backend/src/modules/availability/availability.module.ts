@@ -2,6 +2,7 @@ import { Module, forwardRef } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EmailModule } from '../../core/email/email.module';
 import { Availability, AvailabilitySchema } from './availability.schema';
+import { Booking, BookingSchema } from '../booking/booking.schema';
 import { AvailabilityService } from './availability.service';
 import { AvailabilityBaseService } from './services/availability-base.service';
 import { AvailabilityCacheService } from './services/availability-cache.service';
@@ -26,6 +27,7 @@ import { AvailabilityCommand } from './commands/availability.command';
   imports: [
     MongooseModule.forFeature([
       { name: Availability.name, schema: AvailabilitySchema },
+      { name: Booking.name, schema: BookingSchema }, // Add Booking model
     ]),
     CustomCacheModule,
     WebsocketsModule,
@@ -52,6 +54,12 @@ import { AvailabilityCommand } from './commands/availability.command';
     AvailabilityAiController, // AI-enhanced controller
     AvailabilityBulkController, // Bulk operations controller
   ],
-  exports: [AvailabilityService],
+  exports: [
+    AvailabilityService,
+    AvailabilityCacheService,
+    MongooseModule.forFeature([
+      { name: Availability.name, schema: AvailabilitySchema }
+    ])
+  ],
 })
 export class AvailabilityModule {}

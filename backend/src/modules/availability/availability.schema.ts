@@ -9,7 +9,6 @@ import {
   IsDate,
   IsMongoId,
 } from 'class-validator';
-import { IAvailability } from './interfaces/availability.interface';
 
 export enum AvailabilityStatus {
   ACTIVE = 'active',
@@ -48,6 +47,19 @@ export class Availability {
   })
   @IsEnum(AvailabilityType)
   type: AvailabilityType;
+
+  @Prop({ type: String, required: false, index: true })
+  @IsString()
+  @IsOptional()
+  templateId?: string;
+
+  @Prop({ type: Boolean, default: false })
+  @IsBoolean()
+  isTemplate: boolean;
+
+  @Prop({ type: Boolean, default: false })
+  @IsBoolean()
+  isInstantiated: boolean;
 
   @Prop({
     type: String,
