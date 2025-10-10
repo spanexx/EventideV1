@@ -1,0 +1,278 @@
+
+:host {
+  display: block;
+  background: var(--background-secondary);
+  min-height: 100vh;
+}
+
+.notifications-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+    .notifications-logo {
+      /* constrain logo size */
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      cursor: pointer;
+      border-radius: 6px;
+    }
+
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 6px;
+      margin-right: 4px;
+    }
+  }
+  
+  .notifications-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+
+    h1 {
+      margin: 0;
+      color: #333;
+      font-size: 24px;
+      font-weight: 600;
+    }
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 12px;
+
+    .action-button {
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+
+  .notifications-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.notifications-content {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+
+  /* Target the mat-card items rendered by the template */
+  .notification-item {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 8px;
+    background: var(--surface-container);
+    border: 1px solid var(--border-subtle);
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+
+    &:hover {
+      background: #f8f9fa;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &.unread {
+      background: #f0f7ff;
+      border-left: 4px solid #2196f3;
+    }
+
+    .notification-icon {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: #f5f5f5;
+
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+
+      &.booking-icon {
+        color: #2196f3;
+        background: #e3f2fd;
+      }
+
+      &.availability-icon {
+        color: #4caf50;
+        background: #e8f5e9;
+      }
+
+      &.system-icon {
+        color: #ff9800;
+        background: #fff3e0;
+      }
+
+      &.payment-icon {
+        color: #9c27b0;
+        background: #f3e5f5;
+      }
+    }
+
+    .notification-content {
+      flex: 1;
+      min-width: 0;
+
+      .notification-title {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 4px;
+        font-size: 14px;
+      }
+
+      .notification-message {
+        color: #666;
+        font-size: 14px;
+        line-height: 1.4;
+        margin-bottom: 8px;
+      }
+
+      .notification-timestamp {
+        font-size: 12px;
+        color: #888;
+      }
+    }
+
+    .notification-actions {
+      flex-shrink: 0;
+      display: flex;
+      gap: 8px;
+
+      button {
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+
+      .read-button {
+        color: #4caf50;
+      }
+
+      .delete-button {
+        color: #f44336;
+      }
+    }
+  }
+
+  /* Empty state (template uses mat-card.no-notifications inside ng-template)
+     Keep selector here so it's scoped to the component */
+  .no-notifications {
+    text-align: center;
+    padding: 48px 24px;
+    color: #666;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+
+    .no-notifications-icon {
+      font-size: 64px;
+      width: 64px;
+      height: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+      color: #bdbdbd;
+    }
+
+    h3 {
+      margin: 0 0 8px 0;
+      font-size: 20px;
+      color: #333;
+    }
+
+    p {
+      margin: 0 0 24px 0;
+      font-size: 14px;
+    }
+
+    button {
+      mat-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .notifications-container {
+    padding: 16px;
+
+    .notifications-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+
+      h1 {
+        font-size: 20px;
+      }
+    }
+
+    .header-actions {
+      width: 100%;
+      justify-content: space-between;
+
+      button {
+        flex: 1;
+      }
+    }
+
+    .notification-item {
+      padding: 12px;
+
+      .notification-icon {
+        width: 32px;
+        height: 32px;
+
+        mat-icon {
+          font-size: 18px;
+          width: 18px;
+          height: 18px;
+        }
+      }
+
+      .notification-content {
+        .notification-title {
+          font-size: 13px;
+        }
+
+        .notification-message {
+          font-size: 13px;
+        }
+
+        .notification-timestamp {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+}

@@ -17,20 +17,19 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { environment } from '../../environments/environment';
 import { ProviderSearchService } from '../services/provider-search.service';
-import { SearchSuggestionsComponent } from '../components/search-suggestions/search-suggestions.component';
+import { ProviderService, Provider } from '../provider-search/services/provider.service';
+// Home subcomponents (standalone)
+import { HeroNavComponent } from './components/hero/hero-nav.component';
+import { HeroSearchBarComponent } from './components/hero/hero-search-bar.component';
+import { HeroStatsComponent } from './components/hero/hero-stats.component';
+import { AnimatedBackgroundComponent } from './components/hero/animated-background.component';
+import { StatsDashboardComponent } from './components/stats-dashboard/stats-dashboard.component';
+import { HowItWorksComponent } from './components/how-it-works/how-it-works.component';
+import { FeaturedProvidersComponent } from './components/featured-providers/featured-providers.component';
+import { TrustSectionComponent } from './components/trust/trust-section.component';
+import { FinalCtaComponent } from './components/final-cta/final-cta.component';
 
-interface Provider {
-  id: string;
-  businessName?: string;
-  firstName?: string;
-  lastName?: string;
-  bio?: string;
-  location?: string;
-  rating?: number;
-  reviewCount?: number;
-  picture?: string;
-  services?: string[];
-}
+// Using shared Provider interface from ProviderService
 
 interface Statistic {
   value: number;
@@ -56,7 +55,16 @@ interface Statistic {
     MatDividerModule,
     MatChipsModule,
     MatSnackBarModule,
-    SearchSuggestionsComponent
+    // Standalone child components used in template
+    HeroNavComponent,
+    HeroSearchBarComponent,
+    HeroStatsComponent,
+    AnimatedBackgroundComponent,
+    StatsDashboardComponent,
+    HowItWorksComponent,
+    FeaturedProvidersComponent,
+    TrustSectionComponent,
+    FinalCtaComponent,
   ],
   templateUrl: './home.component.html',
   styleUrls: ['./home.component.scss']
@@ -102,14 +110,22 @@ export class HomeComponent implements OnInit, OnDestroy {
   ];
 
   private searchService = inject(ProviderSearchService);
+  private providerService = inject(ProviderService);
   private snackBar = inject(MatSnackBar);
 
   constructor(
     private router: Router,
     private http: HttpClient
   ) {}
+  // Trust items for trust section
+  trustItems = [
+    { icon: 'security', title: 'Secure & Private', description: 'Your data is encrypted.' },
+    { icon: 'verified_user', title: 'Verified Providers', description: 'Thoroughly vetted professionals.' },
+    { icon: 'support_agent', title: '24/7 Support', description: 'We are here to help.' },
+    { icon: 'thumb_up', title: 'Satisfaction Guaranteed', description: '98% rating.' },
+  ];
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadFeaturedProviders();
     this.animateStats();
   }
@@ -149,12 +165,13 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   private loadFeaturedProviders() {
     this.loadingProviders = true;
-    
-    this.http.get<any>(`${environment.apiUrl}/public/providers?limit=6`)
+    this.providerService
+      .getProviders(false)
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (response) => {
-          this.featuredProviders = response.providers || [];
+        next: (providers) => {
+          // Take top 6 as featured (could be improved with a dedicated flag)
+          this.featuredProviders = (providers || []).slice(0, 6);
           this.loadingProviders = false;
         },
         error: (err) => {
@@ -260,8 +277,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/provider', providerId]);
   }
 
-  bookProvider(event: Event, providerId: string) {
-    event.stopPropagation();
+  bookProvider(providerId: string) {
     this.router.navigate(['/booking', providerId, 'duration']);
   }
 

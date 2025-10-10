@@ -143,7 +143,17 @@ export class AvailabilityController {
     @Query() query: GetAvailabilityDto,
   ): Promise<IAvailabilityBase[]> {
     this.logger.log(`Retrieving availability for provider ${providerId}`);
-    this.logger.log(`Date range: ${query.startDate} to ${query.endDate}`);
+    const fmt = (val?: any) => {
+      if (!val) return 'not provided';
+      try {
+        const d = new Date(val);
+        return isNaN(d.getTime()) ? 'invalid' : d.toISOString();
+      } catch {
+        return 'invalid';
+      }
+    };
+
+    this.logger.log(`Date range: ${fmt(query.startDate)} to ${fmt(query.endDate)}`);
     
     const result = await this.availabilityService.findByProviderAndDateRange(
       providerId,

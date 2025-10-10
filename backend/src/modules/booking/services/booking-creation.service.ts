@@ -7,7 +7,7 @@ import { BookingSerialKeyService } from './booking-serial-key.service';
 import { BookingBaseService } from './booking-base.service';
 import { BookingCacheService } from './booking-cache.service';
 import { BookingEventsService } from './booking-events.service';
-import { BookingNotificationService } from './booking-notification.service';
+import { NotificationService } from '../../../core/notifications/notification.service';
 import { UsersService } from '../../users/users.service';
 
 @Injectable()
@@ -21,7 +21,7 @@ export class BookingCreationService {
     private readonly cacheService: BookingCacheService,
     private readonly eventsService: BookingEventsService,
     private readonly serialKeyService: BookingSerialKeyService,
-    private readonly notificationService: BookingNotificationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -405,6 +405,7 @@ export class BookingCreationService {
       session
     );
 
+    // Send booking confirmation notifications
     if (provider?.email) {
       await this.notificationService.sendProviderBookingConfirmation(booking, provider.email);
     }

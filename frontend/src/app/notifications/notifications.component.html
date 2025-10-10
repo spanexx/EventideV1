@@ -1,0 +1,68 @@
+    <div class="notifications-container">
+      <div class="notifications-header">
+        <div class="header-left">
+          <button mat-icon-button class="back-button" (click)="goBack()" aria-label="Go back">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <img src="/logo.png" alt="Eventide" class="notifications-logo" (click)="goHome()">
+          <h1>Notifications</h1>
+        </div>
+        <div class="header-actions">
+          <button mat-flat-button color="primary" (click)="markAllAsRead()" 
+                  [disabled]="unreadCount === 0"
+                  class="action-button">
+            <mat-icon>done_all</mat-icon>
+            Mark All Read
+          </button>
+          <button mat-stroked-button color="warn" (click)="clearAll()" 
+                  [disabled]="notifications.length === 0"
+                  class="action-button">
+            <mat-icon>delete_sweep</mat-icon>
+            Clear All
+          </button>
+        </div>
+      </div>
+
+      <div class="notifications-content" *ngIf="notifications.length > 0; else emptyState">
+        <mat-card class="notification-item" 
+             *ngFor="let notification of notifications; trackBy: trackByNotification"
+             [class.unread]="!notification.read">
+          
+          <div class="notification-icon" [class]="getIconClass(notification.type)">
+            <mat-icon>{{ getIcon(notification.type) }}</mat-icon>
+          </div>
+
+          <div class="notification-content">
+            <div class="notification-title">{{ notification.title }}</div>
+            <div class="notification-message">{{ notification.message }}</div>
+            <div class="notification-timestamp">{{ formatTimestamp(notification.timestamp) }}</div>
+          </div>
+
+          <div class="notification-actions">
+            <button mat-icon-button *ngIf="!notification.read"
+                    (click)="markAsRead(notification); $event.stopPropagation()"
+                    class="read-button">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+            <button mat-icon-button
+                    (click)="removeNotification(notification.id); $event.stopPropagation()"
+                    class="delete-button">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+        </mat-card>
+      </div>
+
+      <ng-template #emptyState>
+        <mat-card class="no-notifications">
+          <mat-icon class="no-notifications-icon">notifications_none</mat-icon>
+          <h3>All Caught Up!</h3>
+          <p>You don't have any notifications at the moment. New notifications will appear here.</p>
+          <button mat-flat-button color="primary" (click)="navigateToBookings()">
+            <mat-icon>event</mat-icon>
+            View Your Bookings
+          </button>
+        </mat-card>
+      </ng-template>
+    </div>
+  

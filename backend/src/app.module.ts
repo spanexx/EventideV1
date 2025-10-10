@@ -19,6 +19,9 @@ import { LogManagerService } from './core/log-manager/log-manager.service';
 import { BackendLogsModule } from './modules/backend-logs/backend-logs.module';
 import { BookingModule } from './modules/booking/booking.module';
 import { SearchModule } from './modules/search/search.module';
+import { NotificationModule } from './core/notifications/notification.module';
+import { AgentsModule } from './agents/agents.module';
+import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 
 @Module({
   imports: [
@@ -26,7 +29,7 @@ import { SearchModule } from './modules/search/search.module';
       envFilePath: ['.env.development', '.env'],
       validationSchema: configValidationSchema,
       isGlobal: true, // make config globally available
-      cache: true, // cache environment variables
+      cache: false, // cache environment variables
       expandVariables: true, // enable variable expansion
     }),
     MongooseModule.forRootAsync({
@@ -82,10 +85,13 @@ import { SearchModule } from './modules/search/search.module';
     // ServicesModule,
     // FrontendLogsModule,
     AuthModule,
+    NotificationModule,
     BookingModule,
     BrowserLogsModule,
     BackendLogsModule,
     SearchModule,
+    AgentsModule, // Add this line
+    KnowledgeBaseModule,
   ],
   controllers: [AppController],
   providers: [AppService, LogManagerService],

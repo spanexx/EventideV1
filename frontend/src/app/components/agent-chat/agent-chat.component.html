@@ -1,0 +1,78 @@
+ <div class="chat-widget" [class.open]="isOpen">
+  <!-- Chat Toggle Button -->
+  <button class="chat-toggle" (click)="toggleChat()" *ngIf="!isOpen">
+    <mat-icon>chat</mat-icon>
+    <span>AI Assistant</span>
+  </button>
+
+  <!-- Chat Window -->
+  <div class="chat-window" *ngIf="isOpen">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="header-content">
+        <mat-icon>smart_toy</mat-icon>
+        <h3>EventideAssistant</h3>
+      </div>
+      <div class="header-actions">
+        <button mat-icon-button (click)="clearChat()" matTooltip="Clear chat">
+          <mat-icon>delete_outline</mat-icon>
+        </button>
+        <button mat-icon-button (click)="toggleChat()" matTooltip="Close">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="chat-messages" (click)="onMessageClick($event)">
+      <div *ngFor="let message of chatHistoryService.messages$ | async; trackBy: trackByFn" 
+           class="message" 
+           [class.user-message]="message.role === 'user'"
+           [class.assistant-message]="message.role === 'assistant'">
+        <div class="message-avatar">
+          <mat-icon>{{ message.role === 'user' ? 'person' : 'smart_toy' }}</mat-icon>
+        </div>
+        <div class="message-content">
+          <div class="message-text">
+            <div class="bubble-time">{{ message.timestamp | date:'shortTime' }}</div>
+            <div [innerHTML]="renderMarkdown(message.content)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading Indicator -->
+      <div *ngIf="isLoading" class="message assistant-message">
+        <div class="message-avatar">
+          <mat-icon>smart_toy</mat-icon>
+        </div>
+        <div class="message-content">
+          <div class="typing-indicator">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-input">
+      <mat-form-field appearance="outline" class="input-field">
+        <textarea matInput
+                  cdkTextareaAutosize
+                  cdkAutosizeMinRows="1"
+                  cdkAutosizeMaxRows="6"
+                  [(ngModel)]="userInput"
+                  (keydown.enter)="onEnter($event)"
+                  placeholder="Type your message..."
+                  [disabled]="isLoading"></textarea>
+      </mat-form-field>
+      <button mat-fab 
+              color="primary" 
+              (click)="sendMessage()"
+              [disabled]="!userInput.trim() || isLoading">
+        <mat-icon>send</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

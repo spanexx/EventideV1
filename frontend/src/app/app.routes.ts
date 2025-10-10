@@ -41,6 +41,10 @@ export const routes: Routes = [
     path: 'home',
     loadComponent: () => import('./home/home.component').then(m => m.HomeComponent)
   },
+  {
+    path: 'notifications',
+    loadComponent: () => import('./notifications/notifications.component').then(m => m.NotificationsComponent)
+  },
   
   { path: '', redirectTo: '/home', pathMatch: 'full' }
 ];

@@ -1,13 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { IBooking } from '../interfaces/booking.interface';
-import { BookingNotificationService } from './booking-notification.service';
+import { NotificationService } from '../../../core/notifications/notification.service';
 
 @Injectable()
 export class BookingPaymentService {
   private readonly logger = new Logger(BookingPaymentService.name);
 
   constructor(
-    private readonly notificationService: BookingNotificationService
+    private readonly notificationService: NotificationService
   ) {}
 
   async handlePaymentSuccess(booking: IBooking, paymentDetails: any): Promise<void> {

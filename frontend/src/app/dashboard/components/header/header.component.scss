@@ -51,26 +51,58 @@
     background-color: color-mix(in srgb, var(--primary) 10%, transparent);
     color: var(--primary);
   }
-  
   .material-icons {
     font-size: 24px;
   }
 }
 
-.header-content h1 {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-semibold);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--foreground);
-  margin: 0;
+.logo-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.header-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  
+  &:hover {
+    opacity: 0.8;
+    // cursor: pointer;
+  }
 }
 
 .user-menu {
   display: flex;
   align-items: center;
   gap: var(--spacing-md);
+}
+
+.notification-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  color: var(--foreground);
+  position: relative;
+  
+  &:hover {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+  }
+  
+  .material-icons {
+    font-size: 24px;
+  }
 }
 
 .user-info {
@@ -132,8 +164,8 @@
 
 /* iPhone-like styling for smaller screens */
 @media (max-width: 1024px) {
-  .header-content h1 {
-    font-size: var(--font-size-lg);
+  .header-logo {
+    height: 28px;
   }
   
   .user-name {
@@ -160,8 +192,8 @@
     height: 36px;
   }
   
-  .header-content h1 {
-    font-size: var(--font-size-lg);
+  .header-logo {
+    height: 24px;
   }
 }
 
@@ -171,8 +203,8 @@
     height: 56px;
   }
   
-  .header-content h1 {
-    font-size: var(--font-size-base);
+  .header-logo {
+    height: 20px;
   }
   
   .user-avatar {

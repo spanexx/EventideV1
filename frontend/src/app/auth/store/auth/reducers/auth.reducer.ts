@@ -11,6 +11,9 @@ export interface AuthState {
   error: string | null;
   resetPasswordMessage: string | null;
   forgotPasswordMessage: string | null;
+  verificationSuccess: boolean;
+  verificationMessage: string | null;
+  isLoading: boolean; // Alias for loading to match component expectations
 }
 
 export const initialState: AuthState = {
@@ -21,7 +24,10 @@ export const initialState: AuthState = {
   loading: false,
   error: null,
   resetPasswordMessage: null,
-  forgotPasswordMessage: null
+  forgotPasswordMessage: null,
+  verificationSuccess: false,
+  verificationMessage: null,
+  isLoading: false
 };
 
 export const authReducer = createReducer(
@@ -209,6 +215,33 @@ export const authReducer = createReducer(
   on(AuthActions.resetPasswordFailure, (state, { error }) => ({
     ...state,
     loading: false,
+    error
+  })),
+
+  // Email Verification
+  on(AuthActions.verifyEmail, (state) => ({
+    ...state,
+    loading: true,
+    isLoading: true,
+    error: null,
+    verificationSuccess: false,
+    verificationMessage: null
+  })),
+
+  on(AuthActions.verifyEmailSuccess, (state, { message }) => ({
+    ...state,
+    loading: false,
+    isLoading: false,
+    verificationSuccess: true,
+    verificationMessage: message,
+    error: null
+  })),
+
+  on(AuthActions.verifyEmailFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    isLoading: false,
+    verificationSuccess: false,
     error
   }))
 );

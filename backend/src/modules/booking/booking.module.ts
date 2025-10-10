@@ -8,7 +8,7 @@ import { WebsocketsModule } from '../../core/websockets';
 import { CustomCacheModule } from '../../core/cache/cache.module';
 import { SerialKeyService } from '../../core/utils/serial-key.service';
 import { QRCodeService } from '../../core/utils/qr-code.service';
-import { BookingNotificationService } from './services/booking-notification.service';
+import { NotificationModule } from '../../core/notifications/notification.module';
 import { BookingBaseService } from './services/booking-base.service';
 import { BookingCacheService } from './services/booking-cache.service';
 import { BookingEventsService } from './services/booking-events.service';
@@ -21,6 +21,9 @@ import { EmailModule } from '../../core/email/email.module';
 import { BookingCreationService } from './services/booking-creation.service';
 import { BookingCancellationService } from './services/booking-cancellation.service';
 
+// Import the core notification module
+import { forwardRef } from '@nestjs/common';
+
 @Module({
   imports: [
     MongooseModule.forFeature([
@@ -31,6 +34,7 @@ import { BookingCancellationService } from './services/booking-cancellation.serv
     CustomCacheModule,
     UsersModule,
     EmailModule,
+    NotificationModule,
   ],
   controllers: [BookingController],
   providers: [
@@ -42,7 +46,6 @@ import { BookingCancellationService } from './services/booking-cancellation.serv
     BookingSerialKeyService,
     BookingSearchService,
     BookingPaymentService,
-    BookingNotificationService,
     BookingCreationService,
     BookingCancellationService,
     SerialKeyService,

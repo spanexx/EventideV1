@@ -120,3 +120,19 @@ export const resetPasswordFailure = createAction(
   '[Auth] Reset Password Failure',
   props<{ error: string }>()
 );
+
+// Email Verification Actions
+export const verifyEmail = createAction(
+  '[Auth] Verify Email',
+  props<{ token: string }>()
+);
+
+export const verifyEmailSuccess = createAction(
+  '[Auth] Verify Email Success',
+  props<{ message: string }>()
+);
+
+export const verifyEmailFailure = createAction(
+  '[Auth] Verify Email Failure',
+  props<{ error: string }>()
+);

@@ -6,8 +6,29 @@
 @use 'angular-calendar/scss/angular-calendar.scss' as calendar;
 
 :root {
-	/* Eventide color palette - Purple/Blue theme */
-	--background: #ffffff; /* White background */
+  /* Surface colors */
+  --surface-container: #ffffff;
+  --surface-container-high: #f8fafc;
+  --surface-container-highest: #f1f5f9;
+  
+  /* Text colors */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  
+  /* Brand colors */
+  --primary: #6366f1;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #ef4444;
+  --info: #3b82f6;
+  
+  /* Border colors */
+  --border-subtle: #e2e8f0;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 	--background-secondary: #fafbfc; /* Light gray background */
 	--foreground: #0f172a; /* Dark slate text */
 	--foreground-muted: #64748b; /* Muted text */

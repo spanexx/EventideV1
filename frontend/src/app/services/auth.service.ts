@@ -55,6 +55,8 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.API_URL}/login`, { email, password })
       .pipe(
         tap(response => {
+          console.log('email', email );
+          console.log('password', password);
           this.setSession(response);
         }),
         catchError(this.handleError)
@@ -260,6 +262,16 @@ export class AuthService {
       );
   }
 
+  /**
+   * Verify email with token
+   */
+  verifyEmailWithToken(token: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.API_URL}/verify-email`, { token })
+      .pipe(
+        catchError(this.handleError)
+      );
+  }
+
   // Private methods
 
   private setSession(response: LoginResponse | RefreshTokenResponse): void {
@@ -318,7 +330,7 @@ export class AuthService {
     return userString ? JSON.parse(userString) : null;
   }
 
-  private handleError(error: any): Observable<never> {
+  private handleError = (error: any): Observable<never> => {
     console.error('An error occurred:', error);
     
     // Handle specific error cases

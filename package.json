@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "@angular/cdk": "^20.2.8",
+    "@angular/material": "^20.2.8",
+    "@google-cloud/vertexai": "^1.10.0"
+  }
+}
