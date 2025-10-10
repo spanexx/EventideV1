@@ -1,7 +1,7 @@
 # Dependencies
 node_modules/
 
-# Logs
+Logs
 logs
 *.log
 
@@ -53,8 +53,6 @@ frontend/src/environments/*
 
 # Task Management MCP Database
 tskdb_stdio*
-
-# Task Management MCP Database
 tskdb.json
 
 # Private/secret files
@@ -72,7 +70,7 @@ backend/backend-logs/*
 
 .tskdb_backup*
 
-_summaries.txt
+# _summaries.txt
 
 # Additional ignored patterns
 docs/
@@ -83,3 +81,6 @@ backend/backend-logs/
 memory.json
 
 langGraph/
+backend/eventide-474521-241c82b583e5.json
+PLAN/
+*.txt

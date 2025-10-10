@@ -3,10 +3,11 @@ import { RouterOutlet } from '@angular/router';
 
 import { AuthService } from './services/auth.service';
 import { CalendarInitializationService } from './dashboard/services/calendar-initialization.service';
+import { AgentChatComponent } from './components/agent-chat/agent-chat.component';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet],
+  imports: [RouterOutlet, AgentChatComponent],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

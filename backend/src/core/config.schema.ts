@@ -39,4 +39,10 @@ export const configValidationSchema = Joi.object({
   STRIPE_SECRET_KEY: Joi.string().required(),
   STRIPE_WEBHOOK_SECRET: Joi.string().required(),
   STRIPE_PUBLISHABLE_KEY: Joi.string().required(),
+  
+  // Ollama Configuration
+  OLLAMA_HOST: Joi.string().default('http://localhost:11434'),
+  OLLAMA_BASE_URL: Joi.string().default('http://localhost:11434/v1/'),
+  OLLAMA_MODEL: Joi.string().default('gemma2:2b'),
+  OLLAMA_EMBEDDING_MODEL: Joi.string().default('nomic-embed-text'),
 });

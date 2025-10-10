@@ -9,23 +9,54 @@ import { Injectable } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { io, Socket } from 'socket.io-client';
 import { environment } from '../../../environments/environment';
+import { BehaviorSubject, Observable } from 'rxjs';
+
+export interface WebSocketNotification {
+  id: string;
+  type: 'booking' | 'availability' | 'system' | 'payment';
+  title: string;
+  message: string;
+  data?: any;
+}
 
 @Injectable({
   providedIn: 'root'
 })
 export class WebsocketService {
   private socket: Socket;
+  private notificationsSubject = new BehaviorSubject<WebSocketNotification[]>([]);
+  public notifications$ = this.notificationsSubject.asObservable();
+  private joinedUserId?: string;
 
   constructor(private store: Store) {
-    // Connect to the WebSocket server
-    this.socket = io(environment.apiUrl, {
+    // Load any persisted notifications
+    const storedNotifications = localStorage.getItem('websocket_notifications');
+    if (storedNotifications) {
+      this.notificationsSubject.next(JSON.parse(storedNotifications));
+    }
+
+    // Build a proper WS base URL. Many apps set apiUrl like http://host:3000/api, but socket.io should connect to http://host:3000
+    const wsBase = environment.wsUrl
+      ? environment.wsUrl
+      : (environment.apiUrl ? environment.apiUrl.replace(/\/?api\/?$/, '') : '');
+
+    // Connect to the WebSocket server with retry options
+    this.socket = io(wsBase || window.location.origin, {
       transports: ['websocket'],
-      withCredentials: true
+      withCredentials: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+      autoConnect: true
     });
 
     // Listen for connection events
     this.socket.on('connect', () => {
       console.log('Connected to WebSocket server with ID:', this.socket.id);
+      // Re-join user room after reconnect if needed
+      if (this.joinedUserId) {
+        this.joinUserRoom(this.joinedUserId);
+      }
     });
 
     this.socket.on('disconnect', () => {
@@ -56,6 +87,49 @@ export class WebsocketService {
 
     this.socket.on('leftRoom', (room) => {
       console.log('Left room:', room);
+    });
+
+    // Listen for notification events
+    this.socket.on('notification', (notification: WebSocketNotification) => {
+      console.log('Received notification:', notification);
+      this.handleNotification(notification);
+    });
+
+    // Listen for connection events for debugging
+    this.socket.on('connect', () => {
+      console.log('WebSocket connected with ID:', this.socket.id);
+    });
+
+    this.socket.on('connect_error', (error: Error) => {
+      console.error('WebSocket connection error:', error);
+    });
+
+    this.socket.on('disconnect', (reason: string) => {
+      console.log('WebSocket disconnected:', reason);
+      if (reason === 'io server disconnect') {
+        // the disconnection was initiated by the server, you need to reconnect manually
+        this.socket.connect();
+      }
+    });
+
+    this.socket.on('bookingNotification', (data: any) => {
+      this.handleNotification({
+        id: Date.now().toString(),
+        type: 'booking',
+        title: 'Booking Update',
+        message: data.message || 'You have a booking update',
+        data
+      });
+    });
+
+    this.socket.on('paymentNotification', (data: any) => {
+      this.handleNotification({
+        id: Date.now().toString(),
+        type: 'payment',
+        title: 'Payment Update',
+        message: data.message || 'Payment status updated',
+        data
+      });
     });
   }
 
@@ -90,6 +164,74 @@ export class WebsocketService {
       startTime: slot.startTime ? new Date(slot.startTime) : undefined,
       endTime: slot.endTime ? new Date(slot.endTime) : undefined,
     };
+  }
+
+  // Handle incoming notifications
+  private handleNotification(notification: WebSocketNotification): void {
+    const currentNotifications = this.notificationsSubject.value;
+    // Check if notification already exists to prevent duplicates
+    if (!currentNotifications.some(n => n.id === notification.id)) {
+      const updatedNotifications = [notification, ...currentNotifications];
+      this.notificationsSubject.next(updatedNotifications);
+      // Persist to localStorage for backup
+      localStorage.setItem('websocket_notifications', JSON.stringify(updatedNotifications));
+      console.log('New notification received:', notification);
+    }
+  }
+
+  // Join user-specific room for notifications
+  joinUserRoom(userId: string): void {
+    if (!userId) return;
+    console.log('Attempting to join room for user:', userId);
+    this.socket.emit('joinRoom', `user-${userId}`);
+    this.joinedUserId = userId;
+    
+    // Setup reconnection handler for this room
+    this.socket.on('connect', () => {
+      if (this.joinedUserId) {
+        console.log('Reconnected, rejoining room for user:', this.joinedUserId);
+        this.socket.emit('joinRoom', `user-${this.joinedUserId}`);
+      }
+    });
+  }
+
+  // Leave user-specific room
+  leaveUserRoom(userId: string): void {
+    if (!userId) return;
+    this.socket.emit('leaveRoom', `user-${userId}`);
+    if (this.joinedUserId === userId) {
+      this.joinedUserId = undefined;
+    }
+  }
+
+  // Convenience: ensure we are joined to the given user room (idempotent behavior on reconnect)
+  ensureJoinedUserRoom(userId?: string | null) {
+    if (!userId) return;
+    if (this.joinedUserId !== userId) {
+      this.joinUserRoom(userId);
+    }
+  }
+
+  // Get current notifications
+  getNotifications(): WebSocketNotification[] {
+    return this.notificationsSubject.value;
+  }
+
+  // Public API to update notifications array and persist it.
+  // Accepts any object shape so UI can add `read`/`timestamp` fields.
+  updateNotifications(notifications: WebSocketNotification[] | any[]): void {
+    try {
+      this.notificationsSubject.next(notifications as WebSocketNotification[]);
+      localStorage.setItem('websocket_notifications', JSON.stringify(notifications));
+      console.debug('WebsocketService: notifications updated', notifications);
+    } catch (err) {
+      console.error('WebsocketService:updateNotifications failed', err);
+    }
+  }
+
+  // Clear all notifications
+  clearNotifications(): void {
+    this.notificationsSubject.next([]);
   }
 
   // Disconnect from the WebSocket server

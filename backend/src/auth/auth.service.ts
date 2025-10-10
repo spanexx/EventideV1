@@ -39,6 +39,11 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException('Please verify your email address before logging in. Check your inbox for the verification link.');
+    }
+
     // Validate password
     if (password && user.password) {
       const isValidPassword = await bcrypt.compare(password, user.password);

@@ -4,10 +4,16 @@
       <button class="sidebar-toggle-btn" (click)="onToggleSidebar()">
         <i class="material-icons">menu</i>
       </button>
-      <h1>Eventide Dashboard</h1>
+      <div class="logo-container">
+        <img src="/logo.png" alt="Eventide" class="header-logo" (click)="goHome()">
+      </div>
     </div>
     <!-- Temporarily removed ngIf for debugging -->
     <div class="user-menu">
+      <button class="notification-btn" (click)="goToNotifications()" [matBadge]="unreadCount" matBadgeColor="warn" [matBadgeHidden]="unreadCount === 0">
+        <i class="material-icons">notifications</i>
+      </button>
+      
       <div class="user-info">
         <div class="user-avatar">
           <i class="material-icons">person</i>

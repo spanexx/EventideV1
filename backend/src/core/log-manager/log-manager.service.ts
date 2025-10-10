@@ -111,6 +111,12 @@ export class LogManagerService {
     }
 
     try {
+      // Allow disabling AI summarization via env/config. If disabled, just remove the file.
+      if (!this.isSummarizationEnabledForDir(logDirectory)) {
+        await fs.unlink(filePath);
+        return;
+      }
+
       const summaryFilePath = path.join(logDirectory, '_summaries.txt');
       let existingSummary = '';
       try {
@@ -131,6 +137,36 @@ export class LogManagerService {
     } catch (error) {
       console.error(`Failed to summarize and remove ${filePath}:`, error);
     }
+  }
+
+  // Determines if AI summarization is enabled, with per-directory override
+  private isSummarizationEnabledForDir(logDirectory: string): boolean {
+    // Global toggle (default true)
+    const globalEnabled = this.parseBoolean(
+      this.configService.get<string>('AI_LOG_SUMMARY_ENABLED'),
+      true,
+    );
+
+    // Per-directory overrides inherit from global by default
+    const backendEnabled = this.parseBoolean(
+      this.configService.get<string>('AI_BACKEND_LOGS_SUMMARY_ENABLED'),
+      globalEnabled,
+    );
+    const browserEnabled = this.parseBoolean(
+      this.configService.get<string>('AI_BROWSER_LOGS_SUMMARY_ENABLED'),
+      globalEnabled,
+    );
+
+    if (logDirectory.includes('backend-logs')) return backendEnabled;
+    if (logDirectory.includes('browser-logs')) return browserEnabled;
+    return globalEnabled;
+  }
+
+  // Parses common truthy strings, falls back to default when unset
+  private parseBoolean(value: string | undefined | null, defaultValue = false): boolean {
+    if (value === undefined || value === null) return defaultValue;
+    const v = String(value).trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes' || v === 'on';
   }
 
   private async getAiSummary(newLogContent: string, existingSummary: string): Promise<string> {

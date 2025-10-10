@@ -2,7 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException } from '@nes
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Booking, BookingDocument, BookingStatus } from '../booking.schema';
-import { BookingNotificationService } from './booking-notification.service';
+import { NotificationService } from '../../../core/notifications/notification.service';
 import { Availability, AvailabilityDocument } from '../../availability/availability.schema';
 import { AvailabilityCacheService } from '../../availability/services/availability-cache.service';
 
@@ -24,7 +24,7 @@ export class BookingCancellationService {
   constructor(
     @InjectModel(Booking.name) private bookingModel: Model<BookingDocument>,
     @InjectModel(Availability.name) private availabilityModel: Model<AvailabilityDocument>,
-    private readonly notificationService: BookingNotificationService,
+    private readonly notificationService: NotificationService,
     private readonly availabilityCacheService: AvailabilityCacheService,
   ) {
     // Clean up expired codes every 5 minutes
@@ -79,9 +79,7 @@ export class BookingCancellationService {
       await this.notificationService.sendCancellationCode(
         guestEmail,
         booking.guestName,
-        code,
-        booking.serialKey,
-        this.CODE_EXPIRY_MINUTES
+        code
       );
     } catch (error) {
       this.logger.error(`Failed to send cancellation email: ${error.message}`);
@@ -162,8 +160,7 @@ export class BookingCancellationService {
       await this.notificationService.sendCancellationConfirmation(
         guestEmail,
         booking.guestName,
-        booking.serialKey,
-        booking.startTime
+        booking.serialKey
       );
     } catch (error) {
       this.logger.error(`Failed to send cancellation confirmation: ${error.message}`);

@@ -53,4 +53,24 @@ export class WebsocketsGateway implements OnGatewayInit, OnGatewayConnection, On
   emitToAll(event: string, data: any): void {
     this.server.emit(event, data);
   }
+
+  // Notification-specific methods
+  emitNotificationToUser(userId: string, notification: any): void {
+    this.emitToRoom(`user-${userId}`, 'notification', notification);
+  }
+
+  emitBookingNotification(userId: string, bookingData: any): void {
+    this.emitToRoom(`user-${userId}`, 'bookingNotification', bookingData);
+  }
+
+  emitPaymentNotification(userId: string, paymentData: any): void {
+    this.emitToRoom(`user-${userId}`, 'paymentNotification', paymentData);
+  }
+
+  emitSystemNotification(notification: any): void {
+    this.emitToAll('notification', {
+      ...notification,
+      type: 'system'
+    });
+  }
 }

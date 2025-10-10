@@ -21,7 +21,7 @@ import { BookingValidationService } from './services/booking-validation.service'
 import { BookingSerialKeyService } from './services/booking-serial-key.service';
 import { BookingSearchService } from './services/booking-search.service';
 import { BookingPaymentService } from './services/booking-payment.service';
-import { BookingNotificationService } from './services/booking-notification.service';
+import { NotificationService } from '../../core/notifications/notification.service';
 import { BookingCreationService } from './services/booking-creation.service';
 import { QRCodeService } from 'src/core/utils/qr-code.service';
 import { IAvailability } from '../availability/interfaces/availability.interface';
@@ -42,7 +42,7 @@ export class BookingService {
     private readonly serialKeyService: BookingSerialKeyService,
     private readonly searchService: BookingSearchService,
     private readonly paymentService: BookingPaymentService,
-    private readonly notificationService: BookingNotificationService,
+    private readonly notificationService: NotificationService,
     private readonly bookingCreationService: BookingCreationService,
   ) {
     this.checkTransactionSupport();
