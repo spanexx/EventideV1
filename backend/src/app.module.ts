@@ -22,6 +22,7 @@ import { SearchModule } from './modules/search/search.module';
 import { NotificationModule } from './core/notifications/notification.module';
 import { AgentsModule } from './agents/agents.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -92,6 +93,7 @@ import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.mod
     SearchModule,
     AgentsModule, // Add this line
     KnowledgeBaseModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService, LogManagerService],

@@ -54,18 +54,11 @@
   
   <div class="recent-activity">
     <h3>Recent Activity</h3>
+    <div *ngIf="(error$ | async) as error" class="error-banner">{{ error }}</div>
     <div class="activity-list iphone-card">
-      <div class="activity-item">
-        <p><strong>John Doe</strong> booked a 30-minute session</p>
-        <span class="time">2 hours ago</span>
-      </div>
-      <div class="activity-item">
-        <p><strong>Jane Smith</strong> cancelled their appointment</p>
-        <span class="time">5 hours ago</span>
-      </div>
-      <div class="activity-item">
-        <p>You updated your availability for next week</p>
-        <span class="time">1 day ago</span>
+      <div class="activity-item" *ngFor="let item of (activity$ | async)">
+        <p>{{ item.description }}</p>
+        <span class="time">{{ item.time | date:'short' }}</span>
       </div>
     </div>
   </div>

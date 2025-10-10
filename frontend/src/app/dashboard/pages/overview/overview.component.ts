@@ -18,14 +18,19 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 export class OverviewComponent implements OnInit {
   stats$: Observable<DashboardStats | null>;
   loading$: Observable<boolean>;
+  activity$: Observable<any[]>;
+  error$: Observable<string | null>;
 
   constructor(private store: Store) {
     this.stats$ = this.store.select(DashboardSelectors.selectDashboardStats);
     this.loading$ = this.store.select(DashboardSelectors.selectDashboardLoading);
+    this.activity$ = this.store.select(DashboardSelectors.selectRecentActivity);
+    this.error$ = this.store.select(DashboardSelectors.selectDashboardError);
   }
 
   ngOnInit(): void {
     // Dispatch actions to load dashboard data
+    console.log('[OverviewComponent] initializing: dispatching dashboard loads');
     this.store.dispatch(DashboardActions.loadDashboardStats());
     this.store.dispatch(DashboardActions.loadRecentActivity());
   }
