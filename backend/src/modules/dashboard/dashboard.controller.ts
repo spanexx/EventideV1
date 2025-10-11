@@ -1,5 +1,5 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, UseGuards, Patch, Param, Body } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiQuery, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../../auth/decorators/current-user.decorator';
 import { GetBookingsDto } from '../booking/dto/get-bookings.dto';
@@ -42,5 +42,63 @@ export class DashboardController {
   ) {
     console.log('📒 [DashboardController] GET /dashboard/bookings', { providerId, query });
     return this.dashboardService.getBookings(providerId, query);
+  }
+
+  @Patch('bookings/:id/approve')
+  @ApiOperation({ summary: 'Approve a pending booking' })
+  @ApiOkResponse({ description: 'Booking approved successfully' })
+  async approveBooking(
+    @CurrentUser('providerId') providerId: string,
+    @Param('id') bookingId: string
+  ) {
+    console.log('✅ [DashboardController] PATCH /dashboard/bookings/:id/approve', { providerId, bookingId });
+    return this.dashboardService.approveBooking(providerId, bookingId);
+  }
+
+  @Patch('bookings/:id/decline')
+  @ApiOperation({ summary: 'Decline a pending booking' })
+  @ApiOkResponse({ description: 'Booking declined successfully' })
+  async declineBooking(
+    @CurrentUser('providerId') providerId: string,
+    @Param('id') bookingId: string
+  ) {
+    console.log('❌ [DashboardController] PATCH /dashboard/bookings/:id/decline', { providerId, bookingId });
+    return this.dashboardService.declineBooking(providerId, bookingId);
+  }
+
+  @Patch('bookings/:id/complete')
+  @ApiOperation({ summary: 'Mark booking as completed' })
+  @ApiOkResponse({ description: 'Booking completed successfully' })
+  async completeBooking(
+    @CurrentUser('providerId') providerId: string,
+    @Param('id') bookingId: string,
+    @Body() body: { reason?: string }
+  ) {
+    console.log('✅ [DashboardController] PATCH /dashboard/bookings/:id/complete REACHED', { 
+      providerId, 
+      bookingId, 
+      body,
+      route: 'bookings/:id/complete',
+      fullPath: `/api/dashboard/bookings/${bookingId}/complete`
+    });
+    try {
+      const result = await this.dashboardService.completeBooking(providerId, bookingId, body.reason);
+      console.log('✅ [DashboardController] completeBooking SUCCESS', { bookingId, result });
+      return result;
+    } catch (error) {
+      console.error('❌ [DashboardController] completeBooking ERROR', { bookingId, error: error.message });
+      throw error;
+    }
+  }
+
+  @Patch('bookings/:id/cancel')
+  @ApiOperation({ summary: 'Cancel a booking' })
+  @ApiOkResponse({ description: 'Booking cancelled successfully' })
+  async cancelBooking(
+    @CurrentUser('providerId') providerId: string,
+    @Param('id') bookingId: string
+  ) {
+    console.log('🚫 [DashboardController] PATCH /dashboard/bookings/:id/cancel', { providerId, bookingId });
+    return this.dashboardService.cancelBooking(providerId, bookingId);
   }
 }

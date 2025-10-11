@@ -64,9 +64,15 @@ export class DashboardEffects {
     this.actions$.pipe(
       ofType(DashboardActions.cancelBooking),
       switchMap(({ bookingId }) =>
-        this.bookingFacade.updateBooking(bookingId, { status: 'cancelled' as any }).pipe(
-          map(() => DashboardActions.cancelBookingSuccess({ bookingId })),
-          catchError(error => of(DashboardActions.cancelBookingFailure({ error: error.message })))
+        this.bookingFacade.providerCancelBooking(bookingId).pipe(
+          map(() => {
+            console.log('[DashboardEffects] cancelBooking success', { bookingId });
+            return DashboardActions.cancelBookingSuccess({ bookingId });
+          }),
+          catchError(error => {
+            console.error('[DashboardEffects] cancelBooking error', error);
+            return of(DashboardActions.cancelBookingFailure({ error: error.message }));
+          })
         )
       )
     )
@@ -94,6 +100,60 @@ export class DashboardEffects {
         this.bookingFacade.updateBooking(bookingId, booking as any).pipe(
           map(updatedBooking => DashboardActions.updateBookingSuccess({ booking: updatedBooking as any })),
           catchError(error => of(DashboardActions.updateBookingFailure({ error: error.message })))
+        )
+      )
+    )
+  );
+
+  approveBooking$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DashboardActions.approveBooking),
+      switchMap(({ bookingId }) =>
+        this.bookingFacade.providerApproveBooking(bookingId).pipe(
+          map(booking => {
+            console.log('[DashboardEffects] approveBooking success', { bookingId });
+            return DashboardActions.updateBookingStatusSuccess({ booking: booking as any });
+          }),
+          catchError(error => {
+            console.error('[DashboardEffects] approveBooking error', error);
+            return of(DashboardActions.updateBookingStatusFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  declineBooking$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DashboardActions.declineBooking),
+      switchMap(({ bookingId }) =>
+        this.bookingFacade.providerDeclineBooking(bookingId).pipe(
+          map(booking => {
+            console.log('[DashboardEffects] declineBooking success', { bookingId });
+            return DashboardActions.updateBookingStatusSuccess({ booking: booking as any });
+          }),
+          catchError(error => {
+            console.error('[DashboardEffects] declineBooking error', error);
+            return of(DashboardActions.updateBookingStatusFailure({ error: error.message }));
+          })
+        )
+      )
+    )
+  );
+
+  completeBooking$ = createEffect(() =>
+    this.actions$.pipe(
+      ofType(DashboardActions.completeBooking),
+      switchMap(({ bookingId, reason }) =>
+        this.bookingFacade.providerCompleteBooking(bookingId, reason).pipe(
+          map(booking => {
+            console.log('[DashboardEffects] completeBooking success', { bookingId });
+            return DashboardActions.updateBookingStatusSuccess({ booking: booking as any });
+          }),
+          catchError(error => {
+            console.error('[DashboardEffects] completeBooking error', error);
+            return of(DashboardActions.updateBookingStatusFailure({ error: error.message }));
+          })
         )
       )
     )

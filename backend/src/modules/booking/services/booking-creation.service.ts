@@ -209,7 +209,11 @@ export class BookingCreationService {
     template: IAvailability,
     baseBooking: CreateBookingDto
   ): Promise<Array<CreateBookingDto & { serialKey: string; duration: number }>> {
-    const bookings: Array<CreateBookingDto & { serialKey: string; duration: number }> = [];
+    const bookings: Array<CreateBookingDto & { serialKey: string; duration: number; status?: string }> = [];
+    // Determine provider approval mode for initial status
+    const provider = await this.usersService.findById(template.providerId);
+    const approvalMode = provider?.preferences?.bookingApprovalMode || 'auto';
+    const initialStatus = approvalMode === 'manual' ? 'pending' : 'confirmed';
     const { startDate, endDate } = this._calculateRecurringDates(baseBooking);
     let currentDate = new Date(startDate);
     
@@ -224,7 +228,8 @@ export class BookingCreationService {
         endTime: instanceEnd,
         serialKey: this.serialKeyService.generateBookingSerialKey(instanceStart),
         guestId: baseBooking.guestId || `guest_${this.serialKeyService.generateBookingSerialKey(new Date())}`,
-        duration: template.duration
+        duration: template.duration,
+        status: initialStatus
       };
       bookings.push(booking);
 
@@ -372,17 +377,23 @@ export class BookingCreationService {
 
     const serialKey = this.serialKeyService.generateBookingSerialKey(createBookingDto.startTime);
     const guestId = createBookingDto.guestId || `guest_${this.serialKeyService.generateBookingSerialKey(new Date())}`;
-    
+
+    // Determine initial status from provider preference
+    const providerPref = await this.usersService.findById(availability.providerId);
+    const approvalMode = providerPref?.preferences?.bookingApprovalMode || 'auto';
+    const initialStatus = approvalMode === 'manual' ? 'pending' : 'confirmed';
+
     const bookingData = {
       ...createBookingDto,
       guestId,
       serialKey,
-      duration: (new Date(createBookingDto.endTime).getTime() - new Date(createBookingDto.startTime).getTime()) / 60000
-    };
+      duration: (new Date(createBookingDto.endTime).getTime() - new Date(createBookingDto.startTime).getTime()) / 60000,
+      status: initialStatus
+    } as any;
     
     const newBooking = await this.baseService.create(bookingData, session);
     const provider = await this.usersService.findById(availability.providerId);
-    
+
     const availabilityId = availability._id?.toString() || availability.id || '';
     await this._handleBookingNotifications(newBooking, provider, availabilityId, session);
     await this._handleBookingCache(createBookingDto, newBooking);
@@ -405,11 +416,13 @@ export class BookingCreationService {
       session
     );
 
-    // Send booking confirmation notifications
+    // Send notifications
+    // Always notify provider of new booking
     if (provider?.email) {
       await this.notificationService.sendProviderBookingConfirmation(booking, provider.email);
     }
-    if (booking.guestEmail) {
+    // Only send guest confirmation if booking is confirmed, not pending
+    if (booking.guestEmail && (booking as any).status !== 'pending') {
       await this.notificationService.sendGuestBookingConfirmation(booking, booking.guestEmail);
     }
 

@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError, tap, map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
 import { BookingApiService } from './booking-api.service';
 import { BookingStateService } from './booking-state.service';
 import { 
@@ -19,7 +21,10 @@ import {
   providedIn: 'root'
 })
 export class BookingOperationsService {
+  private readonly API_URL = environment.apiUrl;
+
   constructor(
+    private http: HttpClient,
     private bookingApi: BookingApiService,
     private bookingState: BookingStateService
   ) {}
@@ -48,6 +53,7 @@ export class BookingOperationsService {
       })
     );
   }
+
 
   /**
    * Get booking by ID
@@ -98,6 +104,7 @@ export class BookingOperationsService {
       guestEmail
     });
   }
+
 
   /**
    * Confirm a booking
@@ -251,6 +258,53 @@ export class BookingOperationsService {
         this.bookingState.setLoading(false);
         return throwError(() => error);
       })
+    );
+  }
+
+  providerApproveBooking(bookingId: string): Observable<Booking> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/dashboard/bookings/${bookingId}/approve`, {}).pipe(
+      map(response => response.booking),
+      tap(booking => this.bookingState.updateBooking(booking))
+    );
+  }
+
+  providerDeclineBooking(bookingId: string): Observable<Booking> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/dashboard/bookings/${bookingId}/decline`, {}).pipe(
+      map(response => response.booking),
+      tap(booking => this.bookingState.updateBooking(booking))
+    );
+  }
+
+  providerCompleteBooking(bookingId: string, reason?: string): Observable<Booking> {
+    console.error(`🔍 [BookingOperationsService] providerCompleteBooking called: bookingId=${bookingId}, reason=${reason}`);
+    console.error(`🔍 [BookingOperationsService] API URL: ${this.API_URL}/dashboard/bookings/${bookingId}/complete`);
+    
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/dashboard/bookings/${bookingId}/complete`, { reason }).pipe(
+      tap(response => {
+        console.error(`✅ [BookingOperationsService] providerCompleteBooking SUCCESS:`, response);
+      }),
+      map(response => response.booking),
+      tap(booking => {
+        console.error(`📋 [BookingOperationsService] updating booking state:`, booking);
+        this.bookingState.updateBooking(booking);
+      }),
+      catchError(error => {
+        console.error(`❌ [BookingOperationsService] providerCompleteBooking ERROR:`, {
+          bookingId,
+          reason,
+          error: error.error,
+          status: error.status,
+          url: error.url
+        });
+        return throwError(() => error);
+      })
+    );
+  }
+
+  providerCancelBooking(bookingId: string): Observable<Booking> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/dashboard/bookings/${bookingId}/cancel`, {}).pipe(
+      map(response => response.booking),
+      tap(booking => this.bookingState.updateBooking(booking))
     );
   }
 }

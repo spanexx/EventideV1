@@ -12,6 +12,7 @@ import {
   HttpStatus,
 } from '@nestjs/common';
 import { BookingService } from './booking.service';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { UpdateBookingDto } from './dto/update-booking.dto';
 import { GetBookingsDto } from './dto/get-bookings.dto';
@@ -23,6 +24,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { BookingCancellationService } from './services/booking-cancellation.service';
 
 @Controller('bookings')
+@ApiTags('bookings')
 export class BookingController {
   constructor(
     private readonly bookingService: BookingService,
@@ -76,14 +78,96 @@ export class BookingController {
    */
   @Get('provider')
   @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get provider bookings' })
+  @ApiOkResponse({ description: 'List of bookings for the authenticated provider' })
   async findProviderBookings(
     @CurrentUser('providerId') providerId: string,
     @Query() query: GetBookingsDto
   ): Promise<IBooking[]> {
+    console.log('📋 [Booking Controller] GET /bookings/provider', { providerId, query });
     return this.bookingService.findAll({
       ...query,
       providerId,
     });
+  }
+
+  /**
+   * Provider cancels a booking - requires provider authentication, no guest email needed
+   */
+  @Patch('provider/:id/cancel')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Provider cancels a booking' })
+  @ApiOkResponse({ description: 'Booking cancelled' })
+  async providerCancelBooking(
+    @Param('id') id: string,
+    @CurrentUser('providerId') providerId: string
+  ): Promise<IBooking> {
+    console.log('🚫 [Booking Controller] PATCH /bookings/provider/:id/cancel', { id, providerId });
+    const booking = await this.bookingService.findOne(id);
+    
+    // Verify booking belongs to provider
+    if (booking.providerId !== providerId) {
+      throw new BadRequestException('Booking does not belong to this provider');
+    }
+
+    const result = await this.bookingService.update(id, { status: 'cancelled' as any });
+    console.log('✅ [Booking Controller] Provider cancelled booking successfully');
+    return result;
+  }
+
+  /**
+   * Provider approves a pending booking - requires provider authentication
+   */
+  @Patch('provider/:id/approve')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Provider approves a pending booking' })
+  @ApiOkResponse({ description: 'Booking approved' })
+  async providerApproveBooking(
+    @Param('id') id: string,
+    @CurrentUser('providerId') providerId: string
+  ): Promise<IBooking> {
+    console.log('✅ [Booking Controller] PATCH /bookings/provider/:id/approve', { id, providerId });
+    const booking = await this.bookingService.findOne(id);
+
+    if (booking.providerId !== providerId) {
+      throw new BadRequestException('Booking does not belong to this provider');
+    }
+    if ((booking as any).status !== 'pending') {
+      throw new BadRequestException('Only pending bookings can be approved');
+    }
+
+    return this.bookingService.update(id, { status: 'confirmed' as any });
+  }
+
+  /**
+   * Provider declines a pending booking - requires provider authentication
+   */
+  @Patch('provider/:id/decline')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Provider declines a pending booking' })
+  @ApiOkResponse({ description: 'Booking declined' })
+  async providerDeclineBooking(
+    @Param('id') id: string,
+    @CurrentUser('providerId') providerId: string
+  ): Promise<IBooking> {
+    console.log('❎ [Booking Controller] PATCH /bookings/provider/:id/decline', { id, providerId });
+    const booking = await this.bookingService.findOne(id);
+
+    if (booking.providerId !== providerId) {
+      throw new BadRequestException('Booking does not belong to this provider');
+    }
+    if ((booking as any).status !== 'pending') {
+      throw new BadRequestException('Only pending bookings can be declined');
+    }
+
+    return this.bookingService.update(id, { status: 'cancelled' as any });
   }
 
   /**

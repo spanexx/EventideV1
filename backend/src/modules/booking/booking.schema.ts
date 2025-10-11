@@ -11,10 +11,18 @@ import {
 } from 'class-validator';
 
 export enum BookingStatus {
+  PENDING = 'pending',
   CONFIRMED = 'confirmed',
   CANCELLED = 'cancelled',
   COMPLETED = 'completed',
   IN_PROGRESS = 'in_progress',
+  NO_SHOW = 'no_show',
+}
+
+export enum CompletionReason {
+  MANUAL_DURING = 'manual_during',
+  MANUAL_AFTER = 'manual_after', 
+  AUTO_COMPLETED = 'auto_completed',
   NO_SHOW = 'no_show',
 }
 
@@ -76,6 +84,25 @@ export class Booking {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @Prop({ 
+    type: String, 
+    enum: CompletionReason, 
+    required: false 
+  })
+  @IsOptional()
+  @IsEnum(CompletionReason)
+  completionReason?: CompletionReason;
+
+  @Prop({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  completionNotes?: string;
+
+  @Prop({ type: Date, required: false })
+  @IsOptional()
+  @IsDate()
+  completedAt?: Date;
 
   // For idempotency
   @Prop({ type: String, required: false, unique: true, sparse: true })
