@@ -135,8 +135,11 @@ export class ChangesSynchronizerService {
     const deleteChanges = consolidatedChanges.filter(change => change.type === 'delete');
 
     // Create observables for each type of operation
-    const createObservables = createChanges.map(change => 
-      this.availabilityService.createAvailability(change.entity!).pipe(
+    const createObservables = createChanges.map(change => {
+      console.log('[ChangesSynchronizerService] Creating entity with providerId:', change.entity?.providerId);
+      console.log('[ChangesSynchronizerService] Full entity data:', change.entity);
+      
+      return this.availabilityService.createAvailability(change.entity!).pipe(
         map(result => {
           created.push(result);
           return result;
@@ -146,8 +149,8 @@ export class ChangesSynchronizerService {
           failed.push({ entity: change.entity, error: error.message });
           return of(null);
         })
-      )
-    );
+      );
+    });
 
     const updateObservables = updateChanges.map(change => 
       this.availabilityService.updateAvailability(change.entity!).pipe(

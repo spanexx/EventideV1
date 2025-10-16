@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Availability, AvailabilityDocument } from './availability.schema';
@@ -8,15 +8,16 @@ import { CreateAllDayAvailabilityDto } from './dto/create-all-day-availability.d
 import { CreateBulkAvailabilityDto } from './dto/create-bulk-availability.dto';
 import { UpdateDaySlotQuantityDto } from './dto/update-day-slot-quantity.dto';
 import { IAvailabilityBase } from './interfaces/availability.interface';
+
+// Import existing services
 import { AvailabilityBaseService } from './services/availability-base.service';
-import { AvailabilityCacheService } from './services/availability-cache.service';
-import { AvailabilityEventsService } from './services/availability-events.service';
-import { AvailabilityValidationService } from './services/availability-validation.service';
-import { AvailabilitySlotGeneratorService } from './services/availability-slot-generator.service';
 import { AvailabilityCreationService } from './services/availability-creation.service';
-import { AvailabilityNotificationService } from './services/availability-notification.service';
-import { UsersService } from '../../modules/users/users.service';
 import { AvailabilityMigrationService } from './services/availability-migration.service';
+
+// Import new modular components
+import { AvailabilityInstanceProvider } from './services/providers/instance.provider';
+import { AvailabilityUpdateHandler } from './services/handlers/update.handler';
+import { BulkCreationHandler } from './services/handlers/bulk-creation.handler';
 
 @Injectable()
 export class AvailabilityService implements OnModuleInit {
@@ -26,14 +27,11 @@ export class AvailabilityService implements OnModuleInit {
     @InjectModel(Availability.name)
     private availabilityModel: Model<AvailabilityDocument>,
     private readonly baseService: AvailabilityBaseService,
-    private readonly cacheService: AvailabilityCacheService,
-    private readonly eventsService: AvailabilityEventsService,
-    private readonly validationService: AvailabilityValidationService,
-    private readonly slotGeneratorService: AvailabilitySlotGeneratorService,
     private readonly creationService: AvailabilityCreationService,
-    private readonly notificationService: AvailabilityNotificationService,
     private readonly migrationService: AvailabilityMigrationService,
-    private readonly usersService: UsersService,
+    private readonly instanceProvider: AvailabilityInstanceProvider,
+    private readonly updateHandler: AvailabilityUpdateHandler,
+    private readonly bulkCreationHandler: BulkCreationHandler,
   ) {}
 
   async onModuleInit() {
@@ -55,14 +53,7 @@ export class AvailabilityService implements OnModuleInit {
   }
 
   async findAllInstances(providerId: string, startDate: Date, endDate: Date): Promise<IAvailabilityBase[]> {
-    return this.availabilityModel.find({
-      providerId,
-      type: 'one_off',
-      date: {
-        $gte: startDate,
-        $lte: endDate
-      }
-    }).exec();
+    return this.instanceProvider.findAllInstances(providerId, startDate, endDate);
   }
 
   async findExistingInstance(
@@ -71,18 +62,7 @@ export class AvailabilityService implements OnModuleInit {
     startTime: Date,
     session?: any
   ): Promise<IAvailabilityBase | null> {
-    const query = this.availabilityModel.findOne({
-      providerId,
-      type: 'one_off',
-      date,
-      startTime
-    });
-    
-    if (session) {
-      query.session(session);
-    }
-    
-    return query.exec();
+    return this.instanceProvider.findExistingInstance(providerId, date, startTime, session);
   }
 
   /**
@@ -95,95 +75,7 @@ export class AvailabilityService implements OnModuleInit {
     endTime: Date,
     session: any,
   ): Promise<IAvailabilityBase> {
-    // Reset any existing instances for this date (development only)
-    await this.availabilityModel.deleteMany({
-      providerId: template.providerId,
-      type: 'one_off',
-      date: new Date(date.getTime())
-    }).session(session);
-    
-    // Debug log
-    console.log('Creating instance with:', {
-      requestedDate: date.toISOString(),
-      requestedStart: startTime.toISOString(),
-      requestedEnd: endTime.toISOString(),
-      templateStart: template.startTime,
-      templateEnd: template.endTime
-    });
-    
-    // Start fresh with dates to ensure proper UTC handling
-    const requestedDate = new Date(date.getTime());
-    requestedDate.setUTCHours(0, 0, 0, 0);
-    
-    // Create the start and end times
-    const instanceStartTime = new Date(requestedDate.getTime());
-    instanceStartTime.setUTCHours(
-      startTime.getUTCHours(),
-      startTime.getUTCMinutes(),
-      0,
-      0
-    );
-    
-    const instanceEndTime = new Date(requestedDate.getTime());
-    instanceEndTime.setUTCHours(
-      endTime.getUTCHours(),
-      endTime.getUTCMinutes(),
-      0,
-      0
-    );
-
-    console.log('After date processing:', {
-      requestedDate: requestedDate.toISOString(),
-      instanceStart: instanceStartTime.toISOString(),
-      instanceEnd: instanceEndTime.toISOString()
-    });
-
-    // First check if an instance already exists for this date and time
-    const existingInstance = await this.availabilityModel.findOne({
-      providerId: template.providerId,
-      type: 'one_off',
-      date: requestedDate,
-      startTime: instanceStartTime
-    }).session(session);
-
-    console.log('Existing instance check:', existingInstance);
-
-    if (existingInstance) {
-      // If instance exists and isn't booked, return it
-      if (!existingInstance.isBooked) {
-        return existingInstance;
-      }
-      throw new ConflictException('This time slot is already booked');
-    }
-
-        // Create new availability instance for the specific date
-    const instanceData = {
-      providerId: template.providerId,
-      type: 'one_off' as const,
-      startTime,
-      endTime,
-      date,
-      duration: template.duration,
-      maxBookings: template.maxBookings,
-      status: template.status,
-      isBooked: false
-    };
-
-    // Create the instance first
-    const instance = await this.availabilityModel.create([instanceData], { session });
-    
-    // Important: Do not mark the template as booked
-    if (template.type === 'recurring') {
-      // Remove any incorrect booking status from template
-      await this.availabilityModel
-        .updateOne(
-          { _id: template._id },
-          { $set: { isBooked: false }, $unset: { bookingId: "" } },
-          { session }
-        );
-    }
-
-    return instance[0];
+    return this.instanceProvider.createInstanceFromRecurring(template, date, startTime, endTime, session);
   }
 
   /**
@@ -241,26 +133,7 @@ export class AvailabilityService implements OnModuleInit {
     id: string,
     updateAvailabilityDto: UpdateAvailabilityDto,
   ): Promise<IAvailabilityBase> {
-    const original = await this.baseService.findById(id);
-    if (!original) {
-      throw new NotFoundException(`Availability slot with ID ${id} not found`);
-    }
-
-    const updated = await this.baseService.update(id, updateAvailabilityDto);
-    
-    // Send appropriate notification based on the update type
-    const provider = await this.usersService.findById(original.providerId);
-    if (provider && provider.email) {
-      if (updated.status === 'cancelled' && updated.status !== original.status) {
-        await this.notificationService.notifyCancellation(updated, provider.email);
-      } else if (updated.status === 'override' && updated.status !== original.status) {
-        await this.notificationService.notifyOverride(original, updated, provider.email);
-      } else {
-        await this.notificationService.notifyUpdate(original, updated, provider.email);
-      }
-    }
-
-    return updated;
+    return this.updateHandler.update(id, updateAvailabilityDto);
   }
 
   /**
@@ -299,33 +172,7 @@ export class AvailabilityService implements OnModuleInit {
   async createBulkSlots(
     createBulkAvailabilityDto: CreateBulkAvailabilityDto,
   ): Promise<{ created: IAvailabilityBase[]; conflicts: any[] }> {
-    // Convert BulkSlotConfig[] to CreateAvailabilityDto[]
-    const slots = createBulkAvailabilityDto.slots?.map(slot => ({
-      ...slot,
-      providerId: createBulkAvailabilityDto.providerId
-    }));
-
-    const result = await this.creationService.createBatchSlots(slots || [], {
-      skipConflicts: createBulkAvailabilityDto.skipConflicts,
-      replaceConflicts: createBulkAvailabilityDto.replaceConflicts,
-      dryRun: createBulkAvailabilityDto.dryRun,
-      idempotencyKey: createBulkAvailabilityDto.idempotencyKey,
-    });
-
-    // Send notification for bulk creation if slots were created
-    if (!createBulkAvailabilityDto.dryRun && result.created.length > 0) {
-      const provider = await this.usersService.findById(createBulkAvailabilityDto.providerId);
-      if (provider && provider.email) {
-        const dates = result.created.map(slot => slot.startTime);
-        await this.notificationService.notifyBulkUpdate(
-          createBulkAvailabilityDto.providerId,
-          dates,
-          provider.email
-        );
-      }
-    }
-
-    return result;
+    return this.bulkCreationHandler.createBulkSlots(createBulkAvailabilityDto);
   }
 
   /**
@@ -336,46 +183,6 @@ export class AvailabilityService implements OnModuleInit {
     conflicts: any[];
     suggestions: any[];
   }> {
-    // Generate slots from bulk DTO and ensure each slot has a providerId
-    let slots = createBulkAvailabilityDto.slots?.map(slot => ({
-      ...slot,
-      providerId: createBulkAvailabilityDto.providerId
-    })) || this.slotGeneratorService.generateSlotsFromBulkDto(createBulkAvailabilityDto);
-
-    const conflicts: any[] = [];
-    const suggestions: any[] = [];
-
-    for (const slot of slots) {
-      const validationSlot = {
-        ...slot,
-        providerId: createBulkAvailabilityDto.providerId
-      };
-
-      const slotConflicts = await this.validationService.findConflicts(validationSlot);
-      if (slotConflicts.length > 0) {
-        conflicts.push({
-          requested: validationSlot,
-          conflictingWith: slotConflicts,
-        });
-
-        // Generate suggestions for conflicting slots
-        const suggestedSlot = await this.slotGeneratorService.generateAlternativeSlot(
-          validationSlot,
-          slotConflicts
-        );
-        if (suggestedSlot) {
-          suggestions.push({
-            original: validationSlot,
-            suggested: suggestedSlot,
-          });
-        }
-      }
-    }
-
-    return {
-      requested: slots.length,
-      conflicts,
-      suggestions,
-    };
+    return this.bulkCreationHandler.validateSlots(createBulkAvailabilityDto);
   }
 }

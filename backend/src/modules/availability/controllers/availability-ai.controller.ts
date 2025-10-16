@@ -44,6 +44,73 @@ export class AvailabilityAiController {
   ) {}
 
   /**
+   * Get AI-enhanced availability data with insights
+   */
+  @Get(':providerId/enhanced')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ 
+    summary: 'Get AI-enhanced availability data with insights',
+    description: 'Retrieves availability data with AI-powered insights and optimization suggestions'
+  })
+  @ApiResponse({ status: 200, description: 'AI-enhanced availability data retrieved successfully' })
+  @ApiParam({ name: 'providerId', description: 'The provider\'s ID', type: String })
+  @ApiQuery({ name: 'startDate', description: 'Start date for filtering', required: false, type: Date })
+  @ApiQuery({ name: 'endDate', description: 'End date for filtering', required: false, type: Date })
+  @ApiQuery({ name: 'includeAnalysis', description: 'Include AI analysis', required: false, type: Boolean })
+  async getEnhancedAvailability(
+    @Param('providerId') providerId: string,
+    @Query() query: GetAvailabilityDto,
+  ): Promise<{
+    data: IAvailabilityBase[];
+    aiAnalysis?: {
+      conflicts?: AIConflictAnalysis;
+      patterns?: any;
+      optimizations?: any;
+      insights?: string[];
+      summary?: string;
+    };
+  }> {
+    this.logger.log(`Getting AI-enhanced availability for provider ${providerId}`);
+    
+    // Get basic availability data
+    const availability = await this.availabilityService.findByProviderAndDateRange(
+      providerId,
+      query.startDate,
+      query.endDate,
+    );
+
+    // Add AI analysis if requested
+    let aiAnalysis;
+    if (query.includeAnalysis !== false) {
+      try {
+        // Convert IAvailabilityBase[] to the format expected by AI service
+        const availabilityForAI = availability.map(slot => ({
+          ...slot,
+          _id: slot._id || undefined
+        })) as any[];
+        
+        const conflicts = await this.aiAvailabilityService.analyzeScheduleConflicts(availabilityForAI);
+        aiAnalysis = {
+          conflicts,
+          insights: ['AI analysis available'],
+          summary: `Found ${availability.length} slots with ${conflicts.conflicts.length} potential conflicts`
+        };
+      } catch (error) {
+        this.logger.warn('AI analysis failed:', error.message);
+        aiAnalysis = {
+          insights: ['AI analysis temporarily unavailable'],
+          summary: 'Basic availability data only'
+        };
+      }
+    }
+
+    return {
+      data: availability,
+      aiAnalysis
+    };
+  }
+
+  /**
    * Create availability slot with AI optimization
    */
   @Post('create')

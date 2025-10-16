@@ -18,11 +18,13 @@ export interface IAvailabilityBase {
   cancellationReason?: string;
   createdAt: Date;
   updatedAt: Date;
+  isTemplate?: boolean;
+  isInstantiated?: boolean;
+  
   
   // Template handling
   templateId?: string;
-  isTemplate: boolean;
-  isInstantiated: boolean;
+  weekOf?: Date;
 }
 
 export interface IAvailabilityDocument extends Document {
@@ -44,8 +46,7 @@ export interface IAvailabilityDocument extends Document {
   
   // Template handling
   templateId?: string;
-  isTemplate: boolean;
-  isInstantiated: boolean;
+  weekOf?: Date;
 }
 
 // Alias for backward compatibility

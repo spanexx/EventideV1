@@ -40,6 +40,7 @@ export class BookingValidationService {
     };
 
     const validTransitions: TransitionMap = {
+      [BookingStatus.PENDING]: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED],
       [BookingStatus.CONFIRMED]: [BookingStatus.CANCELLED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW],
       [BookingStatus.CANCELLED]: [],
       [BookingStatus.COMPLETED]: [],
