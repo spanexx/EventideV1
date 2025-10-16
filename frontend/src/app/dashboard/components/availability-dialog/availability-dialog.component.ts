@@ -242,6 +242,10 @@ export class AvailabilityDialogComponent implements OnInit {
                     const { id, ...newAvailability } = this.availability;
                     const tempId = `temp-${Date.now()}-${Math.random()}`;
                     const slotWithId = { ...newAvailability, id: tempId };
+                    
+                    console.log('[AvailabilityDialog] Creating new slot with providerId:', slotWithId.providerId);
+                    console.log('[AvailabilityDialog] Full slot data:', slotWithId);
+                    
                     const change: Change = {
                         id: `create-${Date.now()}-${Math.random()}`,
                         type: 'create',

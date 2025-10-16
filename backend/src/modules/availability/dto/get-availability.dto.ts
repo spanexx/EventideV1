@@ -2,6 +2,7 @@ import {
   IsString,
   IsOptional,
   IsDate,
+  IsBoolean,
   ValidateNested,
   IsArray,
 } from 'class-validator';
@@ -25,4 +26,9 @@ export class GetAvailabilityDto {
   @IsDate()
   @Type(() => Date)
   endDate?: Date;
+
+  @ApiPropertyOptional({ description: 'Whether to include AI analysis in the response', type: Boolean })
+  @IsOptional()
+  @IsBoolean()
+  includeAnalysis?: boolean;
 }

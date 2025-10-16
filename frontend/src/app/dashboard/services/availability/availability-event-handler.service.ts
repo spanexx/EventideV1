@@ -95,6 +95,12 @@ export class AvailabilityEventHandlerService {
     // Handle event click for editing availability slots
     this.calendarEvents.handleEventClick(clickInfo, availability$).subscribe(slot => {
       if (slot) {
+        // Prevent edits/deletes for booked slots
+        if (slot.isBooked) {
+          this.snackbarService.showError('This slot is booked and cannot be modified.');
+          return;
+        }
+        
         // Prevent edits/deletes for past-day slots
         const slotDay = new Date(slot.startTime);
         slotDay.setHours(0,0,0,0);

@@ -25,10 +25,6 @@ build/
 *.db
 *.sqlite
 
-# Documentation
-docs/
-*.md
-
 # Temporary files
 tmp/
 temp/
@@ -70,7 +66,7 @@ backend/backend-logs/*
 
 .tskdb_backup*
 
-# _summaries.txt
+_summaries.txt
 
 # Additional ignored patterns
 docs/
@@ -84,3 +80,6 @@ langGraph/
 backend/eventide-474521-241c82b583e5.json
 PLAN/
 *.txt
+
+.bmad*
+backup*

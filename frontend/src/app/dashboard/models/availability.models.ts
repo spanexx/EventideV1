@@ -5,11 +5,18 @@ export interface Availability {
   type: 'recurring' | 'one_off';
   dayOfWeek?: number;
   date?: Date;
+  weekOf?: Date; // For recurring slots: which week this instance belongs to
   startTime: Date;
   endTime: Date;
   duration: number;
   isBooked: boolean;
+  maxBookings?: number;
+  status?: 'active' | 'cancelled' | 'override';
   bookingId?: string;
+  templateId?: string;
+  cancellationReason?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface DateRange {

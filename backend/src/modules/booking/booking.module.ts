@@ -21,8 +21,12 @@ import { EmailModule } from '../../core/email/email.module';
 import { BookingCreationService } from './services/booking-creation.service';
 import { BookingCancellationService } from './services/booking-cancellation.service';
 
-// Import the core notification module
-import { forwardRef } from '@nestjs/common';
+// Import modular components
+import { BookingValidationProvider } from './services/providers/booking-validation.provider';
+import { RecurringBookingStrategy } from './services/strategies/recurring-booking.strategy';
+import { BookingNotificationHandler } from './services/handlers/booking-notification.handler';
+import { BookingInstanceUtils } from './services/utils/booking-instance.utils';
+import { SingleBookingHandler } from './services/handlers/single-booking.handler';
 
 @Module({
   imports: [
@@ -50,6 +54,12 @@ import { forwardRef } from '@nestjs/common';
     BookingCancellationService,
     SerialKeyService,
     QRCodeService,
+    // Modular components
+    BookingValidationProvider,
+    RecurringBookingStrategy,
+    BookingNotificationHandler,
+    BookingInstanceUtils,
+    SingleBookingHandler,
   ],
   exports: [BookingService],
 })

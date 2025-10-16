@@ -12,6 +12,7 @@ import { AvailabilitySlotGeneratorService } from './services/availability-slot-g
 import { AvailabilityCreationService } from './services/availability-creation.service';
 import { AvailabilityNotificationService } from './services/availability-notification.service';
 import { AvailabilityMigrationService } from './services/availability-migration.service';
+import { AvailabilitySchedulerService } from './services/availability-scheduler.service';
 import { AvailabilityController } from './availability.controller';
 import { AvailabilityBasicController } from './controllers/availability-basic.controller';
 import { AvailabilityAiController } from './controllers/availability-ai.controller';
@@ -22,6 +23,19 @@ import { UsersModule } from '../../modules/users/users.module';
 import { AiModule } from '../../core/ai/ai.module';
 import { CommandModule } from 'nestjs-command';
 import { AvailabilityCommand } from './commands/availability.command';
+
+// Import modular components
+import { BookingProvider } from './services/providers/booking.provider';
+import { QueryUtils } from './services/utils/query.utils';
+import { ManagementUtils } from './services/utils/management.utils';
+import { SlotAdjustmentStrategy } from './services/strategies/slot-adjustment.strategy';
+import { CacheProvider } from './services/providers/cache.provider';
+import { BookingUtils } from './services/utils/booking.utils';
+import { RecurringStrategy } from './services/strategies/recurring.strategy';
+import { DateFilterUtils } from './services/utils/date-filter.utils';
+import { AvailabilityInstanceProvider } from './services/providers/instance.provider';
+import { AvailabilityUpdateHandler } from './services/handlers/update.handler';
+import { BulkCreationHandler } from './services/handlers/bulk-creation.handler';
 
 @Module({
   imports: [
@@ -47,6 +61,19 @@ import { AvailabilityCommand } from './commands/availability.command';
     AvailabilityNotificationService,
     AvailabilityCommand,
     AvailabilityMigrationService,
+    AvailabilitySchedulerService,
+    // Modular components
+    BookingProvider,
+    QueryUtils,
+    ManagementUtils,
+    SlotAdjustmentStrategy,
+    CacheProvider,
+    BookingUtils,
+    RecurringStrategy,
+    DateFilterUtils,
+    AvailabilityInstanceProvider,
+    AvailabilityUpdateHandler,
+    BulkCreationHandler,
   ],
   controllers: [
     AvailabilityController, // Keep existing controller for backward compatibility
