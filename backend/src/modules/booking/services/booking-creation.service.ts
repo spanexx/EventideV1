@@ -103,4 +103,247 @@ export class BookingCreationService {
     await this.notificationHandler.handleRecurringBookingSummary(template, createdBookings, session);
     return createdBookings;
   }
+<<<<<<< HEAD
+=======
+
+  /**
+   * Generate recurring booking instances
+   */
+  private async _generateRecurringBookings(
+    template: IAvailability,
+    baseBooking: CreateBookingDto
+  ): Promise<Array<CreateBookingDto & { serialKey: string; duration: number }>> {
+    const bookings: Array<CreateBookingDto & { serialKey: string; duration: number; status?: string }> = [];
+    // Determine provider approval mode for initial status
+    const provider = await this.usersService.findById(template.providerId);
+    const approvalMode = provider?.preferences?.bookingApprovalMode || 'auto';
+    const initialStatus = approvalMode === 'manual' ? 'pending' : 'confirmed';
+    const { startDate, endDate } = this._calculateRecurringDates(baseBooking);
+    let currentDate = new Date(startDate);
+    
+    while (currentDate <= endDate) {
+      const instanceStart = new Date(currentDate);
+      const instanceEnd = new Date(currentDate);
+      instanceEnd.setHours(instanceEnd.getHours() + template.duration / 60);
+
+      const booking = {
+        ...baseBooking,
+        startTime: instanceStart,
+        endTime: instanceEnd,
+        serialKey: this.serialKeyService.generateBookingSerialKey(instanceStart),
+        guestId: baseBooking.guestId || `guest_${this.serialKeyService.generateBookingSerialKey(new Date())}`,
+        duration: template.duration,
+        status: initialStatus
+      };
+      bookings.push(booking);
+
+      if (baseBooking.recurring?.frequency === 'daily') {
+        currentDate.setDate(currentDate.getDate() + 1);
+      } else {
+        currentDate.setDate(currentDate.getDate() + 7); // default to weekly
+      }
+    }
+
+    // Check for conflicts with existing bookings
+    await this._validateNoConflicts(bookings, template.providerId);
+
+    return bookings;
+  }
+
+  /**
+   * Calculate start and end dates for recurring bookings
+   */
+  private _calculateRecurringDates(baseBooking: CreateBookingDto): { startDate: Date; endDate: Date } {
+    const startDate = new Date(baseBooking.startTime);
+    let endDate: Date;
+
+    if (baseBooking.recurring?.endDate) {
+      endDate = new Date(baseBooking.recurring.endDate);
+    } else if (baseBooking.recurring?.occurrences) {
+      endDate = new Date(startDate);
+      const days = baseBooking.recurring.frequency === 'daily' 
+        ? baseBooking.recurring.occurrences 
+        : baseBooking.recurring.occurrences * 7;
+      endDate.setDate(endDate.getDate() + days);
+    } else {
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + (4 * 7)); // Default to 4 weeks
+    }
+
+    return { startDate, endDate };
+  }
+
+  /**
+   * Validate no booking conflicts exist for the given time slots
+   */
+  private async _validateNoConflicts(
+    bookings: Array<{ startTime: Date; endTime: Date; providerId: string }>,
+    providerId: string
+  ): Promise<void> {
+    // Check each time slot for existing bookings
+    const conflictChecks = bookings.map(async (booking) => {
+      const existing = await this.baseService.findByFilter({
+        providerId,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+        status: { $in: ['confirmed', 'in_progress'] }
+      });
+      
+      if (existing.length > 0) {
+        const conflictDate = new Date(booking.startTime).toISOString();
+        return { hasConflict: true, date: conflictDate, booking: existing[0] };
+      }
+      return { hasConflict: false };
+    });
+
+    const results = await Promise.all(conflictChecks);
+    const conflicts = results.filter(r => r.hasConflict);
+
+    if (conflicts.length > 0) {
+      const conflictDates = conflicts.map(c => c.date).join(', ');
+      throw new ConflictException(
+        `Cannot create recurring booking. ${conflicts.length} time slot(s) already booked: ${conflictDates}`
+      );
+    }
+  }
+
+  /**
+   * Handle summary notifications for recurring bookings
+   */
+  private async _handleRecurringBookingSummary(
+    template: IAvailability,
+    createdBookings: IBooking[],
+    session: any
+  ): Promise<void> {
+    if (createdBookings.length === 0) return;
+
+    const provider = await this.usersService.findById(template.providerId);
+    
+    // Create availability instances for all bookings in parallel
+    const instancePromises = createdBookings.map(booking =>
+      this.availabilityService.createInstanceFromRecurring(
+        template,
+        new Date(booking.startTime),
+        new Date(booking.startTime),
+        new Date(booking.endTime),
+        session
+      )
+    );
+    const instances = await Promise.all(instancePromises);
+
+    // Mark all instances as booked in parallel
+    const markBookedPromises = instances.map((instance, index) =>
+      this.availabilityService.markAsBooked(
+        instance._id?.toString() || instance.id || '',
+        createdBookings[index]._id.toString(),
+        session
+      )
+    );
+    await Promise.all(markBookedPromises);
+
+    // Send summary email (2 emails total: guest + provider)
+    await this.notificationService.sendRecurringSummary(
+      createdBookings[0].guestEmail,
+      createdBookings[0].guestName,
+      provider?.email || null,
+      createdBookings
+    );
+
+    // Emit events for all bookings
+    const eventPromises = createdBookings.flatMap(booking => [
+      this.eventsService.emitBookingCreated(booking),
+      this.eventsService.emitAvailabilityStatusChange(booking, 'booked')
+    ]);
+    await Promise.allSettled(eventPromises);
+  }
+
+  /**
+   * Create a single booking
+   */
+  private async _createSingleBooking(
+    createBookingDto: CreateBookingDto,
+    availability: IAvailability,
+    session: any
+  ): Promise<IBooking> {
+    // Check for conflicts with existing bookings
+    const existing = await this.baseService.findByFilter({
+      providerId: availability.providerId,
+      startTime: createBookingDto.startTime,
+      endTime: createBookingDto.endTime,
+      status: { $in: ['confirmed', 'in_progress'] }
+    });
+
+    if (existing.length > 0) {
+      throw new ConflictException(
+        `This time slot is already booked. Booking ID: ${existing[0].serialKey}`
+      );
+    }
+
+    const serialKey = this.serialKeyService.generateBookingSerialKey(createBookingDto.startTime);
+    const guestId = createBookingDto.guestId || `guest_${this.serialKeyService.generateBookingSerialKey(new Date())}`;
+
+    // Determine initial status from provider preference
+    const providerPref = await this.usersService.findById(availability.providerId);
+    const approvalMode = providerPref?.preferences?.bookingApprovalMode || 'auto';
+    const initialStatus = approvalMode === 'manual' ? 'pending' : 'confirmed';
+
+    const bookingData = {
+      ...createBookingDto,
+      guestId,
+      serialKey,
+      duration: (new Date(createBookingDto.endTime).getTime() - new Date(createBookingDto.startTime).getTime()) / 60000,
+      status: initialStatus
+    } as any;
+    
+    const newBooking = await this.baseService.create(bookingData, session);
+    const provider = await this.usersService.findById(availability.providerId);
+
+    const availabilityId = availability._id?.toString() || availability.id || '';
+    await this._handleBookingNotifications(newBooking, provider, availabilityId, session);
+    await this._handleBookingCache(createBookingDto, newBooking);
+
+    return newBooking;
+  }
+
+  /**
+   * Handle notifications and events for a booking
+   */
+  private async _handleBookingNotifications(
+    booking: IBooking,
+    provider: any,
+    availabilityId: string,
+    session: any
+  ): Promise<void> {
+    await this.availabilityService.markAsBooked(
+      availabilityId,
+      booking._id.toString(),
+      session
+    );
+
+    // Send notifications
+    // Always notify provider of new booking
+    if (provider?.email) {
+      await this.notificationService.sendProviderBookingConfirmation(booking, provider.email);
+    }
+    // Only send guest confirmation if booking is confirmed, not pending
+    if (booking.guestEmail && (booking as any).status !== 'pending') {
+      await this.notificationService.sendGuestBookingConfirmation(booking, booking.guestEmail);
+    }
+
+    await this.eventsService.emitBookingCreated(booking);
+    await this.eventsService.emitAvailabilityStatusChange(booking, 'booked');
+  }
+
+  /**
+   * Handle booking cache
+   */
+  private async _handleBookingCache(createBookingDto: CreateBookingDto, newBooking: IBooking): Promise<void> {
+    if (createBookingDto.idempotencyKey) {
+      await this.cacheService.cacheBooking(
+        createBookingDto.idempotencyKey,
+        newBooking
+      );
+    }
+  }
+>>>>>>> master
 }

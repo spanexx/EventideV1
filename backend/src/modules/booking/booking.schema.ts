@@ -19,6 +19,13 @@ export enum BookingStatus {
   NO_SHOW = 'no_show',
 }
 
+export enum CompletionReason {
+  MANUAL_DURING = 'manual_during',
+  MANUAL_AFTER = 'manual_after', 
+  AUTO_COMPLETED = 'auto_completed',
+  NO_SHOW = 'no_show',
+}
+
 @Schema({ timestamps: true })
 export class Booking {
   @IsMongoId()
@@ -77,6 +84,25 @@ export class Booking {
   @IsOptional()
   @IsString()
   notes?: string;
+
+  @Prop({ 
+    type: String, 
+    enum: CompletionReason, 
+    required: false 
+  })
+  @IsOptional()
+  @IsEnum(CompletionReason)
+  completionReason?: CompletionReason;
+
+  @Prop({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  completionNotes?: string;
+
+  @Prop({ type: Date, required: false })
+  @IsOptional()
+  @IsDate()
+  completedAt?: Date;
 
   // For idempotency
   @Prop({ type: String, required: false, unique: true, sparse: true })

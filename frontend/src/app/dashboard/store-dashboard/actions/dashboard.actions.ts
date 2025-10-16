@@ -107,3 +107,19 @@ export const updateBookingFailure = createAction(
   '[Dashboard] Update Booking Failure',
   props<{ error: string }>()
 );
+
+// Provider Approve/Decline Booking
+export const approveBooking = createAction(
+  '[Dashboard] Approve Booking',
+  props<{ bookingId: string }>()
+);
+
+export const declineBooking = createAction(
+  '[Dashboard] Decline Booking',
+  props<{ bookingId: string }>()
+);
+
+export const completeBooking = createAction(
+  '[Dashboard] Complete Booking',
+  props<{ bookingId: string; reason?: string }>()
+);

@@ -129,4 +129,30 @@ export class BookingApiService {
       verificationCode
     });
   }
+
+  /**
+   * Provider cancels a booking (Requires authentication, no guest email needed)
+   * @param id Booking ID
+   * @returns Updated booking
+   */
+  providerCancelBooking(id: string): Observable<Booking> {
+    console.log('[BookingApiService] providerCancelBooking', { id });
+    return this.http.patch<Booking>(`${this.API_URL}/provider/${id}/cancel`, {});
+  }
+
+  /**
+   * Provider approved a pending booking
+   */
+  providerApproveBooking(id: string): Observable<Booking> {
+    console.log('[BookingApiService] providerApproveBooking', { id });
+    return this.http.patch<Booking>(`${this.API_URL}/provider/${id}/approve`, {});
+  }
+
+  /**
+   * Provider declines a pending booking
+   */
+  providerDeclineBooking(id: string): Observable<Booking> {
+    console.log('[BookingApiService] providerDeclineBooking', { id });
+    return this.http.patch<Booking>(`${this.API_URL}/provider/${id}/decline`, {});
+  }
 }

@@ -90,10 +90,31 @@ export class BookingFacadeService {
   }
 
   /**
-   * Cancel a booking
+   * Cancel a booking (guest flow - requires email)
    */
   cancelBooking(id: string, guestEmail: string): Observable<Booking> {
     return this.bookingOperations.cancelBooking(id, guestEmail);
+  }
+
+  /**
+   * Provider cancels a booking (no email needed)
+   */
+  providerCancelBooking(id: string): Observable<Booking> {
+    return this.bookingOperations.providerCancelBooking(id);
+  }
+
+  /**
+   * Provider approves a pending booking
+   */
+  providerApproveBooking(id: string): Observable<Booking> {
+    return this.bookingOperations.providerApproveBooking(id);
+  }
+
+  /**
+   * Provider declines a pending booking
+   */
+  providerDeclineBooking(id: string): Observable<Booking> {
+    return this.bookingOperations.providerDeclineBooking(id);
   }
 
   /**
@@ -181,6 +202,17 @@ export class BookingFacadeService {
   resetState(): void {
     this.bookingOperations.resetState();
   }
+
+  // ==================== PROVIDER OPERATIONS ====================
+
+
+  /**
+   * Provider complete booking
+   */
+  providerCompleteBooking(bookingId: string, reason?: string): Observable<Booking> {
+    return this.bookingOperations.providerCompleteBooking(bookingId, reason);
+  }
+
 
   // ==================== CANCELLATION OPERATIONS ====================
 

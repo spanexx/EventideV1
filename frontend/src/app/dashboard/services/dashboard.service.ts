@@ -23,7 +23,8 @@ export class DashboardService {
   }
 
   getBookings(params: any): Observable<Booking[]> {
-    return this.http.get<Booking[]>(`${this.API_URL}/bookings`, { params });
+    console.log('[DashboardService] getBookings', { params });
+    return this.http.get<Booking[]>(`${environment.apiUrl}/bookings/provider`, { params });
   }
 
   getAvailability(providerId: string, date: Date): Observable<Availability[]> {
@@ -34,5 +35,21 @@ export class DashboardService {
 
   getMetrics(period: DateRange): Observable<Metrics> {
     return this.http.post<Metrics>(`${this.API_URL}/metrics`, period);
+  }
+
+  approveBooking(bookingId: string): Observable<{ message: string; booking: Booking }> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/bookings/${bookingId}/approve`, {});
+  }
+
+  declineBooking(bookingId: string): Observable<{ message: string; booking: Booking }> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/bookings/${bookingId}/decline`, {});
+  }
+
+  completeBooking(bookingId: string, reason?: string): Observable<{ message: string; booking: Booking }> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/bookings/${bookingId}/complete`, { reason });
+  }
+
+  cancelBooking(bookingId: string): Observable<{ message: string; booking: Booking }> {
+    return this.http.patch<{ message: string; booking: Booking }>(`${this.API_URL}/bookings/${bookingId}/cancel`, {});
   }
 }

@@ -199,7 +199,13 @@ export class AvailabilityBaseService {
    */
   async delete(id: string): Promise<{ success: boolean }> {
     try {
-      if (!Types.ObjectId.isValid(id)) {
+      // Handle composite IDs (providerId_date format)
+      let actualId = id;
+      if (id.includes('_')) {
+        actualId = id.split('_')[0];
+      }
+      
+      if (!Types.ObjectId.isValid(actualId)) {
         throw new NotFoundException('Invalid availability ID format');
       }
 

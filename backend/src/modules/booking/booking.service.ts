@@ -286,25 +286,30 @@ export class BookingService {
     session?: any
   ): Promise<void> {
     switch (updatedBooking.status) {
-      case BookingStatus.CANCELLED:
-        await this.availabilityService.markAsAvailable(
-          updatedBooking.availabilityId,
-          session || null
-        );
-        await this.notificationService.sendCancellationNotifications(updatedBooking);
-        await this.eventsService.emitBookingCancelled(updatedBooking);
-        break;
-      
-      case BookingStatus.COMPLETED:
-        await this.notificationService.sendCompletionNotifications(updatedBooking);
-        await this.eventsService.emitBookingCompleted(updatedBooking);
-        break;
+    case BookingStatus.CANCELLED:
+      await this.availabilityService.markAsAvailable(
+        updatedBooking.availabilityId,
+        session || null
+      );
+      await this.notificationService.sendCancellationNotifications(updatedBooking);
+      await this.eventsService.emitBookingCancelled(updatedBooking);
+      break;
+
+    case BookingStatus.COMPLETED:
+      await this.notificationService.sendCompletionNotifications(updatedBooking);
+      await this.eventsService.emitBookingCompleted(updatedBooking);
+      break;
+
+    case BookingStatus.CONFIRMED:
+      // On approval from pending -> confirmed, send confirmation to guest
+      if (updatedBooking.guestEmail) {
+        await this.notificationService.sendGuestBookingConfirmation(updatedBooking, updatedBooking.guestEmail);
+      }
+      break;
 
       // Add other status transitions as needed
     }
   }
-
-
   /**
    * Find a booking by its serial key
    * @param serialKey The serial key to search for

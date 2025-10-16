@@ -1,4 +1,5 @@
 export interface UserPreferences {
+  bookingApprovalMode?: 'auto' | 'manual';
   notifications: {
     email: boolean;
     sms: boolean;
@@ -25,6 +26,7 @@ export interface UserPreferences {
 }
 
 export const defaultUserPreferences: UserPreferences = {
+  bookingApprovalMode: 'auto',
   notifications: {
     email: true,
     sms: false,

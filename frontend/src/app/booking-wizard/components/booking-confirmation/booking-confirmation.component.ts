@@ -22,13 +22,16 @@ interface BookingTiming {
   selector: 'app-booking-confirmation',
   template: `
     <div class="booking-confirmation">
-      <mat-icon class="success-icon" *ngIf="!error">check_circle</mat-icon>
+      <mat-icon class="success-icon" *ngIf="!error && booking?.status !== 'pending'">check_circle</mat-icon>
+      <mat-icon class="success-icon" *ngIf="!error && booking?.status === 'pending'">hourglass_empty</mat-icon>
       <mat-icon class="error-icon" *ngIf="error">error</mat-icon>
       
-      <h2 *ngIf="!error">Booking Confirmed!</h2>
+      <h2 *ngIf="!error && booking?.status !== 'pending'">Booking Confirmed!</h2>
+      <h2 *ngIf="!error && booking?.status === 'pending'">Request Submitted</h2>
       <h2 *ngIf="error">Booking Failed</h2>
       
-      <p *ngIf="!error">Your appointment has been successfully scheduled.</p>
+      <p *ngIf="!error && booking?.status !== 'pending'">Your appointment has been successfully scheduled.</p>
+      <p *ngIf="!error && booking?.status === 'pending'">Your request was sent to the provider and is awaiting approval. You'll receive an email once it's confirmed.</p>
       <p *ngIf="error">There was an error processing your booking. Please try again.</p>
       
       <div class="booking-details" *ngIf="!error && booking">
@@ -41,13 +44,13 @@ interface BookingTiming {
         <p><strong>Email:</strong> {{ booking.guestEmail }}</p>
         <p *ngIf="booking.guestPhone"><strong>Phone:</strong> {{ booking.guestPhone }}</p>
         
-        <div class="qr-code-section" *ngIf="qrCode">
+        <div class="qr-code-section" *ngIf="qrCode && booking?.status !== 'pending'">
           <h4>Your QR Code</h4>
           <img [src]="qrCode" alt="Booking QR Code" class="qr-code-image">
           <p class="qr-note">Save this QR code for easy check-in</p>
         </div>
         
-        <div *ngIf="!qrCode && (loading$ | async)" class="qr-loading">
+        <div *ngIf="booking?.status !== 'pending' && !qrCode && (loading$ | async)" class="qr-loading">
           <mat-spinner diameter="30"></mat-spinner>
           <span>Generating QR code...</span>
         </div>
@@ -57,7 +60,7 @@ interface BookingTiming {
         <p>{{ error }}</p>
       </div>
       
-      <div class="action-buttons" *ngIf="!error && booking">
+      <div class="action-buttons" *ngIf="!error && booking && booking.status !== 'pending'">
         <button 
           mat-icon-button 
           color="primary"
@@ -276,7 +279,7 @@ export class BookingConfirmationComponent implements OnInit, OnDestroy {
     
     this.booking$.pipe(
       filter((booking): booking is Booking & { serialKey: string } => 
-        !!booking && typeof booking.serialKey === 'string'),
+        !!booking && typeof booking.serialKey === 'string' && booking.status !== 'pending'),
       take(1)
     ).subscribe(booking => {
       console.log('📤 [Booking Confirmation] Requesting QR code for:', booking.serialKey);
