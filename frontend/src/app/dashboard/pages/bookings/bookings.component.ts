@@ -11,7 +11,6 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatInputModule } from '@angular/material/input';
 import * as DashboardActions from '../../store-dashboard/actions/dashboard.actions';
 import * as DashboardSelectors from '../../store-dashboard/selectors/dashboard.selectors';
@@ -37,7 +36,6 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
     MatTableModule,
     MatPaginatorModule,
     MatTooltipModule,
-    MatButtonToggleModule,
     MatInputModule
   ],
   templateUrl: './bookings.component.html',
@@ -48,13 +46,9 @@ export class BookingsComponent implements OnInit {
   loading$: Observable<boolean>;
   selectedStatus: string = '';
   searchTerm: string = '';
-  viewMode: 'table' | 'cards' = 'cards';
   
   // Search functionality
   private searchSubject = new Subject<string>();
-  
-  // Table configuration
-  displayedColumns: string[] = ['guest', 'datetime', 'duration', 'status', 'notes', 'actions'];
   
   // Pagination
   pageSize = 10;
@@ -205,10 +199,6 @@ export class BookingsComponent implements OnInit {
   clearSearch(): void {
     this.searchTerm = '';
     this.filterBookings();
-  }
-
-  onViewModeChange(event: any): void {
-    this.viewMode = event.value;
   }
 
   getBookingCount(status: string): number {

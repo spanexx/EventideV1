@@ -16,21 +16,49 @@
   justify-content: space-between;
   align-items: center;
   gap: var(--spacing-lg);
-  padding-bottom: var(--spacing-lg);
-  border-bottom: 1px solid var(--border);
+  padding: var(--spacing-lg);
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: var(--spacing-lg);
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: #f3f4f6;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  .header-icon {
+    font-size: 24px;
+    width: 24px;
+    height: 24px;
+    color: #6b7280;
+  }
 }
 
 .header-content {
   .page-title {
-    font-size: var(--font-size-3xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--foreground);
-    margin: 0 0 var(--spacing-xs) 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0 0 2px 0;
+    line-height: 1.2;
   }
   
   .page-subtitle {
-    color: var(--muted-foreground);
-    font-size: var(--font-size-base);
+    color: #6b7280;
+    font-size: 13px;
     margin: 0;
   }
 }
@@ -38,31 +66,54 @@
 .header-actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-md);
-  flex-wrap: wrap;
+  gap: 8px;
   
   .search-field, .filter-field {
-    min-width: 200px;
-    
-    ::ng-deep .mat-mdc-form-field {
+    ::ng-deep {
       .mat-mdc-text-field-wrapper {
         height: 40px;
-        border-radius: 10px;
-        background: white;
+        border-radius: 8px;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+      }
+      
+      .mat-mdc-form-field-focus-overlay {
+        background: transparent;
+      }
+      
+      .mat-mdc-form-field-flex {
+        padding: 0 12px;
+      }
+      
+      input {
+        font-size: 14px;
+        color: #111827;
+        
+        &::placeholder {
+          color: #9ca3af;
+        }
+      }
+      
+      .mat-icon {
+        color: #9ca3af;
+        font-size: 18px;
       }
     }
   }
   
   .search-field {
-    flex: 1;
-    max-width: 300px;
+    width: 240px;
+  }
+  
+  .filter-field {
+    width: 140px;
   }
   
   .refresh-btn {
     width: 40px;
     height: 40px;
-    border-radius: 10px;
-    background: white;
+    border-radius: 8px;
+    background: #f9fafb;
     border: 1px solid #e5e7eb;
     
     &:hover {
@@ -184,102 +235,6 @@
   }
 }
 
-// View Controls
-.view-controls {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--spacing-md);
-  
-  mat-button-toggle-group {
-    border-radius: 12px;
-    overflow: hidden;
-    
-    ::ng-deep {
-      .mat-button-toggle {
-        border-radius: 0;
-        
-        &:first-child {
-          border-top-left-radius: 12px;
-          border-bottom-left-radius: 12px;
-        }
-        
-        &:last-child {
-          border-top-right-radius: 12px;
-          border-bottom-right-radius: 12px;
-        }
-      }
-    }
-  }
-}
-
-// Bookings Table
-.bookings-table-container {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  overflow: hidden;
-}
-
-.bookings-table {
-  width: 100%;
-  
-  .mat-mdc-header-cell {
-    font-weight: 600;
-    color: #111827;
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  
-  .mat-mdc-cell {
-    border-bottom: 1px solid #f3f4f6;
-    padding: var(--spacing-md);
-  }
-  
-  .mat-mdc-row:hover {
-    background: #f9fafb;
-  }
-}
-
-// Table cell content
-.guest-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  
-  .guest-name {
-    font-weight: 500;
-    color: #111827;
-  }
-  
-  .guest-email {
-    font-size: var(--font-size-sm);
-    color: #6b7280;
-  }
-}
-
-.datetime-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  
-  .date {
-    font-weight: 500;
-    color: #111827;
-  }
-  
-  .time {
-    font-size: var(--font-size-sm);
-    color: #6b7280;
-  }
-}
-
-.notes-text {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
-}
 
 .status-badge {
   display: inline-block;
@@ -309,32 +264,12 @@
   }
 }
 
-.table-actions {
-  display: flex;
-  gap: 4px;
-  
-  button[mat-icon-button] {
-    width: 32px;
-    height: 32px;
-    border-radius: 6px;
-    
-    &:hover {
-      background: #f3f4f6;
-    }
-    
-    mat-icon {
-      font-size: 16px;
-      width: 16px;
-      height: 16px;
-      color: #6b7280;
-    }
-  }
-}
-
 // Pagination
 mat-paginator {
-  border-top: 1px solid #e5e7eb;
   background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-top: var(--spacing-md);
 }
 
 // Responsive Design
@@ -351,31 +286,19 @@ mat-paginator {
     gap: var(--spacing-md);
   }
   
+  .header-left {
+    margin-bottom: var(--spacing-sm);
+  }
+  
   .header-actions {
     justify-content: flex-start;
     flex-wrap: wrap;
     
+    .search-field,
     .filter-field {
-      min-width: 140px;
       flex: 1;
+      min-width: 140px;
     }
-    
-    button[mat-raised-button] {
-      flex-shrink: 0;
-    }
-  }
-  
-  .booking-header {
-    flex-direction: column;
-    gap: var(--spacing-sm);
-  }
-  
-  .booking-status {
-    align-self: flex-start;
-  }
-  
-  .booking-actions {
-    flex-wrap: wrap;
   }
 }
 
@@ -536,6 +459,15 @@ mat-paginator {
     padding: var(--spacing-md);
   }
   
+  .bookings-header {
+    padding: var(--spacing-md);
+  }
+  
+  .icon-wrapper {
+    width: 40px;
+    height: 40px;
+  }
+  
   .bookings-cards-container {
     grid-template-columns: 1fr;
   }
@@ -546,10 +478,9 @@ mat-paginator {
   
   .header-actions {
     flex-direction: column;
-    gap: var(--spacing-sm);
+    gap: 8px;
     
     .search-field, .filter-field {
-      min-width: unset;
       width: 100%;
     }
   }
