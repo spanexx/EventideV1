@@ -51,6 +51,10 @@ export class CalendarService {
       eventClick: handleEventClick,
       eventsSet: handleEvents,
       eventContent: renderEventContent,
+      eventAllow: (dropInfo: any, draggedEvent: any) => {
+        // Prevent dragging/resizing booked slots
+        return !draggedEvent?.extendedProps?.isBooked;
+      },
       eventClassNames: (arg: any) => {
         const classes: string[] = [];
         if (arg.event.extendedProps['isBooked']) {

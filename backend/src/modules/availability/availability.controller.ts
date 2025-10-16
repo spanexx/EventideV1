@@ -53,6 +53,7 @@ export class AvailabilityController {
     this.logger.log(
       `Creating availability slot for provider ${createAvailabilityDto.providerId}`,
     );
+    this.logger.debug('Request body:', JSON.stringify(createAvailabilityDto, null, 2));
     return this.availabilityService.create(createAvailabilityDto);
   }
 

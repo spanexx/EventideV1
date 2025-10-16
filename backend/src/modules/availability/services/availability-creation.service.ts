@@ -49,7 +49,7 @@ export type PartialAvailabilityData = Partial<IAvailabilityBase> & {
  * @param doc - Mongoose availability document  
  * @returns Plain object representation with required fields
  */
-export function toAvailabilityBase(doc: AvailabilityDocument | IAvailabilityDocument): IAvailabilityBase {
+export function toAvailabilityBase(doc: AvailabilityDocument): IAvailabilityBase {
   return {
     id: doc._id.toString(),
     providerId: doc.providerId,
@@ -62,11 +62,10 @@ export function toAvailabilityBase(doc: AvailabilityDocument | IAvailabilityDocu
     isBooked: doc.isBooked,
     maxBookings: doc.maxBookings,
     status: doc.status as AvailabilityStatus,
-    isTemplate: doc.isTemplate || false,
-    isInstantiated: doc.isInstantiated || false,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
     templateId: doc.templateId,
+    weekOf: doc.weekOf,
     bookingId: doc.bookingId,
     cancellationReason: doc.cancellationReason
   };
@@ -104,13 +103,9 @@ export class AvailabilityCreationService {
         }
       }
 
-      // Set template flags for recurring slots
+      // For recurring slots, generate multiple weeks
       if (createAvailabilityDto.type === AvailabilityType.RECURRING) {
-        createAvailabilityDto['isTemplate'] = true;
-        createAvailabilityDto['isInstantiated'] = false;
-      } else {
-        createAvailabilityDto['isTemplate'] = false;
-        createAvailabilityDto['isInstantiated'] = false;
+        return this.createRecurringSlots(createAvailabilityDto);
       }
 
       // Validate conflicts
@@ -281,6 +276,99 @@ export class AvailabilityCreationService {
         error.stack,
       );
       throw error;
+    }
+  }
+
+  /**
+   * Create recurring slots for multiple weeks (phone alarm approach)
+   */
+  private async createRecurringSlots(createAvailabilityDto: CreateAvailabilityDto): Promise<IAvailabilityBase> {
+    const weeksToGenerate = 8; // Generate 8 weeks ahead
+    const startDate = new Date();
+    const slots: any[] = [];
+
+    for (let week = 0; week < weeksToGenerate; week++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + (week * 7));
+      
+      // Find the target day in this week
+      const targetDay = new Date(weekStart);
+      const daysToAdd = (createAvailabilityDto.dayOfWeek! - weekStart.getDay() + 7) % 7;
+      targetDay.setDate(weekStart.getDate() + daysToAdd);
+      
+      // Create slot for this week
+      const slotData = {
+        ...createAvailabilityDto,
+        date: targetDay,
+        weekOf: weekStart,
+        startTime: this.adjustTimeToDate(createAvailabilityDto.startTime, targetDay),
+        endTime: this.adjustTimeToDate(createAvailabilityDto.endTime, targetDay)
+      };
+      
+      slots.push(slotData);
+    }
+
+    // Create all slots
+    const results = await this.availabilityModel.insertMany(slots);
+    
+    // Clear cache
+    await this.cacheService.clearProviderCache(createAvailabilityDto.providerId);
+    
+    // Return first slot as representative
+    const firstResult = results[0] as AvailabilityDocument;
+    return toAvailabilityBase(firstResult);
+  }
+
+  /**
+   * Adjust time to specific date
+   */
+  private adjustTimeToDate(time: Date, targetDate: Date): Date {
+    const result = new Date(targetDate);
+    result.setHours(time.getHours(), time.getMinutes(), time.getSeconds(), 0);
+    return result;
+  }
+
+  /**
+   * Generate additional recurring slots when converting from one-off to recurring
+   */
+  async generateRecurringSlots(baseSlot: any, dayOfWeek: number): Promise<void> {
+    const weeksToGenerate = 7; // Generate 7 more weeks (8 total including existing)
+    const startDate = new Date();
+    const slots: any[] = [];
+
+    for (let week = 1; week <= weeksToGenerate; week++) {
+      const weekStart = new Date(startDate);
+      weekStart.setDate(startDate.getDate() + (week * 7));
+
+      // Find the target day in this week
+      const targetDay = new Date(weekStart);
+      const daysToAdd = (dayOfWeek - weekStart.getDay() + 7) % 7;
+      targetDay.setDate(weekStart.getDate() + daysToAdd);
+
+      // Create slot for this week
+      const slotData = {
+        providerId: baseSlot.providerId,
+        type: 'recurring',
+        dayOfWeek,
+        date: targetDay,
+        weekOf: weekStart,
+        startTime: this.adjustTimeToDate(new Date(baseSlot.startTime), targetDay),
+        endTime: this.adjustTimeToDate(new Date(baseSlot.endTime), targetDay),
+        duration: baseSlot.duration,
+        maxBookings: baseSlot.maxBookings,
+        isBooked: false,
+        status: 'active'
+      };
+
+      slots.push(slotData);
+    }
+
+    // Create all additional slots
+    if (slots.length > 0) {
+      await this.availabilityModel.insertMany(slots);
+      
+      // Clear cache
+      await this.cacheService.clearProviderCache(baseSlot.providerId);
     }
   }
 }

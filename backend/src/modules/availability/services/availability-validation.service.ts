@@ -85,6 +85,15 @@ export class AvailabilityValidationService {
     const perfStart = Date.now();
     const { providerId, startTime: slotStartTime, endTime: slotEndTime, date, type, dayOfWeek } = availabilityDto as any;
     
+    this.logger.debug(`Checking conflicts for ${type} slot:`, {
+      providerId,
+      startTime: slotStartTime,
+      endTime: slotEndTime,
+      date,
+      dayOfWeek,
+      excludeId
+    });
+    
     const query: any = {
       providerId,
       $or: [{

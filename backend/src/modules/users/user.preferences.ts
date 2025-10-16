@@ -18,6 +18,9 @@ export interface UserPreferences {
     profileVisibility: 'public' | 'private';
     accessCodeRotation: 'daily' | 'weekly' | 'monthly';
   };
+  booking: {
+    autoConfirmBookings: boolean;
+  };
   language: string;
   timezone: string;
 }
@@ -41,6 +44,9 @@ export const defaultUserPreferences: UserPreferences = {
   privacy: {
     profileVisibility: 'public',
     accessCodeRotation: 'weekly',
+  },
+  booking: {
+    autoConfirmBookings: true, // Default: auto-confirm bookings
   },
   language: 'en',
   timezone: 'UTC',

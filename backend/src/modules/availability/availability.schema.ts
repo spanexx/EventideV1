@@ -53,13 +53,15 @@ export class Availability {
   @IsOptional()
   templateId?: string;
 
-  @Prop({ type: Boolean, default: false })
-  @IsBoolean()
-  isTemplate: boolean;
+  @Prop({ type: Date, required: false, index: true })
+  @IsOptional()
+  @IsDate()
+  weekOf?: Date; // For recurring slots: which week this instance belongs to
 
-  @Prop({ type: Boolean, default: false })
-  @IsBoolean()
-  isInstantiated: boolean;
+  @Prop({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  bookingId?: string;
 
   @Prop({
     type: String,
@@ -107,10 +109,7 @@ export class Availability {
   @IsBoolean()
   isBooked: boolean;
 
-  @Prop({ type: String, required: false })
-  @IsOptional()
-  @IsString()
-  bookingId?: string;
+
 
   createdAt: Date;
   updatedAt: Date;
@@ -121,13 +120,14 @@ export const AvailabilitySchema = SchemaFactory.createForClass(Availability);
 
 // Index for efficient querying by provider and date
 AvailabilitySchema.index({ providerId: 1, date: 1 });
-AvailabilitySchema.index({ providerId: 1, dayOfWeek: 1 });
+AvailabilitySchema.index({ providerId: 1, dayOfWeek: 1, weekOf: 1 });
 // Unique compound indexes to prevent duplicates based on slot type
 AvailabilitySchema.index(
   { 
     providerId: 1, 
     type: 1,
     dayOfWeek: 1,
+    weekOf: 1,
     startTime: 1 
   }, 
   { 
