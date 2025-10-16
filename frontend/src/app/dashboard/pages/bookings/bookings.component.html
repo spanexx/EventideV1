@@ -1,24 +1,27 @@
 <div class="bookings-container">
   <!-- Header Section -->
   <div class="bookings-header">
-    <div class="header-content">
-      <h1 class="page-title">📅 Bookings</h1>
-      <p class="page-subtitle">Manage your appointments and client interactions</p>
+    <div class="header-left">
+      <div class="icon-wrapper">
+        <mat-icon class="header-icon">event_note</mat-icon>
+      </div>
+      <div class="header-content">
+        <h1 class="page-title">Bookings</h1>
+        <p class="page-subtitle">Manage your appointments and client interactions</p>
+      </div>
     </div>
     <div class="header-actions">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search bookings</mat-label>
-        <input matInput [(ngModel)]="searchTerm" (input)="onSearch()" placeholder="Search by name, email...">
-        <mat-icon matSuffix>search</mat-icon>
+      <mat-form-field appearance="outline" class="search-field" floatLabel="never">
+        <input matInput [(ngModel)]="searchTerm" (input)="onSearch()" placeholder="Search bookings">
+        <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
-      <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Status</mat-label>
-        <mat-select [(value)]="selectedStatus" (selectionChange)="filterBookings()">
+      <mat-form-field appearance="outline" class="filter-field" floatLabel="never">
+        <mat-select [(value)]="selectedStatus" (selectionChange)="filterBookings()" placeholder="All Status">
           <mat-option value="">All Status</mat-option>
-          <mat-option value="confirmed">✅ Confirmed</mat-option>
-          <mat-option value="pending">⏳ Pending</mat-option>
-          <mat-option value="cancelled">❌ Cancelled</mat-option>
-          <mat-option value="completed">✔️ Completed</mat-option>
+          <mat-option value="confirmed">Confirmed</mat-option>
+          <mat-option value="pending">Pending</mat-option>
+          <mat-option value="cancelled">Cancelled</mat-option>
+          <mat-option value="completed">Completed</mat-option>
         </mat-select>
       </mat-form-field>
       <button mat-icon-button (click)="refreshBookings()" class="refresh-btn" matTooltip="Refresh">
@@ -81,117 +84,8 @@
     </div>
   }
 
-  <!-- View Toggle -->
+  <!-- Cards View -->
   @if (!(loading$ | async) && (bookings$ | async) && (bookings$ | async)!.length > 0) {
-    <div class="view-controls">
-      <mat-button-toggle-group [(value)]="viewMode" (change)="onViewModeChange($event)">
-        <mat-button-toggle value="table">
-          <mat-icon>table_view</mat-icon>
-          Table
-        </mat-button-toggle>
-        <mat-button-toggle value="cards">
-          <mat-icon>view_module</mat-icon>
-          Cards
-        </mat-button-toggle>
-      </mat-button-toggle-group>
-    </div>
-
-    <!-- Table View -->
-    @if (viewMode === 'table') {
-      <div class="bookings-table-container">
-        <table mat-table [dataSource]="(bookings$ | async) || []" class="bookings-table">
-        <!-- Guest Name Column -->
-        <ng-container matColumnDef="guest">
-          <th mat-header-cell *matHeaderCellDef>Guest</th>
-          <td mat-cell *matCellDef="let booking">
-            <div class="guest-info">
-              <span class="guest-name">{{ booking.guestName }}</span>
-              <span class="guest-email">{{ booking.guestEmail }}</span>
-            </div>
-          </td>
-        </ng-container>
-
-        <!-- Date & Time Column -->
-        <ng-container matColumnDef="datetime">
-          <th mat-header-cell *matHeaderCellDef>Date & Time</th>
-          <td mat-cell *matCellDef="let booking">
-            <div class="datetime-info">
-              <span class="date">{{ booking.startTime | date:'MMM d, y' }}</span>
-              <span class="time">{{ booking.startTime | date:'h:mm a' }} - {{ booking.endTime | date:'h:mm a' }}</span>
-            </div>
-          </td>
-        </ng-container>
-
-        <!-- Duration Column -->
-        <ng-container matColumnDef="duration">
-          <th mat-header-cell *matHeaderCellDef>Duration</th>
-          <td mat-cell *matCellDef="let booking">
-            {{ booking.duration || 60 }} min
-          </td>
-        </ng-container>
-
-        <!-- Status Column -->
-        <ng-container matColumnDef="status">
-          <th mat-header-cell *matHeaderCellDef>Status</th>
-          <td mat-cell *matCellDef="let booking">
-            <span class="status-badge" [class]="'status-' + booking.status">
-              {{ booking.status | titlecase }}
-            </span>
-          </td>
-        </ng-container>
-
-        <!-- Notes Column -->
-        <ng-container matColumnDef="notes">
-          <th mat-header-cell *matHeaderCellDef>Notes</th>
-          <td mat-cell *matCellDef="let booking">
-            <span class="notes-text" [title]="booking.notes">
-              {{ booking.notes || '-' }}
-            </span>
-          </td>
-        </ng-container>
-
-        <!-- Actions Column -->
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
-          <td mat-cell *matCellDef="let booking">
-            <div class="table-actions">
-              @if (booking.status === 'pending') {
-                <button mat-icon-button color="primary" (click)="approve(booking)" matTooltip="Approve">
-                  <mat-icon>check_circle</mat-icon>
-                </button>
-                <button mat-icon-button color="warn" (click)="decline(booking)" matTooltip="Decline">
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              } @else {
-                @if (booking.status === 'confirmed') {
-                  <button mat-icon-button color="accent" (click)="completeBooking(booking)" matTooltip="Mark Complete">
-                    <mat-icon>check</mat-icon>
-                  </button>
-                }
-                <button mat-icon-button (click)="editBooking(booking)" matTooltip="Edit">
-                  <mat-icon>edit</mat-icon>
-                </button>
-                <button 
-                  mat-icon-button 
-                  color="warn" 
-                  (click)="cancelBooking(booking)"
-                  [disabled]="booking.status === 'cancelled' || booking.status === 'completed'"
-                  matTooltip="Cancel">
-                  <mat-icon>cancel</mat-icon>
-                </button>
-              }
-            </div>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      </table>
-      </div>
-    }
-
-    <!-- Cards View -->
-    @if (viewMode === 'cards') {
       <div class="bookings-cards-container">
         @for (booking of (bookings$ | async); track booking.id || booking._id) {
           <div class="booking-card" [class]="'status-' + booking.status">
@@ -258,7 +152,6 @@
           </div>
         }
       </div>
-    }
 
     <!-- Pagination -->
     <mat-paginator 
