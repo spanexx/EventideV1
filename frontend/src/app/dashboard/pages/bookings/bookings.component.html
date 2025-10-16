@@ -21,9 +21,8 @@
           <mat-option value="completed">✔️ Completed</mat-option>
         </mat-select>
       </mat-form-field>
-      <button mat-raised-button color="primary" (click)="refreshBookings()" class="refresh-btn">
+      <button mat-icon-button (click)="refreshBookings()" class="refresh-btn" matTooltip="Refresh">
         <mat-icon>refresh</mat-icon>
-        Refresh
       </button>
     </div>
   </div>
@@ -75,9 +74,8 @@
       <h3>No bookings found</h3>
       <p>{{ searchTerm ? 'No appointments match your search criteria' : 'No appointments match your current filter' }}</p>
       @if (searchTerm) {
-        <button mat-stroked-button (click)="clearSearch()" class="clear-search-btn">
+        <button mat-icon-button (click)="clearSearch()" class="clear-search-btn" matTooltip="Clear Search">
           <mat-icon>clear</mat-icon>
-          Clear Search
         </button>
       }
     </div>
@@ -233,33 +231,27 @@
             
             <div class="card-actions">
               @if (booking.status === 'pending') {
-                <button mat-raised-button color="primary" (click)="approve(booking)" class="action-btn approve">
+                <button mat-icon-button (click)="approve(booking)" class="action-btn approve" matTooltip="Approve">
                   <mat-icon>check_circle</mat-icon>
-                  Approve
                 </button>
-                <button mat-stroked-button color="warn" (click)="decline(booking)" class="action-btn decline">
+                <button mat-icon-button (click)="decline(booking)" class="action-btn decline" matTooltip="Decline">
                   <mat-icon>cancel</mat-icon>
-                  Decline
                 </button>
               } @else {
                 @if (booking.status === 'confirmed') {
-                  <button mat-raised-button color="accent" (click)="completeBooking(booking)" class="action-btn complete">
+                  <button mat-icon-button (click)="completeBooking(booking)" class="action-btn complete" matTooltip="Complete">
                     <mat-icon>check</mat-icon>
-                    Complete
                   </button>
                 }
-                <button mat-stroked-button (click)="editBooking(booking)" class="action-btn edit">
+                <button mat-icon-button (click)="editBooking(booking)" class="action-btn edit" matTooltip="Edit">
                   <mat-icon>edit</mat-icon>
-                  Edit
                 </button>
                 <button 
-                  mat-stroked-button 
-                  color="warn" 
+                  mat-icon-button 
                   (click)="cancelBooking(booking)"
                   [disabled]="booking.status === 'cancelled' || booking.status === 'completed'"
-                  class="action-btn cancel">
+                  class="action-btn cancel" matTooltip="Cancel">
                   <mat-icon>cancel</mat-icon>
-                  Cancel
                 </button>
               }
             </div>
