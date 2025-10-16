@@ -2,24 +2,61 @@
   <!-- Header Section -->
   <div class="bookings-header">
     <div class="header-content">
-      <h1 class="page-title">Bookings</h1>
-      <p class="page-subtitle">Manage your appointments</p>
+      <h1 class="page-title">📅 Bookings</h1>
+      <p class="page-subtitle">Manage your appointments and client interactions</p>
     </div>
     <div class="header-actions">
+      <mat-form-field appearance="outline" class="search-field">
+        <mat-label>Search bookings</mat-label>
+        <input matInput [(ngModel)]="searchTerm" (input)="onSearch()" placeholder="Search by name, email...">
+        <mat-icon matSuffix>search</mat-icon>
+      </mat-form-field>
       <mat-form-field appearance="outline" class="filter-field">
-        <mat-label>Filter</mat-label>
+        <mat-label>Status</mat-label>
         <mat-select [(value)]="selectedStatus" (selectionChange)="filterBookings()">
-          <mat-option value="">All</mat-option>
-          <mat-option value="confirmed">Confirmed</mat-option>
-          <mat-option value="pending">Pending</mat-option>
-          <mat-option value="cancelled">Cancelled</mat-option>
-          <mat-option value="completed">Completed</mat-option>
+          <mat-option value="">All Status</mat-option>
+          <mat-option value="confirmed">✅ Confirmed</mat-option>
+          <mat-option value="pending">⏳ Pending</mat-option>
+          <mat-option value="cancelled">❌ Cancelled</mat-option>
+          <mat-option value="completed">✔️ Completed</mat-option>
         </mat-select>
       </mat-form-field>
-      <button mat-raised-button color="primary" (click)="refreshBookings()">
+      <button mat-raised-button color="primary" (click)="refreshBookings()" class="refresh-btn">
         <mat-icon>refresh</mat-icon>
         Refresh
       </button>
+    </div>
+  </div>
+
+  <!-- Quick Stats -->
+  <div class="quick-stats">
+    <div class="stat-card pending">
+      <div class="stat-icon">⏳</div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getBookingCount('pending') }}</div>
+        <div class="stat-label">Pending</div>
+      </div>
+    </div>
+    <div class="stat-card confirmed">
+      <div class="stat-icon">✅</div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getBookingCount('confirmed') }}</div>
+        <div class="stat-label">Confirmed</div>
+      </div>
+    </div>
+    <div class="stat-card completed">
+      <div class="stat-icon">✔️</div>
+      <div class="stat-content">
+        <div class="stat-number">{{ getBookingCount('completed') }}</div>
+        <div class="stat-label">Completed</div>
+      </div>
+    </div>
+    <div class="stat-card total">
+      <div class="stat-icon">📊</div>
+      <div class="stat-content">
+        <div class="stat-number">{{ totalBookings }}</div>
+        <div class="stat-label">Total</div>
+      </div>
     </div>
   </div>
 
@@ -34,16 +71,37 @@
   <!-- Empty State -->
   @if (!(loading$ | async) && (bookings$ | async)?.length === 0) {
     <div class="empty-state">
-      <mat-icon>event_busy</mat-icon>
+      <div class="empty-icon">📅</div>
       <h3>No bookings found</h3>
-      <p>No appointments match your current filter</p>
+      <p>{{ searchTerm ? 'No appointments match your search criteria' : 'No appointments match your current filter' }}</p>
+      @if (searchTerm) {
+        <button mat-stroked-button (click)="clearSearch()" class="clear-search-btn">
+          <mat-icon>clear</mat-icon>
+          Clear Search
+        </button>
+      }
     </div>
   }
 
-  <!-- Bookings Table -->
+  <!-- View Toggle -->
   @if (!(loading$ | async) && (bookings$ | async) && (bookings$ | async)!.length > 0) {
-    <div class="bookings-table-container">
-      <table mat-table [dataSource]="(bookings$ | async) || []" class="bookings-table">
+    <div class="view-controls">
+      <mat-button-toggle-group [(value)]="viewMode" (change)="onViewModeChange($event)">
+        <mat-button-toggle value="table">
+          <mat-icon>table_view</mat-icon>
+          Table
+        </mat-button-toggle>
+        <mat-button-toggle value="cards">
+          <mat-icon>view_module</mat-icon>
+          Cards
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+    </div>
+
+    <!-- Table View -->
+    @if (viewMode === 'table') {
+      <div class="bookings-table-container">
+        <table mat-table [dataSource]="(bookings$ | async) || []" class="bookings-table">
         <!-- Guest Name Column -->
         <ng-container matColumnDef="guest">
           <th mat-header-cell *matHeaderCellDef>Guest</th>
@@ -131,16 +189,93 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
       </table>
+      </div>
+    }
 
-      <!-- Pagination -->
-      <mat-paginator 
-        [length]="totalBookings"
-        [pageSize]="pageSize"
-        [pageSizeOptions]="[10, 25, 50, 100]"
-        [pageIndex]="currentPage"
-        (page)="onPageChange($event)"
-        showFirstLastButtons>
-      </mat-paginator>
-    </div>
+    <!-- Cards View -->
+    @if (viewMode === 'cards') {
+      <div class="bookings-cards-container">
+        @for (booking of (bookings$ | async); track booking.id || booking._id) {
+          <div class="booking-card" [class]="'status-' + booking.status">
+            <div class="card-header">
+              <div class="guest-avatar">{{ getInitials(booking.guestName) }}</div>
+              <div class="guest-details">
+                <h4 class="guest-name">{{ booking.guestName }}</h4>
+                <p class="guest-email">{{ booking.guestEmail }}</p>
+              </div>
+              <div class="status-badge" [class]="'status-' + booking.status">
+                {{ getStatusIcon(booking.status) }} {{ booking.status | titlecase }}
+              </div>
+            </div>
+            
+            <div class="card-content">
+              <div class="booking-info">
+                <div class="info-item">
+                  <mat-icon>event</mat-icon>
+                  <span>{{ booking.startTime | date:'MMM d, y' }}</span>
+                </div>
+                <div class="info-item">
+                  <mat-icon>schedule</mat-icon>
+                  <span>{{ booking.startTime | date:'h:mm a' }} - {{ booking.endTime | date:'h:mm a' }}</span>
+                </div>
+                <div class="info-item">
+                  <mat-icon>timer</mat-icon>
+                  <span>{{ booking.duration || 60 }} minutes</span>
+                </div>
+                @if (booking.notes) {
+                  <div class="info-item notes">
+                    <mat-icon>note</mat-icon>
+                    <span>{{ booking.notes }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+            
+            <div class="card-actions">
+              @if (booking.status === 'pending') {
+                <button mat-raised-button color="primary" (click)="approve(booking)" class="action-btn approve">
+                  <mat-icon>check_circle</mat-icon>
+                  Approve
+                </button>
+                <button mat-stroked-button color="warn" (click)="decline(booking)" class="action-btn decline">
+                  <mat-icon>cancel</mat-icon>
+                  Decline
+                </button>
+              } @else {
+                @if (booking.status === 'confirmed') {
+                  <button mat-raised-button color="accent" (click)="completeBooking(booking)" class="action-btn complete">
+                    <mat-icon>check</mat-icon>
+                    Complete
+                  </button>
+                }
+                <button mat-stroked-button (click)="editBooking(booking)" class="action-btn edit">
+                  <mat-icon>edit</mat-icon>
+                  Edit
+                </button>
+                <button 
+                  mat-stroked-button 
+                  color="warn" 
+                  (click)="cancelBooking(booking)"
+                  [disabled]="booking.status === 'cancelled' || booking.status === 'completed'"
+                  class="action-btn cancel">
+                  <mat-icon>cancel</mat-icon>
+                  Cancel
+                </button>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Pagination -->
+    <mat-paginator 
+      [length]="totalBookings"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 25, 50, 100]"
+      [pageIndex]="currentPage"
+      (page)="onPageChange($event)"
+      showFirstLastButtons>
+    </mat-paginator>
   }
 </div>

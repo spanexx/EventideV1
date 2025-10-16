@@ -11,6 +11,8 @@ import { MatDialog } from '@angular/material/dialog';
 import { MatTableModule } from '@angular/material/table';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatInputModule } from '@angular/material/input';
 import * as DashboardActions from '../../store-dashboard/actions/dashboard.actions';
 import * as DashboardSelectors from '../../store-dashboard/selectors/dashboard.selectors';
 import { Booking, BookingStatus } from '../../models/booking.models';
@@ -18,6 +20,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingEditDialogComponent } from '../../components/booking-edit-dialog/booking-edit-dialog.component';
 import { CompleteBookingDialogComponent } from '../../components/complete-booking-dialog/complete-booking-dialog.component';
+import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-bookings',
@@ -33,7 +36,9 @@ import { CompleteBookingDialogComponent } from '../../components/complete-bookin
     MatProgressSpinnerModule,
     MatTableModule,
     MatPaginatorModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatButtonToggleModule,
+    MatInputModule
   ],
   templateUrl: './bookings.component.html',
   styleUrl: './bookings.component.scss'
@@ -42,6 +47,11 @@ export class BookingsComponent implements OnInit {
   bookings$: Observable<Booking[]>;
   loading$: Observable<boolean>;
   selectedStatus: string = '';
+  searchTerm: string = '';
+  viewMode: 'table' | 'cards' = 'cards';
+  
+  // Search functionality
+  private searchSubject = new Subject<string>();
   
   // Table configuration
   displayedColumns: string[] = ['guest', 'datetime', 'duration', 'status', 'notes', 'actions'];
@@ -50,10 +60,26 @@ export class BookingsComponent implements OnInit {
   pageSize = 10;
   currentPage = 0;
   totalBookings = 0;
+  
+  // Cached bookings for stats
+  private allBookings: Booking[] = [];
 
   constructor(private store: Store, private dialog: MatDialog) {
     this.bookings$ = this.store.select(DashboardSelectors.selectBookings);
     this.loading$ = this.store.select(DashboardSelectors.selectDashboardLoading);
+    
+    // Setup search debouncing
+    this.searchSubject.pipe(
+      debounceTime(300),
+      distinctUntilChanged()
+    ).subscribe(() => {
+      this.filterBookings();
+    });
+    
+    // Subscribe to bookings for stats
+    this.bookings$.subscribe(bookings => {
+      this.allBookings = bookings || [];
+    });
   }
 
   ngOnInit(): void {
@@ -67,6 +93,9 @@ export class BookingsComponent implements OnInit {
     };
     if (this.selectedStatus) {
       params.status = this.selectedStatus;
+    }
+    if (this.searchTerm) {
+      params.search = this.searchTerm;
     }
     console.log('[BookingsComponent] loadBookings with params:', params);
     this.store.dispatch(DashboardActions.loadBookings({ params }));
@@ -166,5 +195,37 @@ export class BookingsComponent implements OnInit {
         }
       });
     }
+  }
+
+  // New methods for enhanced functionality
+  onSearch(): void {
+    this.searchSubject.next(this.searchTerm);
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.filterBookings();
+  }
+
+  onViewModeChange(event: any): void {
+    this.viewMode = event.value;
+  }
+
+  getBookingCount(status: string): number {
+    return this.allBookings.filter(booking => booking.status === status).length;
+  }
+
+  getInitials(name: string): string {
+    return name?.split(' ').map(n => n[0]).join('').toUpperCase() || '??';
+  }
+
+  getStatusIcon(status: string): string {
+    const icons: { [key: string]: string } = {
+      'pending': '⏳',
+      'confirmed': '✅',
+      'cancelled': '❌',
+      'completed': '✔️'
+    };
+    return icons[status] || '📅';
   }
 }
