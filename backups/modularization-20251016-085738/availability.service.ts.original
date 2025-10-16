@@ -1,0 +1,386 @@
+import { ConflictException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { Availability, AvailabilityDocument } from './availability.schema';
+import { CreateAvailabilityDto } from './dto/create-availability.dto';
+import { UpdateAvailabilityDto } from './dto/update-availability.dto';
+import { CreateAllDayAvailabilityDto } from './dto/create-all-day-availability.dto';
+import { CreateBulkAvailabilityDto } from './dto/create-bulk-availability.dto';
+import { UpdateDaySlotQuantityDto } from './dto/update-day-slot-quantity.dto';
+import { IAvailabilityBase } from './interfaces/availability.interface';
+import { AvailabilityBaseService } from './services/availability-base.service';
+import { AvailabilityCacheService } from './services/availability-cache.service';
+import { AvailabilityEventsService } from './services/availability-events.service';
+import { AvailabilityValidationService } from './services/availability-validation.service';
+import { AvailabilitySlotGeneratorService } from './services/availability-slot-generator.service';
+import { AvailabilityCreationService } from './services/availability-creation.service';
+import { AvailabilityNotificationService } from './services/availability-notification.service';
+import { UsersService } from '../../modules/users/users.service';
+import { AvailabilityMigrationService } from './services/availability-migration.service';
+
+@Injectable()
+export class AvailabilityService implements OnModuleInit {
+  private readonly logger = new Logger(AvailabilityService.name);
+
+  constructor(
+    @InjectModel(Availability.name)
+    private availabilityModel: Model<AvailabilityDocument>,
+    private readonly baseService: AvailabilityBaseService,
+    private readonly cacheService: AvailabilityCacheService,
+    private readonly eventsService: AvailabilityEventsService,
+    private readonly validationService: AvailabilityValidationService,
+    private readonly slotGeneratorService: AvailabilitySlotGeneratorService,
+    private readonly creationService: AvailabilityCreationService,
+    private readonly notificationService: AvailabilityNotificationService,
+    private readonly migrationService: AvailabilityMigrationService,
+    private readonly usersService: UsersService,
+  ) {}
+
+  async onModuleInit() {
+    try {
+      await this.migrationService.migrateExistingRecords();
+    } catch (error) {
+      this.logger.error('Failed to run availability migration:', error);
+    }
+  }
+
+  /**
+   * Find and lock an availability slot by ID for booking
+   */
+  async findByIdAndLock(
+    id: string,
+    session: any,
+  ): Promise<IAvailabilityBase | null> {
+    return this.baseService.findByIdAndLock(id, session);
+  }
+
+  async findAllInstances(providerId: string, startDate: Date, endDate: Date): Promise<IAvailabilityBase[]> {
+    return this.availabilityModel.find({
+      providerId,
+      type: 'one_off',
+      date: {
+        $gte: startDate,
+        $lte: endDate
+      }
+    }).exec();
+  }
+
+  async findExistingInstance(
+    providerId: string,
+    date: Date,
+    startTime: Date,
+    session?: any
+  ): Promise<IAvailabilityBase | null> {
+    const query = this.availabilityModel.findOne({
+      providerId,
+      type: 'one_off',
+      date,
+      startTime
+    });
+    
+    if (session) {
+      query.session(session);
+    }
+    
+    return query.exec();
+  }
+
+  /**
+   * Create a specific instance from a recurring availability template
+   */
+  async createInstanceFromRecurring(
+    template: IAvailabilityBase,
+    date: Date,
+    startTime: Date,
+    endTime: Date,
+    session: any,
+  ): Promise<IAvailabilityBase> {
+    this.logger.log(`[createInstanceFromRecurring] Looking for existing recurring instance for template ${template._id}`);
+    
+    // Start fresh with dates to ensure proper UTC handling
+    const requestedDate = new Date(date.getTime());
+    requestedDate.setUTCHours(0, 0, 0, 0);
+    
+    // Create the start and end times
+    const instanceStartTime = new Date(requestedDate.getTime());
+    instanceStartTime.setUTCHours(
+      startTime.getUTCHours(),
+      startTime.getUTCMinutes(),
+      0,
+      0
+    );
+    
+    const instanceEndTime = new Date(requestedDate.getTime());
+    instanceEndTime.setUTCHours(
+      endTime.getUTCHours(),
+      endTime.getUTCMinutes(),
+      0,
+      0
+    );
+
+    // FIXED: Check for existing RECURRING instance that matches the date/time
+    // Recurring instances are pre-generated with type='recurring', not 'one_off'
+    const existingRecurringInstance = await this.availabilityModel.findOne({
+      providerId: template.providerId,
+      type: 'recurring',
+      startTime: instanceStartTime,
+      endTime: instanceEndTime
+    }).session(session);
+
+    if (existingRecurringInstance) {
+      this.logger.log(`[createInstanceFromRecurring] Found existing recurring instance ${existingRecurringInstance._id}`);
+      if (existingRecurringInstance.isBooked) {
+        throw new ConflictException('This time slot is already booked');
+      }
+      return existingRecurringInstance;
+    }
+
+    // If no recurring instance exists, create one-off instance
+    this.logger.log(`[createInstanceFromRecurring] No recurring instance found, creating one-off instance`);
+    
+    // Check if one-off instance already exists
+    const existingOneOff = await this.availabilityModel.findOne({
+      providerId: template.providerId,
+      type: 'one_off',
+      date: requestedDate,
+      startTime: instanceStartTime
+    }).session(session);
+
+    if (existingOneOff) {
+      this.logger.log(`[createInstanceFromRecurring] Found existing one-off instance ${existingOneOff._id}`);
+      if (existingOneOff.isBooked) {
+        throw new ConflictException('This time slot is already booked');
+      }
+      return existingOneOff;
+    }
+
+    // Create new one-off instance only if no existing instance found
+    const instanceData = {
+      providerId: template.providerId,
+      type: 'one_off' as const,
+      startTime,
+      endTime,
+      date,
+      duration: template.duration,
+      maxBookings: template.maxBookings,
+      status: template.status,
+      isBooked: false
+    };
+
+    const instance = await this.availabilityModel.create([instanceData], { session });
+    this.logger.log(`[createInstanceFromRecurring] Created new one-off instance ${instance[0]._id}`);
+    
+    // Important: Do not mark the template as booked
+    if (template.type === 'recurring') {
+      await this.availabilityModel
+        .updateOne(
+          { _id: template._id },
+          { $set: { isBooked: false }, $unset: { bookingId: "" } },
+          { session }
+        );
+    }
+
+    return instance[0];
+  }
+
+  /**
+   * Mark an availability slot as booked
+   */
+  async markAsBooked(
+    id: string,
+    bookingId: string,
+    session: any,
+  ): Promise<IAvailabilityBase> {
+    return this.baseService.markAsBooked(id, bookingId, session);
+  }
+
+  /**
+   * Mark an availability slot as available (unbooked)
+   */
+  async markAsAvailable(
+    id: string,
+    session: any,
+  ): Promise<IAvailabilityBase> {
+    return this.baseService.markAsAvailable(id, session);
+  }
+
+  /**
+   * Create a new availability slot
+   */
+  async create(
+    createAvailabilityDto: CreateAvailabilityDto,
+  ): Promise<IAvailabilityBase> {
+    return this.creationService.create(createAvailabilityDto);
+  }
+
+  /**
+   * Find availability slots for a provider within a date range
+   */
+  async findByProviderAndDateRange(
+    providerId: string,
+    startDate?: Date,
+    endDate?: Date,
+  ): Promise<IAvailabilityBase[]> {
+    return this.baseService.findByProviderAndDateRange(providerId, startDate, endDate);
+  }
+
+  /**
+   * Find an availability slot by ID
+   */
+  async findById(id: string): Promise<IAvailabilityBase> {
+    return this.baseService.findById(id);
+  }
+
+  /**
+   * Update an availability slot
+   */
+  async update(
+    id: string,
+    updateAvailabilityDto: UpdateAvailabilityDto,
+  ): Promise<IAvailabilityBase> {
+    const original = await this.baseService.findById(id);
+    if (!original) {
+      throw new NotFoundException(`Availability slot with ID ${id} not found`);
+    }
+
+    // Check if converting from one_off to recurring
+    const isConvertingToRecurring = original.type === 'one_off' && updateAvailabilityDto.type === 'recurring';
+    
+    const updated = await this.baseService.update(id, updateAvailabilityDto);
+    
+    // If converting to recurring, generate additional weekly slots
+    if (isConvertingToRecurring && updateAvailabilityDto.dayOfWeek !== undefined) {
+      await this.creationService.generateRecurringSlots(updated, updateAvailabilityDto.dayOfWeek);
+    }
+    
+    // Send appropriate notification based on the update type
+    const provider = await this.usersService.findById(original.providerId);
+    if (provider && provider.email) {
+      if (updated.status === 'cancelled' && updated.status !== original.status) {
+        await this.notificationService.notifyCancellation(updated, provider.email);
+      } else if (updated.status === 'override' && updated.status !== original.status) {
+        await this.notificationService.notifyOverride(original, updated, provider.email);
+      } else {
+        await this.notificationService.notifyUpdate(original, updated, provider.email);
+      }
+    }
+
+    return updated;
+  }
+
+  /**
+   * Delete an availability slot
+   */
+  async delete(id: string): Promise<{ success: boolean }> {
+    return this.baseService.delete(id);
+  }
+
+  /**
+   * Remove past one-off availability slots
+   */
+  async cleanupPastOneOffSlots(): Promise<number> {
+    return this.baseService.cleanupPastOneOffSlots();
+  }
+
+  /**
+   * Create multiple availability slots for an all-day period
+   */
+  async createAllDaySlots(
+    createAllDayAvailabilityDto: CreateAllDayAvailabilityDto,
+  ): Promise<IAvailabilityBase[]> {
+    return this.creationService.createAllDaySlots(createAllDayAvailabilityDto);
+  }
+
+  /**
+   * Adjust the number of slots for a specific day
+   */
+  async adjustDaySlotQuantity(updateDto: UpdateDaySlotQuantityDto): Promise<IAvailabilityBase[]> {
+    return this.baseService.adjustDaySlotQuantity(updateDto);
+  }
+
+  /**
+   * Create multiple availability slots in bulk
+   */
+  async createBulkSlots(
+    createBulkAvailabilityDto: CreateBulkAvailabilityDto,
+  ): Promise<{ created: IAvailabilityBase[]; conflicts: any[] }> {
+    // Convert BulkSlotConfig[] to CreateAvailabilityDto[]
+    const slots = createBulkAvailabilityDto.slots?.map(slot => ({
+      ...slot,
+      providerId: createBulkAvailabilityDto.providerId
+    }));
+
+    const result = await this.creationService.createBatchSlots(slots || [], {
+      skipConflicts: createBulkAvailabilityDto.skipConflicts,
+      replaceConflicts: createBulkAvailabilityDto.replaceConflicts,
+      dryRun: createBulkAvailabilityDto.dryRun,
+      idempotencyKey: createBulkAvailabilityDto.idempotencyKey,
+    });
+
+    // Send notification for bulk creation if slots were created
+    if (!createBulkAvailabilityDto.dryRun && result.created.length > 0) {
+      const provider = await this.usersService.findById(createBulkAvailabilityDto.providerId);
+      if (provider && provider.email) {
+        const dates = result.created.map(slot => slot.startTime);
+        await this.notificationService.notifyBulkUpdate(
+          createBulkAvailabilityDto.providerId,
+          dates,
+          provider.email
+        );
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate a batch of availability slots
+   */
+  async validateSlots(createBulkAvailabilityDto: CreateBulkAvailabilityDto): Promise<{
+    requested: number;
+    conflicts: any[];
+    suggestions: any[];
+  }> {
+    // Generate slots from bulk DTO and ensure each slot has a providerId
+    let slots = createBulkAvailabilityDto.slots?.map(slot => ({
+      ...slot,
+      providerId: createBulkAvailabilityDto.providerId
+    })) || this.slotGeneratorService.generateSlotsFromBulkDto(createBulkAvailabilityDto);
+
+    const conflicts: any[] = [];
+    const suggestions: any[] = [];
+
+    for (const slot of slots) {
+      const validationSlot = {
+        ...slot,
+        providerId: createBulkAvailabilityDto.providerId
+      };
+
+      const slotConflicts = await this.validationService.findConflicts(validationSlot);
+      if (slotConflicts.length > 0) {
+        conflicts.push({
+          requested: validationSlot,
+          conflictingWith: slotConflicts,
+        });
+
+        // Generate suggestions for conflicting slots
+        const suggestedSlot = await this.slotGeneratorService.generateAlternativeSlot(
+          validationSlot,
+          slotConflicts
+        );
+        if (suggestedSlot) {
+          suggestions.push({
+            original: validationSlot,
+            suggested: suggestedSlot,
+          });
+        }
+      }
+    }
+
+    return {
+      requested: slots.length,
+      conflicts,
+      suggestions,
+    };
+  }
+}
