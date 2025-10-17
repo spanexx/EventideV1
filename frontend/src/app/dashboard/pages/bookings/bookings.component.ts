@@ -55,8 +55,12 @@ export class BookingsComponent implements OnInit {
   currentPage = 0;
   totalBookings = 0;
   
-  // Cached bookings for stats
+  // Cached bookings for stats and optimization
   private allBookings: Booking[] = [];
+  private lastLoadParams: any = {};
+  private lastLoadTime: number = 0;
+  private readonly CACHE_DURATION = 60000; // 60 seconds
+  private readonly MIN_SEARCH_LENGTH = 2; // Minimum search length
 
   constructor(private store: Store, private dialog: MatDialog) {
     this.bookings$ = this.store.select(DashboardSelectors.selectBookings);
@@ -64,15 +68,19 @@ export class BookingsComponent implements OnInit {
     
     // Setup search debouncing
     this.searchSubject.pipe(
-      debounceTime(300),
+      debounceTime(800), // Increased from 300ms to 800ms
       distinctUntilChanged()
     ).subscribe(() => {
+      console.log(`[BookingsComponent] 🎯 Search debounce fired - triggering filterBookings`);
       this.filterBookings();
     });
     
     // Subscribe to bookings for stats
     this.bookings$.subscribe(bookings => {
+      const bookingCount = bookings?.length || 0;
       this.allBookings = bookings || [];
+      console.log(`[BookingsComponent] 📊 Bookings updated: ${bookingCount} bookings received`);
+      console.log(`[BookingsComponent] 📈 Stats - Total: ${this.getBookingCount('total')}, Pending: ${this.getBookingCount('pending')}, Confirmed: ${this.getBookingCount('confirmed')}, Completed: ${this.getBookingCount('completed')}`);
     });
   }
 
@@ -91,20 +99,40 @@ export class BookingsComponent implements OnInit {
     if (this.searchTerm) {
       params.search = this.searchTerm;
     }
-    console.log('[BookingsComponent] loadBookings with params:', params);
+
+    // Skip if same params and within cache duration
+    const now = Date.now();
+    const paramsChanged = JSON.stringify(params) !== JSON.stringify(this.lastLoadParams);
+    const cacheExpired = (now - this.lastLoadTime) > this.CACHE_DURATION;
+
+    console.log(`[BookingsComponent] loadBookings - params: ${JSON.stringify(params)}, changed: ${paramsChanged}, expired: ${cacheExpired}`);
+
+    if (!paramsChanged && !cacheExpired) {
+      console.log(`[BookingsComponent] 🚫 Skipping DB call - using cached data (${Math.round((this.CACHE_DURATION - (now - this.lastLoadTime)) / 1000)}s remaining)`);
+      return;
+    }
+
+    console.log(`[BookingsComponent] 🔄 Making API call with params: ${JSON.stringify(params)}`);
+    this.lastLoadParams = { ...params };
+    this.lastLoadTime = now;
     this.store.dispatch(DashboardActions.loadBookings({ params }));
   }
 
   refreshBookings(): void {
+    console.log(`[BookingsComponent] refreshBookings called - clearing cache and forcing refresh`);
+    // Force refresh by clearing cache
+    this.lastLoadTime = 0;
     this.loadBookings();
   }
 
   filterBookings(): void {
+    console.log(`[BookingsComponent] filterBookings called - currentPage reset to 0, searchTerm: "${this.searchTerm}", status: "${this.selectedStatus}"`);
     this.currentPage = 0; // Reset to first page when filtering
     this.loadBookings();
   }
 
   onPageChange(event: PageEvent): void {
+    console.log(`[BookingsComponent] onPageChange - pageSize: ${event.pageSize}, pageIndex: ${event.pageIndex}`);
     this.pageSize = event.pageSize;
     this.currentPage = event.pageIndex;
     this.loadBookings();
@@ -193,7 +221,15 @@ export class BookingsComponent implements OnInit {
 
   // New methods for enhanced functionality
   onSearch(): void {
-    this.searchSubject.next(this.searchTerm);
+    console.log(`[BookingsComponent] onSearch called with: "${this.searchTerm}" (length: ${this.searchTerm.length})`);
+
+    // Only search if term is long enough or empty (to clear)
+    if (this.searchTerm.length === 0 || this.searchTerm.length >= this.MIN_SEARCH_LENGTH) {
+      console.log(`[BookingsComponent] 🔍 Triggering search for: "${this.searchTerm}"`);
+      this.searchSubject.next(this.searchTerm);
+    } else {
+      console.log(`[BookingsComponent] ⏸️ Search ignored - too short (min: ${this.MIN_SEARCH_LENGTH} chars)`);
+    }
   }
 
   clearSearch(): void {
@@ -202,6 +238,9 @@ export class BookingsComponent implements OnInit {
   }
 
   getBookingCount(status: string): number {
+    if (status === 'total') {
+      return this.allBookings.length;
+    }
     return this.allBookings.filter(booking => booking.status === status).length;
   }
 
@@ -217,5 +256,18 @@ export class BookingsComponent implements OnInit {
       'completed': '✔️'
     };
     return icons[status] || '📅';
+  }
+
+  getSortedBookings(bookings: Booking[] | null): Booking[] {
+    if (!bookings) return [];
+    
+    return [...bookings].sort((a, b) => {
+      // Completed bookings go last
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (b.status === 'completed' && a.status !== 'completed') return -1;
+      
+      // Sort by date within same status
+      return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+    });
   }
 }

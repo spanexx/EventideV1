@@ -15,18 +15,15 @@ import { BookingEventsService } from './services/booking-events.service';
 import { BookingValidationService } from './services/booking-validation.service';
 import { BookingSerialKeyService } from './services/booking-serial-key.service';
 import { BookingSearchService } from './services/booking-search.service';
-import { BookingPaymentService } from './services/booking-payment.service';
 import { UsersModule } from '../users/users.module';
 import { EmailModule } from '../../core/email/email.module';
 import { BookingCreationService } from './services/booking-creation.service';
 import { BookingCancellationService } from './services/booking-cancellation.service';
 
 // Import modular components
-import { BookingValidationProvider } from './services/providers/booking-validation.provider';
 import { RecurringBookingStrategy } from './services/strategies/recurring-booking.strategy';
 import { BookingNotificationHandler } from './services/handlers/booking-notification.handler';
 import { BookingInstanceUtils } from './services/utils/booking-instance.utils';
-import { SingleBookingHandler } from './services/handlers/single-booking.handler';
 
 @Module({
   imports: [
@@ -49,17 +46,14 @@ import { SingleBookingHandler } from './services/handlers/single-booking.handler
     BookingValidationService,
     BookingSerialKeyService,
     BookingSearchService,
-    BookingPaymentService,
     BookingCreationService,
     BookingCancellationService,
     SerialKeyService,
     QRCodeService,
     // Modular components
-    BookingValidationProvider,
     RecurringBookingStrategy,
     BookingNotificationHandler,
     BookingInstanceUtils,
-    SingleBookingHandler,
   ],
   exports: [BookingService],
 })

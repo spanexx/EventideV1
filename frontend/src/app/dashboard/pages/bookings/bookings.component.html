@@ -56,7 +56,7 @@
     <div class="stat-card total">
       <div class="stat-icon">📊</div>
       <div class="stat-content">
-        <div class="stat-number">{{ totalBookings }}</div>
+        <div class="stat-number">{{ getBookingCount('total') }}</div>
         <div class="stat-label">Total</div>
       </div>
     </div>
@@ -87,7 +87,7 @@
   <!-- Cards View -->
   @if (!(loading$ | async) && (bookings$ | async) && (bookings$ | async)!.length > 0) {
       <div class="bookings-cards-container">
-        @for (booking of (bookings$ | async); track booking.id || booking._id) {
+        @for (booking of getSortedBookings(bookings$ | async); track $index) {
           <div class="booking-card" [class]="'status-' + booking.status">
             <div class="card-header">
               <div class="guest-avatar">{{ getInitials(booking.guestName) }}</div>
@@ -137,7 +137,12 @@
                     <mat-icon>check</mat-icon>
                   </button>
                 }
-                <button mat-icon-button (click)="editBooking(booking)" class="action-btn edit" matTooltip="Edit">
+                <button 
+                  mat-icon-button 
+                  (click)="editBooking(booking)" 
+                  class="action-btn edit" 
+                  matTooltip="Edit"
+                  [disabled]="booking.status === 'completed'">
                   <mat-icon>edit</mat-icon>
                 </button>
                 <button 

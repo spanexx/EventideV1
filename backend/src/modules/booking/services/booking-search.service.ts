@@ -12,25 +12,59 @@ export class BookingSearchService {
   ) {}
 
   async findByFilter(getBookingsDto: GetBookingsDto): Promise<IBooking[]> {
+    this.logger.log(`[BookingSearch] findByFilter called with: ${JSON.stringify({
+      providerId: getBookingsDto.providerId,
+      status: getBookingsDto.status,
+      search: getBookingsDto.search,
+      startDate: getBookingsDto.startDate?.toISOString(),
+      endDate: getBookingsDto.endDate?.toISOString()
+    })}`);
+
     const query: any = {};
 
     if (getBookingsDto.providerId) {
       query.providerId = getBookingsDto.providerId;
+      this.logger.log(`[BookingSearch] Added providerId filter: ${getBookingsDto.providerId}`);
     }
 
     if (getBookingsDto.startDate || getBookingsDto.endDate) {
       query.startTime = {};
       if (getBookingsDto.startDate) {
         query.startTime.$gte = getBookingsDto.startDate;
+        this.logger.log(`[BookingSearch] Added startDate filter: ${getBookingsDto.startDate}`);
       }
       if (getBookingsDto.endDate) {
         query.startTime.$lte = getBookingsDto.endDate;
+        this.logger.log(`[BookingSearch] Added endDate filter: ${getBookingsDto.endDate}`);
       }
     }
 
     if (getBookingsDto.status) {
       query.status = getBookingsDto.status;
+      this.logger.log(`[BookingSearch] Added status filter: ${getBookingsDto.status}`);
     }
+
+    // Free-text search across guestName, guestEmail, serialKey
+    if (getBookingsDto.search) {
+      const term = getBookingsDto.search.trim();
+      if (term.length > 0) {
+        const regex = new RegExp(term, 'i');
+        query.$or = [
+          { guestName: regex },
+          { guestEmail: regex },
+          { serialKey: regex },
+        ];
+        this.logger.log(`[BookingSearch] Added search filter: "${term}" across guestName, guestEmail, serialKey`);
+      }
+    }
+
+    this.logger.log(`[BookingSearch] Executing MongoDB query: ${JSON.stringify(query)}`);
+    const results = await this.baseService.find(query);
+    this.logger.log(`[BookingSearch] Query returned ${results.length} results`);
+
+    // Debug logs
+    this.logger.log(`[BookingSearch] findByFilter params: ${JSON.stringify({ ...getBookingsDto, startDate: getBookingsDto.startDate?.toISOString?.(), endDate: getBookingsDto.endDate?.toISOString?.() })}`);
+    this.logger.log(`[BookingSearch] built query: ${JSON.stringify(query)}`);
 
     return await this.baseService.find(query);
   }

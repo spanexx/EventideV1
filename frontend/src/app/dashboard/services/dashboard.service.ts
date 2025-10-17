@@ -1,10 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { Store } from '@ngrx/store';
+import { first, switchMap } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { DashboardStats, Activity } from '../models/dashboard.models';
 import { Booking } from '../models/booking.models';
 import { Availability, DateRange, Metrics } from '../models/availability.models';
+import { selectProviderId } from '../../auth/store/auth/selectors/auth.selectors';
 
 @Injectable({
   providedIn: 'root'
@@ -12,14 +15,30 @@ import { Availability, DateRange, Metrics } from '../models/availability.models'
 export class DashboardService {
   private readonly API_URL = `${environment.apiUrl}/dashboard`;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private store: Store) { }
 
   getStats(): Observable<DashboardStats> {
-    return this.http.get<DashboardStats>(`${this.API_URL}/stats`);
+    return this.store.select(selectProviderId).pipe(
+      first(),
+      switchMap(providerId => {
+        console.log('📊 [DashboardService] getStats()', { providerId });
+        return this.http.get<DashboardStats>(`${this.API_URL}/stats`, {
+          params: { providerId }
+        });
+      })
+    );
   }
 
   getRecentActivity(): Observable<Activity[]> {
-    return this.http.get<Activity[]>(`${this.API_URL}/activity`);
+    return this.store.select(selectProviderId).pipe(
+      first(),
+      switchMap(providerId => {
+        console.log('📰 [DashboardService] getRecentActivity()', { providerId });
+        return this.http.get<Activity[]>(`${this.API_URL}/activity`, {
+          params: { providerId }
+        });
+      })
+    );
   }
 
   getBookings(params: any): Observable<Booking[]> {

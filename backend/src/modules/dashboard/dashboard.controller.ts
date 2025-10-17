@@ -15,14 +15,14 @@ export class DashboardController {
 
   @Get('stats')
   @ApiOkResponse({ description: 'Dashboard stats for the provider' })
-  async getStats(@CurrentUser('providerId') providerId: string) {
+  async getStats(@CurrentUser('id') providerId: string) {
     console.log('📊 [DashboardController] GET /dashboard/stats', { providerId });
     return this.dashboardService.getStats(providerId);
   }
 
   @Get('activity')
   @ApiOkResponse({ description: 'Recent activity items' })
-  async getRecentActivity(@CurrentUser('providerId') providerId: string) {
+  async getRecentActivity(@CurrentUser('id') providerId: string) {
     console.log('📰 [DashboardController] GET /dashboard/activity', { providerId });
     return this.dashboardService.getRecentActivity(providerId);
   }
@@ -37,7 +37,7 @@ export class DashboardController {
   @ApiQuery({ name: 'order', required: false, schema: { default: 'desc', enum: ['asc', 'desc'] } })
   @ApiOkResponse({ description: 'Paginated list of bookings' })
   async getBookings(
-    @CurrentUser('providerId') providerId: string,
+    @CurrentUser('id') providerId: string,
     @Query() query: DashboardBookingsQueryDto
   ) {
     console.log('📒 [DashboardController] GET /dashboard/bookings', { providerId, query });
@@ -48,7 +48,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Approve a pending booking' })
   @ApiOkResponse({ description: 'Booking approved successfully' })
   async approveBooking(
-    @CurrentUser('providerId') providerId: string,
+    @CurrentUser('id') providerId: string,
     @Param('id') bookingId: string
   ) {
     console.log('✅ [DashboardController] PATCH /dashboard/bookings/:id/approve', { providerId, bookingId });
@@ -59,7 +59,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Decline a pending booking' })
   @ApiOkResponse({ description: 'Booking declined successfully' })
   async declineBooking(
-    @CurrentUser('providerId') providerId: string,
+    @CurrentUser('id') providerId: string,
     @Param('id') bookingId: string
   ) {
     console.log('❌ [DashboardController] PATCH /dashboard/bookings/:id/decline', { providerId, bookingId });
@@ -70,7 +70,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Mark booking as completed' })
   @ApiOkResponse({ description: 'Booking completed successfully' })
   async completeBooking(
-    @CurrentUser('providerId') providerId: string,
+    @CurrentUser('id') providerId: string,
     @Param('id') bookingId: string,
     @Body() body: { reason?: string }
   ) {
@@ -95,7 +95,7 @@ export class DashboardController {
   @ApiOperation({ summary: 'Cancel a booking' })
   @ApiOkResponse({ description: 'Booking cancelled successfully' })
   async cancelBooking(
-    @CurrentUser('providerId') providerId: string,
+    @CurrentUser('id') providerId: string,
     @Param('id') bookingId: string
   ) {
     console.log('🚫 [DashboardController] PATCH /dashboard/bookings/:id/cancel', { providerId, bookingId });
