@@ -340,6 +340,7 @@ mat-paginator {
   border-radius: 12px;
   padding: var(--spacing-lg);
   position: relative;
+  transition: all 0.2s ease;
   
   &::after {
     content: '';
@@ -353,6 +354,26 @@ mat-paginator {
   
   &:hover::after {
     opacity: 1;
+  }
+  
+  &.status-completed {
+    opacity: 0.6;
+    background: #f8f9fa;
+    
+    .guest-name,
+    .guest-email,
+    .info-item span {
+      color: #9ca3af !important;
+    }
+    
+    .guest-avatar {
+      background: #e5e7eb;
+      color: #9ca3af;
+    }
+    
+    &:hover::after {
+      opacity: 0.5;
+    }
   }
 }
 

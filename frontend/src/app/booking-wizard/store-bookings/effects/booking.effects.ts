@@ -30,15 +30,45 @@ export class BookingEffects {
   createBooking$ = createEffect(() =>
     this.actions$.pipe(
       ofType(BookingActions.createBooking),
+      tap(({ booking }) => {
+        console.log('═══════════════════════════════════════════════════');
+        console.log('📤 [Booking Effects] createBooking action dispatched');
+        console.log('═══════════════════════════════════════════════════');
+        console.log('📋 [Booking Effects] Booking data:', booking);
+        console.log('📋 [Booking Effects] Provider ID:', booking.providerId);
+        console.log('📋 [Booking Effects] Guest info:', {
+          name: booking.guestName,
+          email: booking.guestEmail,
+          phone: booking.guestPhone
+        });
+        console.log('📋 [Booking Effects] Time slot:', {
+          availabilityId: booking.availabilityId,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          duration: booking.duration
+        });
+      }),
       mergeMap(({ booking }) =>
         this.bookingFacade.createBooking(booking as any).pipe(
+          tap(response => {
+            console.log('🔄 [Booking Effects] API response received:', response);
+            const bookingData = Array.isArray(response) ? response[0] : response;
+            console.log('📦 [Booking Effects] Booking created:', {
+              id: bookingData.id,
+              status: bookingData.status,
+              serialKey: bookingData.serialKey,
+              providerId: bookingData.providerId
+            });
+          }),
           map(response => {
             // Handle both single booking and array of bookings
             const bookingData = Array.isArray(response) ? response[0] : response;
             return BookingActions.createBookingSuccess({ booking: bookingData as any });
           }),
           catchError(error => {
+            console.error('❌ [Booking Effects] Booking creation failed:', error);
             const errorMessage = error.error?.message || error.message || 'Booking failed';
+            console.error('❌ [Booking Effects] Error message:', errorMessage);
             return of(BookingActions.createBookingFailure({ error: errorMessage }));
           })
         )

@@ -88,7 +88,7 @@ export const dashboardReducer = createReducer(
   
   on(DashboardActions.updateBookingStatusSuccess, (state, { booking }) => ({
     ...state,
-    bookings: state.bookings.map(b => b.id === booking.id ? booking : b),
+    bookings: state.bookings.map(b => (b.id || b._id) === (booking.id || booking._id) ? booking : b),
     loading: false
   })),
   
@@ -147,7 +147,7 @@ export const dashboardReducer = createReducer(
   
   on(DashboardActions.updateBookingSuccess, (state, { booking }) => ({
     ...state,
-    bookings: state.bookings.map(b => b.id === booking.id ? booking : b),
+    bookings: state.bookings.map(b => (b.id || b._id) === (booking.id || booking._id) ? booking : b),
     loading: false
   })),
   

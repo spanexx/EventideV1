@@ -75,3 +75,8 @@ export const selectUserId = createSelector(
   selectUser,
   (user) => user?.id || ''
 );
+
+export const selectProviderId = createSelector(
+  selectUser,
+  (user) => user?.id || '' // User ID serves as provider ID
+);

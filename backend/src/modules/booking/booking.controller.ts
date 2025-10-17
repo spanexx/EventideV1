@@ -82,14 +82,45 @@ export class BookingController {
   @ApiOperation({ summary: 'Get provider bookings' })
   @ApiOkResponse({ description: 'List of bookings for the authenticated provider' })
   async findProviderBookings(
-    @CurrentUser('providerId') providerId: string,
+    @CurrentUser('id') providerId: string,
     @Query() query: GetBookingsDto
   ): Promise<IBooking[]> {
-    console.log('📋 [Booking Controller] GET /bookings/provider', { providerId, query });
-    return this.bookingService.findAll({
-      ...query,
-      providerId,
+    console.log('═══════════════════════════════════════════════════');
+    console.log('📋 [Booking Controller] GET /bookings/provider - START');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('👤 [Booking Controller] Provider ID:', providerId);
+    console.log('🔍 [Booking Controller] Query parameters:', {
+      startDate: query.startDate?.toISOString(),
+      endDate: query.endDate?.toISOString(),
+      status: query.status,
+      search: query.search,
+      guestId: query.guestId
     });
+
+    try {
+      const bookings = await this.bookingService.findAll({
+        ...query,
+        providerId,
+      });
+
+      console.log('✅ [Booking Controller] Successfully retrieved bookings:', {
+        count: bookings.length,
+        statuses: bookings.reduce((acc, booking) => {
+          acc[booking.status] = (acc[booking.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>)
+      });
+
+      return bookings;
+    } catch (error) {
+      console.error('❌ [Booking Controller] Error retrieving bookings:', {
+        error: error.message,
+        stack: error.stack,
+        providerId,
+        query
+      });
+      throw error;
+    }
   }
 
   /**
@@ -103,7 +134,7 @@ export class BookingController {
   @ApiOkResponse({ description: 'Booking cancelled' })
   async providerCancelBooking(
     @Param('id') id: string,
-    @CurrentUser('providerId') providerId: string
+    @CurrentUser('id') providerId: string
   ): Promise<IBooking> {
     console.log('🚫 [Booking Controller] PATCH /bookings/provider/:id/cancel', { id, providerId });
     const booking = await this.bookingService.findOne(id);
@@ -129,7 +160,7 @@ export class BookingController {
   @ApiOkResponse({ description: 'Booking approved' })
   async providerApproveBooking(
     @Param('id') id: string,
-    @CurrentUser('providerId') providerId: string
+    @CurrentUser('id') providerId: string
   ): Promise<IBooking> {
     console.log('✅ [Booking Controller] PATCH /bookings/provider/:id/approve', { id, providerId });
     const booking = await this.bookingService.findOne(id);
@@ -155,7 +186,7 @@ export class BookingController {
   @ApiOkResponse({ description: 'Booking declined' })
   async providerDeclineBooking(
     @Param('id') id: string,
-    @CurrentUser('providerId') providerId: string
+    @CurrentUser('id') providerId: string
   ): Promise<IBooking> {
     console.log('❎ [Booking Controller] PATCH /bookings/provider/:id/decline', { id, providerId });
     const booking = await this.bookingService.findOne(id);
@@ -177,7 +208,7 @@ export class BookingController {
   @Get(':id')
   async findOne(
     @Param('id') id: string,
-    @CurrentUser('providerId') providerId?: string
+    @CurrentUser('id') providerId?: string
   ): Promise<IBooking> {
     const booking = await this.bookingService.findOne(id);
     

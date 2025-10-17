@@ -24,4 +24,9 @@ export class GetBookingsDto {
   @IsOptional()
   @IsString()
   guestId?: string;
+
+  // Free-text search (guestName, guestEmail, serialKey)
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

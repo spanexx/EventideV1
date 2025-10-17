@@ -33,20 +33,56 @@ export class BookingOperationsService {
    * Create a new booking
    */
   createBooking(bookingData: CreateBookingDto): Observable<Booking | Booking[]> {
+    console.log('═══════════════════════════════════════════════════');
+    console.log('🚀 [BookingOperationsService] createBooking() called');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('📋 [BookingOperationsService] Booking data received:', {
+      providerId: bookingData.providerId,
+      availabilityId: bookingData.availabilityId,
+      guestName: bookingData.guestName,
+      guestEmail: bookingData.guestEmail,
+      startTime: bookingData.startTime,
+      endTime: bookingData.endTime,
+      notes: bookingData.notes
+    });
+
     this.bookingState.setLoading(true);
     this.bookingState.clearError();
 
     return this.bookingApi.createBooking(bookingData).pipe(
       tap(result => {
+        console.log('🔄 [BookingOperationsService] API response received:', result);
+
         // Handle both single booking and array of bookings
         if (Array.isArray(result)) {
+          console.log(`📦 [BookingOperationsService] Multiple bookings created (${result.length} bookings)`);
+          result.forEach((booking, index) => {
+            console.log(`   Booking ${index + 1}:`, {
+              id: booking.id,
+              status: booking.status,
+              serialKey: booking.serialKey
+            });
+          });
           this.bookingState.addBookings(result);
         } else {
+          console.log('📦 [BookingOperationsService] Single booking created:', {
+            id: result.id,
+            status: result.status,
+            serialKey: result.serialKey,
+            providerId: result.providerId
+          });
           this.bookingState.addBooking(result);
         }
         this.bookingState.setLoading(false);
+        console.log('✅ [BookingOperationsService] Booking creation completed successfully');
       }),
       catchError(error => {
+        console.error('❌ [BookingOperationsService] Booking creation failed:', {
+          error: error.error,
+          status: error.status,
+          message: error.message,
+          url: error.url
+        });
         this.bookingState.setError(error.error?.message || 'Failed to create booking');
         this.bookingState.setLoading(false);
         return throwError(() => error);
@@ -128,15 +164,31 @@ export class BookingOperationsService {
    * Get all provider bookings
    */
   getProviderBookings(query?: GetBookingsDto): Observable<Booking[]> {
+    console.log('═══════════════════════════════════════════════════');
+    console.log('📋 [BookingOperationsService] getProviderBookings() called');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('📋 [BookingOperationsService] Query parameters:', query);
+
     this.bookingState.setLoading(true);
     this.bookingState.clearError();
 
     return this.bookingApi.getProviderBookings(query).pipe(
       tap(bookings => {
+        console.log(`📦 [BookingOperationsService] Retrieved ${bookings.length} bookings`);
+        console.log('📈 [BookingOperationsService] Booking statuses:', bookings.reduce((acc, booking) => {
+          acc[booking.status] = (acc[booking.status] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>));
         this.bookingState.setBookings(bookings);
         this.bookingState.setLoading(false);
       }),
       catchError(error => {
+        console.error('❌ [BookingOperationsService] Failed to fetch provider bookings:', {
+          error: error.error,
+          status: error.status,
+          message: error.message,
+          url: error.url
+        });
         this.bookingState.setError(error.error?.message || 'Failed to fetch provider bookings');
         this.bookingState.setLoading(false);
         return throwError(() => error);

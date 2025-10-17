@@ -15,7 +15,7 @@ export class DashboardEffects {
   loadDashboardStats$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DashboardActions.loadDashboardStats),
-      mergeMap(() =>
+      switchMap(() =>
         this.dashboardService.getStats().pipe(
           map(stats => DashboardActions.loadDashboardStatsSuccess({ stats })),
           catchError(error => of(DashboardActions.loadDashboardStatsFailure({ error: error.message })))
@@ -27,7 +27,7 @@ export class DashboardEffects {
   loadRecentActivity$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DashboardActions.loadRecentActivity),
-      mergeMap(() =>
+      switchMap(() =>
         this.dashboardService.getRecentActivity().pipe(
           map(activity => DashboardActions.loadRecentActivitySuccess({ activity })),
           catchError(error => of(DashboardActions.loadRecentActivityFailure({ error: error.message })))
@@ -39,7 +39,7 @@ export class DashboardEffects {
   loadBookings$ = createEffect(() =>
     this.actions$.pipe(
       ofType(DashboardActions.loadBookings),
-      mergeMap(({ params }) =>
+      switchMap(({ params }) =>
         this.dashboardService.getBookings(params).pipe(
           map(bookings => DashboardActions.loadBookingsSuccess({ bookings })),
           catchError(error => of(DashboardActions.loadBookingsFailure({ error: error.message })))
