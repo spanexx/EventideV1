@@ -90,6 +90,35 @@ export const loadUserFailure = createAction(
   props<{ error: string }>()
 );
 
+// Refresh User from API Actions
+export const refreshUser = createAction('[Auth] Refresh User');
+
+export const refreshUserSuccess = createAction(
+  '[Auth] Refresh User Success',
+  props<{ user: User }>()
+);
+
+export const refreshUserFailure = createAction(
+  '[Auth] Refresh User Failure',
+  props<{ error: string }>()
+);
+
+// Update User Actions
+export const updateUser = createAction(
+  '[Auth] Update User',
+  props<{ updates: Partial<User> }>()
+);
+
+export const updateUserSuccess = createAction(
+  '[Auth] Update User Success',
+  props<{ user: User }>()
+);
+
+export const updateUserFailure = createAction(
+  '[Auth] Update User Failure',
+  props<{ error: string }>()
+);
+
 // Password Reset Actions
 export const forgotPassword = createAction(
   '[Auth] Forgot Password',

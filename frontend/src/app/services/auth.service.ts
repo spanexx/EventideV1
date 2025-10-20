@@ -29,23 +29,10 @@ export interface User {
   firstName?: string;
   lastName?: string;
   picture?: string;
-  // Business-related fields
-  businessName?: string;
-  bio?: string;
-  contactPhone?: string;
-  services?: string[];
-  categories?: string[];
-  customCategories?: string[];
-  availableDurations?: number[];
-  locationDetails?: {
-    country?: string;
-    city?: string;
-    address?: string;
-  };
 }
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthService {
   private readonly API_URL = `${environment.apiUrl}/auth`;
@@ -65,28 +52,25 @@ export class AuthService {
    * Login with email and password
    */
   login(email: string, password: string): Observable<LoginResponse> {
-    return this.http.post<LoginResponse>(`${this.API_URL}/login`, { email, password }).pipe(
-      tap((response) => {
-        console.log('email', email);
-        console.log('password', password);
-        this.setSession(response);
-      }),
-      catchError(this.handleError),
-    );
+    return this.http.post<LoginResponse>(`${this.API_URL}/login`, { email, password })
+      .pipe(
+        tap(response => {
+          console.log('email', email );
+          console.log('password', password);
+          this.setSession(response);
+        }),
+        catchError(this.handleError)
+      );
   }
 
   /**
    * Signup a new user
    */
-  signup(userData: {
-    email: string;
-    password: string;
-    firstName?: string;
-    lastName?: string;
-  }): Observable<SignupResponse> {
-    return this.http
-      .post<SignupResponse>(`${this.API_URL}/signup`, userData)
-      .pipe(catchError(this.handleError));
+  signup(userData: { email: string; password: string; firstName?: string; lastName?: string }): Observable<SignupResponse> {
+    return this.http.post<SignupResponse>(`${this.API_URL}/signup`, userData)
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
@@ -109,12 +93,13 @@ export class AuthService {
       return throwError(() => new Error('No refresh token available'));
     }
 
-    return this.http.post<RefreshTokenResponse>(`${this.API_URL}/refresh`, { refreshToken }).pipe(
-      tap((response) => {
-        this.setSession(response);
-      }),
-      catchError(this.handleError),
-    );
+    return this.http.post<RefreshTokenResponse>(`${this.API_URL}/refresh`, { refreshToken })
+      .pipe(
+        tap(response => {
+          this.setSession(response);
+        }),
+        catchError(this.handleError)
+      );
   }
 
   /**
@@ -123,7 +108,7 @@ export class AuthService {
   verifyToken(): Observable<boolean> {
     const token = this.getToken();
     if (!token) {
-      return new Observable((observer) => {
+      return new Observable(observer => {
         observer.next(false);
         observer.complete();
       });
@@ -136,32 +121,33 @@ export class AuthService {
         catchError(() => {
           this.logout();
           return [false];
-        }),
+        })
       );
     }
 
-    return this.http.get<{ user: User }>(`${this.API_URL}/verify`).pipe(
-      tap((response) => {
-        this.currentUserSubject.next(response.user);
-        this.isAuthenticatedSubject.next(true);
-      }),
-      map(() => true),
-      catchError((error) => {
-        // If token verification fails, try to refresh
-        if (error.status === 401) {
-          return this.refreshToken().pipe(
-            map(() => true),
-            catchError(() => {
-              this.logout();
-              return [false];
-            }),
-          );
-        }
-
-        this.logout();
-        return [false];
-      }),
-    );
+    return this.http.get<{ user: User }>(`${this.API_URL}/verify`)
+      .pipe(
+        tap(response => {
+          this.currentUserSubject.next(response.user);
+          this.isAuthenticatedSubject.next(true);
+        }),
+        map(() => true),
+        catchError((error) => {
+          // If token verification fails, try to refresh
+          if (error.status === 401) {
+            return this.refreshToken().pipe(
+              map(() => true),
+              catchError(() => {
+                this.logout();
+                return [false];
+              })
+            );
+          }
+          
+          this.logout();
+          return [false];
+        })
+      );
   }
 
   /**
@@ -199,25 +185,26 @@ export class AuthService {
    * Handle Google OAuth callback
    */
   fetchUserData(): Observable<User> {
-    return this.http.get<{ user: User }>(`${this.API_URL}/me`).pipe(
-      map((response) => response.user),
-      tap((user) => {
-        // Update user data in localStorage
-        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-        this.currentUserSubject.next(user);
-      }),
-      catchError(this.handleError),
-    );
+    return this.http.get<{ user: User }>(`${this.API_URL}/me`)
+      .pipe(
+        map(response => response.user),
+        tap(user => {
+          // Update user data in localStorage
+          localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+          this.currentUserSubject.next(user);
+        }),
+        catchError(this.handleError)
+      );
   }
   handleGoogleCallback(token: string, userData: string): void {
     try {
       // Decode user data from base64
       const decodedUserData = JSON.parse(atob(userData));
-
+      
       // Set session with token and user data
       localStorage.setItem(this.TOKEN_KEY, token);
       localStorage.setItem(this.USER_KEY, JSON.stringify(decodedUserData));
-
+      
       this.currentUserSubject.next(decodedUserData);
       this.isAuthenticatedSubject.next(true);
     } catch (error) {
@@ -230,49 +217,21 @@ export class AuthService {
    * Update current user's profile (firstName, lastName, etc.)
    */
   updateCurrentUser(updates: Partial<User>): Observable<User> {
-    // Check if business-related fields are being updated
-    const businessFields = [
-      'businessName',
-      'bio',
-      'contactPhone',
-      'services',
-      'categories',
-      'customCategories',
-      'availableDurations',
-      'locationDetails',
-    ];
-    const hasBusinessFields = businessFields.some((field) => updates.hasOwnProperty(field));
-
-    // For business settings, use the /me endpoint which authenticates via token
-    if (hasBusinessFields) {
-      const url = `${environment.apiUrl}/users/me/business`;
-      return this.http.patch<User>(url, updates).pipe(
-        tap((user) => {
-          // persist updated user locally
-          localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-          this.currentUserSubject.next(user);
-        }),
-        catchError(this.handleError),
-      );
-    } else {
-      // For regular user updates, we need the user ID
-      const current = this.currentUserSubject.value;
-      if (!current || !current.id) {
-        // Return an observable error instead of throwing synchronously - caller can subscribe
-        return throwError(() => new Error('No current user available to update'));
-      }
-
-      const id = current.id;
-      const url = `${environment.apiUrl}/users/${id}`;
-      return this.http.patch<User>(url, updates).pipe(
-        tap((user) => {
-          // persist updated user locally
-          localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-          this.currentUserSubject.next(user);
-        }),
-        catchError(this.handleError),
-      );
+    const current = this.currentUserSubject.value;
+    if (!current || !current.id) {
+      // Return an observable error instead of throwing synchronously - caller can subscribe
+      return throwError(() => new Error('No current user available to update'));
     }
+    const id = current.id;
+    const url = `${environment.apiUrl}/users/${id}`;
+    return this.http.patch<User>(url, updates).pipe(
+      tap((user) => {
+        // persist updated user locally
+        localStorage.setItem(this.USER_KEY, JSON.stringify(user));
+        this.currentUserSubject.next(user);
+      }),
+      catchError(this.handleError)
+    );
   }
 
   /**
@@ -288,57 +247,62 @@ export class AuthService {
    * Request password reset
    */
   forgotPassword(email: string): Observable<{ message: string }> {
-    return this.http
-      .post<{ message: string }>(`${this.API_URL}/forgot-password`, { email })
-      .pipe(catchError(this.handleError));
+    return this.http.post<{ message: string }>(`${this.API_URL}/forgot-password`, { email })
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
    * Reset password with token
    */
   resetPassword(token: string, newPassword: string): Observable<{ message: string }> {
-    return this.http
-      .post<{ message: string }>(`${this.API_URL}/reset-password`, { token, newPassword })
-      .pipe(catchError(this.handleError));
+    return this.http.post<{ message: string }>(`${this.API_URL}/reset-password`, { token, newPassword })
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
    * Verify email address
    */
   verifyEmail(token: string): Observable<void> {
-    return this.http
-      .post<void>(`${this.API_URL}/verify-email`, { token })
-      .pipe(catchError(this.handleError));
+    return this.http.post<void>(`${this.API_URL}/verify-email`, { token })
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
    * Resend verification email
    */
   resendVerificationEmail(): Observable<void> {
-    return this.http
-      .post<void>(`${this.API_URL}/resend-verification`, {})
-      .pipe(catchError(this.handleError));
+    return this.http.post<void>(`${this.API_URL}/resend-verification`, {})
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   /**
    * Verify email with token
    */
   verifyEmailWithToken(token: string): Observable<{ message: string }> {
-    return this.http
-      .post<{ message: string }>(`${this.API_URL}/verify-email`, { token })
-      .pipe(catchError(this.handleError));
+    return this.http.post<{ message: string }>(`${this.API_URL}/verify-email`, { token })
+      .pipe(
+        catchError(this.handleError)
+      );
   }
 
   // Private methods
 
   private setSession(response: LoginResponse | RefreshTokenResponse): void {
     localStorage.setItem(this.TOKEN_KEY, response.access_token);
-
+    
     // Store user data if available
     if ('userId' in response && response.userId) {
       const currentUser = this.currentUserSubject.value;
       let updatedUser: User;
-
+      
       if (currentUser) {
         // Update existing user data
         updatedUser = { ...currentUser, id: response.userId };
@@ -349,26 +313,26 @@ export class AuthService {
           email: '', // Email will be updated when we get full user info
           firstName: '',
           lastName: '',
-          picture: '',
+          picture: ''
         };
       }
-
+      
       localStorage.setItem(this.USER_KEY, JSON.stringify(updatedUser));
       this.currentUserSubject.next(updatedUser);
     }
-
+    
     // Store refresh token if available
     if (response.refreshToken) {
       localStorage.setItem(this.REFRESH_TOKEN_KEY, response.refreshToken);
     }
-
+    
     this.isAuthenticatedSubject.next(true);
   }
 
   private hasValidToken(): boolean {
     const token = this.getToken();
     if (!token) return false;
-
+    
     return !this.isTokenExpired(token);
   }
 
@@ -389,24 +353,22 @@ export class AuthService {
 
   private handleError = (error: any): Observable<never> => {
     console.error('An error occurred:', error);
-
+    
     // Handle specific error cases
     if (error.status === 401) {
       this.logout();
-      return throwError(
-        () => new Error('Invalid credentials. Please check your email and password.'),
-      );
+      return throwError(() => new Error('Invalid credentials. Please check your email and password.'));
     }
-
+    
     if (error.status === 409) {
       return throwError(() => new Error('An account with this email already exists.'));
     }
-
+    
     if (error.status === 429) {
       return throwError(() => new Error('Too many requests. Please try again later.'));
     }
-
+    
     // Generic error message
     return throwError(() => new Error('Something went wrong. Please try again later.'));
-  };
+  }
 }

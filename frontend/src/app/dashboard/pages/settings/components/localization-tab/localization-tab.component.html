@@ -1,0 +1,49 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Language</mat-label>
+        <mat-select
+          name="language"
+          [ngModel]="prefsHandler.preferences().language"
+          (ngModelChange)="prefsHandler.updatePreference('language', $event)"
+        >
+          <mat-option value="en">English</mat-option>
+          <mat-option value="es">Español</mat-option>
+          <mat-option value="fr">Français</mat-option>
+          <mat-option value="de">Deutsch</mat-option>
+        </mat-select>
+        <mat-hint>Your preferred language</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Timezone</mat-label>
+        <mat-select
+          name="timezone"
+          [ngModel]="prefsHandler.preferences().timezone"
+          (ngModelChange)="prefsHandler.updatePreference('timezone', $event)"
+        >
+          <mat-option value="UTC">UTC</mat-option>
+          <mat-option value="America/New_York">Eastern Time (ET)</mat-option>
+          <mat-option value="America/Chicago">Central Time (CT)</mat-option>
+          <mat-option value="America/Denver">Mountain Time (MT)</mat-option>
+          <mat-option value="America/Los_Angeles">Pacific Time (PT)</mat-option>
+          <mat-option value="Europe/London">London (GMT)</mat-option>
+          <mat-option value="Europe/Paris">Paris (CET)</mat-option>
+          <mat-option value="Asia/Tokyo">Tokyo (JST)</mat-option>
+        </mat-select>
+        <mat-hint>Your local timezone</mat-hint>
+      </mat-form-field>
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="onSave()"
+          [disabled]="(prefsHandler.savingPreferences | async) || (prefsHandler.loading | async)"
+        >
+          {{ (prefsHandler.savingPreferences | async) ? 'Saving...' : 'Save Localization' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

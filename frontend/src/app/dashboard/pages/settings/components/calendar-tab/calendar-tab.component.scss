@@ -1,0 +1,24 @@
+@use '../../shared-tab-styles.scss';
+
+.time-range {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-lg);
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.working-hours {
+  background: var(--card);
+  padding: var(--spacing-lg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+
+  h3 {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+  }
+}

@@ -243,6 +243,46 @@ export const authReducer = createReducer(
     isLoading: false,
     verificationSuccess: false,
     error
+  })),
+
+  // Refresh User from API
+  on(AuthActions.refreshUser, (state) => ({
+    ...state,
+    loading: true,
+    error: null
+  })),
+
+  on(AuthActions.refreshUserSuccess, (state, { user }) => ({
+    ...state,
+    user,
+    loading: false,
+    error: null
+  })),
+
+  on(AuthActions.refreshUserFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error
+  })),
+
+  // Update User
+  on(AuthActions.updateUser, (state) => ({
+    ...state,
+    loading: true,
+    error: null
+  })),
+
+  on(AuthActions.updateUserSuccess, (state, { user }) => ({
+    ...state,
+    user,
+    loading: false,
+    error: null
+  })),
+
+  on(AuthActions.updateUserFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error
   }))
 );
 

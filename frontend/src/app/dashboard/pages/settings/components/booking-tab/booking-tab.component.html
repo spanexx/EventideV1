@@ -1,0 +1,28 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Booking Approval Mode</mat-label>
+        <mat-select
+          name="bookingApprovalMode"
+          [ngModel]="prefsHandler.preferences().bookingApprovalMode"
+          (ngModelChange)="prefsHandler.updatePreference('bookingApprovalMode', $event)"
+        >
+          <mat-option value="auto">Automatic</mat-option>
+          <mat-option value="manual">Manual Review</mat-option>
+        </mat-select>
+        <mat-hint>How new bookings are processed</mat-hint>
+      </mat-form-field>
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="onSave()"
+          [disabled]="(prefsHandler.savingPreferences | async) || (prefsHandler.loading | async)"
+        >
+          {{ (prefsHandler.savingPreferences | async) ? 'Saving...' : 'Save Booking' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

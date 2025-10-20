@@ -8,9 +8,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatSelectModule } from '@angular/material/select';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatTabsModule } from '@angular/material/tabs';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatIconModule } from '@angular/material/icon';
-import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { CommonModule } from '@angular/common';
 import { SettingsService, UserPreferences } from './settings.service';
 import { AuthService, User as AuthUser } from '../../../services/auth.service';
@@ -32,8 +29,6 @@ import {
   updateTimezone,
   updateAppearancePreferences,
 } from '../../../store/appearance';
-import { MatChipInputEvent } from '@angular/material/chips';
-import { COMMA, ENTER } from '@angular/cdk/keycodes';
 
 @Component({
   selector: 'app-settings',
@@ -49,11 +44,8 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
     MatButtonModule,
     MatSnackBarModule,
     MatSelectModule,
-    MatRadioModule,
-    MatTabsModule,
-    MatChipsModule,
-    MatIconModule,
-    MatAutocompleteModule,
+  MatRadioModule,
+  MatTabsModule,
   ],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
@@ -136,19 +128,6 @@ export class SettingsComponent implements OnInit {
   lastName = signal<string>('');
   savingProfile = signal(false);
 
-  // Business settings fields
-  businessName = signal<string>('');
-  bio = signal<string>('');
-  contactPhone = signal<string>('');
-  services = signal<string[]>([]);
-  categories = signal<string[]>([]);
-  customCategories = signal<string[]>([]);
-  availableDurations = signal<number[]>([30, 60, 90]);
-  locationCountry = signal<string>('');
-  locationCity = signal<string>('');
-  locationAddress = signal<string>('');
-  savingBusinessSettings = signal(false);
-
   // Bridge properties for [(ngModel)] - ngModel needs property accessors
   get firstNameModel(): string {
     return this.firstName();
@@ -163,151 +142,6 @@ export class SettingsComponent implements OnInit {
   set lastNameModel(v: string) {
     this.lastName.set(v);
   }
-
-  get businessNameModel(): string {
-    return this.businessName();
-  }
-  set businessNameModel(v: string) {
-    this.businessName.set(v);
-  }
-
-  get bioModel(): string {
-    return this.bio();
-  }
-  set bioModel(v: string) {
-    this.bio.set(v);
-  }
-
-  get contactPhoneModel(): string {
-    return this.contactPhone();
-  }
-  set contactPhoneModel(v: string) {
-    this.contactPhone.set(v);
-  }
-
-  get locationCountryModel(): string {
-    return this.locationCountry();
-  }
-  set locationCountryModel(v: string) {
-    this.locationCountry.set(v);
-  }
-
-  get locationCityModel(): string {
-    return this.locationCity();
-  }
-  set locationCityModel(v: string) {
-    this.locationCity.set(v);
-  }
-
-  get locationAddressModel(): string {
-    return this.locationAddress();
-  }
-  set locationAddressModel(v: string) {
-    this.locationAddress.set(v);
-  }
-
-  // Industry categories from backend
-  industryCategories = [
-    // Business & Consulting
-    'Business Consulting',
-    'Management Consulting',
-    'Strategy Consulting',
-    // Technology
-    'Software Development',
-    'Web Development',
-    'Mobile Development',
-    'IT Consulting',
-    'Cybersecurity',
-    'Data Analytics',
-    'Cloud Services',
-    // Marketing & Design
-    'Digital Marketing',
-    'Graphic Design',
-    'Branding',
-    'Content Creation',
-    'Social Media',
-    'SEO/SEM',
-    // Finance & Legal
-    'Financial Services',
-    'Accounting',
-    'Legal Services',
-    'Tax Consulting',
-    // Health & Wellness
-    'Health & Wellness',
-    'Life Coaching',
-    'Career Coaching',
-    'Fitness',
-    // Creative Services
-    'Photography',
-    'Videography',
-    'Writing',
-    'Translation',
-    // Real Estate & Property
-    'Real Estate',
-    'Property Management',
-    // Events & Hospitality
-    'Event Planning',
-    'Hospitality',
-    'Catering',
-    // Logistics & Operations
-    'Logistics',
-    'Supply Chain',
-    'Transportation',
-    // Human Resources
-    'HR Consulting',
-    'Recruitment',
-    'Training & Development',
-    // Sales & Business Development
-    'Sales Training',
-    'Business Development',
-    // Other
-    'Other',
-  ];
-
-  // Common services suggestions
-  commonServices = [
-    'Project Consultation',
-    'Strategic Planning',
-    'Market Research',
-    'Financial Analysis',
-    'Software Development',
-    'Web Design',
-    'Mobile App Development',
-    'Content Creation',
-    'Social Media Management',
-    'Brand Development',
-    'SEO Optimization',
-    'PPC Management',
-    'Legal Consultation',
-    'Tax Preparation',
-    'Accounting Services',
-    'Coaching Session',
-    'Training Workshop',
-    'Personal Training',
-    'Photography Session',
-    'Video Production',
-    'Writing & Editing',
-    'Real Estate Consulting',
-    'Property Management',
-    'Event Planning',
-    'Logistics Coordination',
-    'Supply Chain Analysis',
-    'HR Consulting',
-    'Recruitment Services',
-    'Sales Training',
-    'Business Development',
-  ];
-
-  // Common durations
-  commonDurations = [15, 30, 45, 60, 90, 120];
-
-  // Chip input properties
-  readonly separatorKeysCodes = [ENTER, COMMA] as const;
-
-  // Computed arrays for chip display
-  servicesArray = computed(() => this.services());
-  categoriesArray = computed(() => this.categories());
-  durationsArray = computed(() => this.availableDurations().map((d) => d.toString()));
 
   constructor(
     private settingsService: SettingsService,
@@ -355,18 +189,6 @@ export class SettingsComponent implements OnInit {
       const user = u as AuthUser | null;
       this.firstName.set(user?.firstName ?? '');
       this.lastName.set(user?.lastName ?? '');
-      this.businessName.set(user?.businessName ?? '');
-      this.bio.set(user?.bio ?? '');
-      this.contactPhone.set(user?.contactPhone ?? '');
-      this.services.set(user?.services ?? []);
-      this.categories.set(user?.categories ?? []);
-      this.availableDurations.set(user?.availableDurations ?? [30, 60, 90]);
-
-      if (user?.locationDetails) {
-        this.locationCountry.set(user.locationDetails.country ?? '');
-        this.locationCity.set(user.locationDetails.city ?? '');
-        this.locationAddress.set(user.locationDetails.address ?? '');
-      }
     });
   }
 
@@ -400,104 +222,6 @@ export class SettingsComponent implements OnInit {
         this.savingProfile.set(false);
       },
     });
-  }
-
-  public saveBusinessSettings(): void {
-    this.savingBusinessSettings.set(true);
-
-    const businessSettings = {
-      businessName: this.businessName(),
-      bio: this.bio(),
-      contactPhone: this.contactPhone(),
-      services: this.services(),
-      categories: this.categories(),
-      customCategories: this.customCategories(),
-      availableDurations: this.availableDurations().map((d) => parseInt(d.toString())),
-      locationDetails: {
-        country: this.locationCountry(),
-        city: this.locationCity(),
-        address: this.locationAddress(),
-      },
-    };
-
-    this.authService.updateCurrentUser(businessSettings).subscribe({
-      next: (user) => {
-        this.snackBar.open('Business settings updated', 'Close', { duration: 2000 });
-        this.savingBusinessSettings.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to update business settings', err);
-        this.snackBar.open('Failed to update business settings', 'Close', { duration: 3000 });
-        this.savingBusinessSettings.set(false);
-      },
-    });
-  }
-
-  // Chip input methods
-  addService(event: MatChipInputEvent): void {
-    const value = (event.value || '').trim();
-    if (value && !this.services().includes(value)) {
-      this.services.update((services) => [...services, value]);
-    }
-    event.chipInput!.clear();
-  }
-
-  removeService(service: string): void {
-    this.services.update((services) => services.filter((s) => s !== service));
-  }
-
-  addCategory(event: MatChipInputEvent): void {
-    const value = (event.value || '').trim();
-    if (value && !this.categories().includes(value)) {
-      this.categories.update((categories) => [...categories, value]);
-    }
-    event.chipInput!.clear();
-  }
-
-  removeCategory(category: string): void {
-    this.categories.update((categories) => categories.filter((c) => c !== category));
-  }
-
-  addDuration(event: MatChipInputEvent): void {
-    const value = (event.value || '').trim();
-    if (value) {
-      const duration = parseInt(value);
-      if (!isNaN(duration) && duration > 0 && !this.availableDurations().includes(duration)) {
-        this.availableDurations.update((durations) => [...durations, duration]);
-      } else if (isNaN(duration) || duration <= 0) {
-        this.snackBar.open('Duration must be a valid positive number', 'Close', { duration: 3000 });
-      }
-    }
-    event.chipInput!.clear();
-  }
-
-  removeDuration(duration: string): void {
-    const durationNum = parseInt(duration);
-    this.availableDurations.update((durations) => durations.filter((d) => d !== durationNum));
-  }
-
-  // Handle category selection from autocomplete
-  onCategorySelected(event: any): void {
-    const value = event.option.value.trim();
-    if (value && !this.categories().includes(value)) {
-      this.categories.update((categories) => [...categories, value]);
-    }
-  }
-
-  // Handle service selection from autocomplete
-  onServiceSelected(event: any): void {
-    const value = event.option.value.trim();
-    if (value && !this.services().includes(value)) {
-      this.services.update((services) => [...services, value]);
-    }
-  }
-
-  // Handle duration selection from autocomplete
-  onDurationSelected(event: any): void {
-    const duration = parseInt(event.option.value);
-    if (!isNaN(duration) && duration > 0 && !this.availableDurations().includes(duration)) {
-      this.availableDurations.update((durations) => [...durations, duration]);
-    }
   }
 
   public loadPreferences(): void {

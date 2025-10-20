@@ -1,0 +1,72 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Default View</mat-label>
+        <mat-select
+          name="calendarDefaultView"
+          [ngModel]="prefsHandler.preferences().calendar.defaultView"
+          (ngModelChange)="prefsHandler.updateNestedPreference('calendar', 'defaultView', $event)"
+        >
+          <mat-option value="day">Day</mat-option>
+          <mat-option value="week">Week</mat-option>
+          <mat-option value="month">Month</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>First Day of Week</mat-label>
+        <mat-select
+          name="firstDayOfWeek"
+          [ngModel]="prefsHandler.preferences().calendar.firstDayOfWeek"
+          (ngModelChange)="prefsHandler.updateNestedPreference('calendar', 'firstDayOfWeek', $event)"
+        >
+          <mat-option [value]="0">Sunday</mat-option>
+          <mat-option [value]="1">Monday</mat-option>
+          <mat-option [value]="2">Tuesday</mat-option>
+          <mat-option [value]="3">Wednesday</mat-option>
+          <mat-option [value]="4">Thursday</mat-option>
+          <mat-option [value]="5">Friday</mat-option>
+          <mat-option [value]="6">Saturday</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <div class="working-hours">
+        <h3>Working Hours</h3>
+        <div class="time-range">
+          <mat-form-field appearance="outline">
+            <mat-label>Start Time</mat-label>
+            <input
+              name="workingHoursStart"
+              matInput
+              type="time"
+              [ngModel]="prefsHandler.preferences().calendar.workingHours.start"
+              (ngModelChange)="prefsHandler.updateWorkingHours('start', $event)"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>End Time</mat-label>
+            <input
+              name="workingHoursEnd"
+              matInput
+              type="time"
+              [ngModel]="prefsHandler.preferences().calendar.workingHours.end"
+              (ngModelChange)="prefsHandler.updateWorkingHours('end', $event)"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="onSave()"
+          [disabled]="(prefsHandler.savingPreferences | async) || (prefsHandler.loading | async)"
+        >
+          {{ (prefsHandler.savingPreferences | async) ? 'Saving...' : 'Save Calendar' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

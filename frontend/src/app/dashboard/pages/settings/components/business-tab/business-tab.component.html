@@ -1,0 +1,172 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Business Name</mat-label>
+        <input
+          name="businessName"
+          matInput
+          [(ngModel)]="businessService.businessNameModel"
+          placeholder="Business Name"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Bio</mat-label>
+        <textarea
+          name="bio"
+          matInput
+          [(ngModel)]="businessService.bioModel"
+          placeholder="Tell us about your business"
+          rows="4"
+        ></textarea>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Contact Phone</mat-label>
+        <input
+          name="contactPhone"
+          matInput
+          [(ngModel)]="businessService.contactPhoneModel"
+          placeholder="Contact Phone"
+        />
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Services Offered</mat-label>
+        <mat-chip-grid #chipGrid>
+          <mat-chip-row
+            *ngFor="let service of chipsService.servicesArray()"
+            (removed)="removeService(service)"
+          >
+            {{ service }}
+            <button matChipRemove>
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip-row>
+          <input
+            placeholder="Add service..."
+            [matChipInputFor]="chipGrid"
+            [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+            (matChipInputTokenEnd)="addService($event)"
+            [matAutocomplete]="serviceAuto"
+          />
+        </mat-chip-grid>
+      </mat-form-field>
+      <mat-autocomplete
+        #serviceAuto="matAutocomplete"
+        (optionSelected)="onServiceSelected($event)"
+      >
+        <mat-option *ngFor="let service of commonServices" [value]="service">
+          {{ service }}
+        </mat-option>
+      </mat-autocomplete>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Service Categories</mat-label>
+        <mat-chip-grid #categoriesChipGrid>
+          <mat-chip-row
+            *ngFor="let category of chipsService.categoriesArray()"
+            (removed)="removeCategory(category)"
+          >
+            {{ category }}
+            <button matChipRemove>
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip-row>
+          <input
+            placeholder="Add category..."
+            [matChipInputFor]="categoriesChipGrid"
+            [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+            (matChipInputTokenEnd)="addCategory($event)"
+            [matAutocomplete]="categoryAuto"
+          />
+        </mat-chip-grid>
+      </mat-form-field>
+      <mat-autocomplete
+        #categoryAuto="matAutocomplete"
+        (optionSelected)="onCategorySelected($event)"
+      >
+        <mat-option *ngFor="let category of industryCategories" [value]="category">
+          {{ category }}
+        </mat-option>
+      </mat-autocomplete>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Available Appointment Durations (minutes)</mat-label>
+        <mat-chip-grid #durationsChipGrid>
+          <mat-chip-row
+            *ngFor="let duration of chipsService.durationsArray()"
+            (removed)="removeDuration(duration)"
+          >
+            {{ duration }} min
+            <button matChipRemove>
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip-row>
+          <input
+            placeholder="Add duration..."
+            [matChipInputFor]="durationsChipGrid"
+            [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+            (matChipInputTokenEnd)="addDuration($event)"
+            [matAutocomplete]="durationAuto"
+          />
+        </mat-chip-grid>
+      </mat-form-field>
+      <mat-autocomplete
+        #durationAuto="matAutocomplete"
+        (optionSelected)="onDurationSelected($event)"
+      >
+        <mat-option *ngFor="let duration of commonDurations" [value]="duration.toString()">
+          {{ duration }} minutes
+        </mat-option>
+      </mat-autocomplete>
+
+      <div class="location-section">
+        <h3>Location</h3>
+        <div class="location-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Country</mat-label>
+            <input
+              name="country"
+              matInput
+              [(ngModel)]="businessService.locationCountryModel"
+              placeholder="Country"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>City</mat-label>
+            <input
+              name="city"
+              matInput
+              [(ngModel)]="businessService.locationCityModel"
+              placeholder="City"
+            />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Address</mat-label>
+            <input
+              name="address"
+              matInput
+              [(ngModel)]="businessService.locationAddressModel"
+              placeholder="Address"
+            />
+          </mat-form-field>
+        </div>
+      </div>
+
+      <div class="business-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="businessService.saveBusinessSettings()"
+          [disabled]="(businessService.savingBusinessSettings | async) ?? false"
+        >
+          {{ (businessService.savingBusinessSettings | async) ? 'Saving...' : 'Save Business Settings' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

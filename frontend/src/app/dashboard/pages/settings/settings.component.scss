@@ -9,13 +9,13 @@
 .page-header {
   margin-bottom: var(--spacing-2xl);
   text-align: center;
-
+  
   .page-title {
     font-size: var(--font-size-2xl);
     font-weight: 600;
     margin-bottom: var(--spacing-sm);
   }
-
+  
   .page-description {
     color: var(--muted-foreground);
     font-size: var(--font-size-base);
@@ -63,7 +63,7 @@
   padding: var(--spacing-lg);
   background: var(--card);
   border-bottom: 1px solid var(--border);
-
+  
   .card-title {
     font-size: var(--font-size-lg);
     font-weight: 500;
@@ -77,7 +77,7 @@
       color: var(--primary);
     }
   }
-
+  
   .card-description {
     font-size: var(--font-size-sm);
     color: var(--muted-foreground);
@@ -89,7 +89,7 @@
 .card-content {
   padding: var(--spacing-lg);
   background: var(--card);
-
+  
   .settings-form {
     padding: 0;
   }
@@ -188,7 +188,7 @@
     border-radius: 10px;
     background-color: rgb(242, 242, 247);
     transition: background-color 0.2s ease;
-
+    
     & + mat-slide-toggle {
       margin-top: 8px;
     }
@@ -262,49 +262,20 @@
       font-weight: 500;
     }
   }
-
-  .location-section {
-    background: var(--card);
-    padding: var(--spacing-lg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-
-    h3 {
-      margin: 0 0 var(--spacing-lg) 0;
-      font-size: var(--font-size-lg);
-      font-weight: 500;
-    }
-
-    .location-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--spacing-lg);
-    }
-  }
-
-  .business-actions {
-    margin-top: var(--spacing-md);
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  mat-chip-grid {
-    width: 100%;
-  }
 }
 
 @media (max-width: 768px) {
   .page-container {
     padding: var(--spacing-lg);
   }
-
+  
   .grid {
     grid-template-columns: 1fr;
   }
-
+  
   .card-footer {
     flex-direction: column;
-
+    
     button {
       width: 100%;
     }

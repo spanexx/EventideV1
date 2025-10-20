@@ -1,0 +1,62 @@
+@use '../../shared-tab-styles.scss';
+
+mat-slide-toggle {
+  display: flex;
+  padding: 14px 16px;
+  margin: 0;
+  border-radius: 10px;
+  background-color: rgb(242, 242, 247);
+  transition: background-color 0.2s ease;
+
+  & + mat-slide-toggle {
+    margin-top: 8px;
+  }
+
+  &:hover {
+    background-color: rgb(235, 235, 240);
+  }
+
+  ::ng-deep {
+    .mdc-form-field {
+      width: 100%;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+      margin: 0;
+    }
+
+    .mdc-switch {
+      margin: 0;
+      --mdc-switch-selected-track-color: rgb(52, 199, 89);
+      --mdc-switch-selected-handle-color: white;
+      --mdc-switch-selected-hover-state-layer-color: transparent;
+      --mdc-switch-selected-focus-state-layer-color: transparent;
+      --mdc-switch-selected-pressed-state-layer-color: transparent;
+      --mdc-switch-unselected-track-color: rgb(229, 229, 234);
+      --mdc-switch-unselected-handle-color: white;
+      --mdc-switch-unselected-hover-state-layer-color: transparent;
+      --mdc-switch-unselected-focus-state-layer-color: transparent;
+      --mdc-switch-unselected-pressed-state-layer-color: transparent;
+    }
+
+    .mdc-switch.mdc-switch--selected:enabled .mdc-switch__shadow,
+    .mdc-switch.mdc-switch--unselected:enabled .mdc-switch__shadow {
+      box-shadow: none;
+    }
+
+    .mdc-switch__handle {
+      border-radius: 50%;
+    }
+
+    .mdc-switch__track {
+      border-radius: 16px;
+      border: none;
+    }
+
+    .mdc-label {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 400;
+      color: rgb(29, 29, 31);
+    }
+  }
+}

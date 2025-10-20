@@ -1,0 +1,30 @@
+@use '../../shared-tab-styles.scss';
+
+.location-section {
+  background: var(--card);
+  padding: var(--spacing-lg);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+
+  h3 {
+    margin: 0 0 var(--spacing-lg) 0;
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+  }
+
+  .location-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: var(--spacing-lg);
+  }
+}
+
+.business-actions {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+}
+
+mat-chip-grid {
+  width: 100%;
+}

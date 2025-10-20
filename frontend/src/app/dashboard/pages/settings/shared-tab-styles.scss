@@ -1,0 +1,37 @@
+// Shared styles for all settings tab components
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+
+  &:hover {
+    background: color-mix(in srgb, var(--card) 97%, white);
+  }
+}
+
+.card-content {
+  padding: var(--spacing-lg);
+  background: var(--card);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-lg);
+  padding: 0;
+
+  mat-form-field {
+    width: 100%;
+
+    ::ng-deep .mat-mdc-text-field-wrapper {
+      padding-left: 12px;
+    }
+  }
+}
+
+.form-actions {
+  margin-top: var(--spacing-md);
+  display: flex;
+  justify-content: flex-end;
+}

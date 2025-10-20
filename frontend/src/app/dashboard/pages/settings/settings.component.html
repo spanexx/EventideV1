@@ -12,36 +12,21 @@
             <div class="profile-grid">
               <mat-form-field appearance="outline">
                 <mat-label>First name</mat-label>
-                <input
-                  name="firstName"
-                  matInput
-                  [(ngModel)]="firstNameModel"
-                  placeholder="First name"
-                />
+                <input name="firstName" matInput [(ngModel)]="firstNameModel" placeholder="First name">
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>Last name</mat-label>
-                <input
-                  name="lastName"
-                  matInput
-                  [(ngModel)]="lastNameModel"
-                  placeholder="Last name"
-                />
+                <input name="lastName" matInput [(ngModel)]="lastNameModel" placeholder="Last name">
               </mat-form-field>
 
               <mat-form-field appearance="outline">
                 <mat-label>Email</mat-label>
-                <input matInput [value]="(userEmail$ | async) || ''" readonly />
+                <input matInput [value]="(userEmail$ | async) || ''" readonly>
               </mat-form-field>
             </div>
             <div class="profile-actions">
-              <button
-                mat-flat-button
-                color="primary"
-                (click)="saveProfile()"
-                [disabled]="savingProfile()"
-              >
+              <button mat-flat-button color="primary" (click)="saveProfile()" [disabled]="savingProfile()">
                 {{ savingProfile() ? 'Saving...' : 'Save Profile' }}
               </button>
             </div>
@@ -54,28 +39,13 @@
       <div class="card">
         <div class="card-content">
           <form class="settings-form">
-            <mat-slide-toggle
-              name="emailNotifications"
-              color="primary"
-              [ngModel]="preferences().notifications.email"
-              (ngModelChange)="updateNestedPreference('notifications', 'email', $event)"
-            >
+            <mat-slide-toggle name="emailNotifications" color="primary" [ngModel]="preferences().notifications.email" (ngModelChange)="updateNestedPreference('notifications', 'email', $event)">
               Email Notifications
             </mat-slide-toggle>
-            <mat-slide-toggle
-              name="pushNotifications"
-              color="primary"
-              [ngModel]="preferences().notifications.push"
-              (ngModelChange)="updateNestedPreference('notifications', 'push', $event)"
-            >
+            <mat-slide-toggle name="pushNotifications" color="primary" [ngModel]="preferences().notifications.push" (ngModelChange)="updateNestedPreference('notifications', 'push', $event)">
               Push Notifications
             </mat-slide-toggle>
-            <mat-slide-toggle
-              name="smsNotifications"
-              color="primary"
-              [ngModel]="preferences().notifications.sms"
-              (ngModelChange)="updateNestedPreference('notifications', 'sms', $event)"
-            >
+            <mat-slide-toggle name="smsNotifications" color="primary" [ngModel]="preferences().notifications.sms" (ngModelChange)="updateNestedPreference('notifications', 'sms', $event)">
               SMS Notifications
             </mat-slide-toggle>
           </form>
@@ -89,11 +59,7 @@
           <form class="settings-form">
             <mat-form-field appearance="outline">
               <mat-label>Theme</mat-label>
-              <mat-select
-                name="theme"
-                [ngModel]="preferences().theme"
-                (ngModelChange)="updatePreference('theme', $event)"
-              >
+              <mat-select name="theme" [ngModel]="preferences().theme" (ngModelChange)="updatePreference('theme', $event)">
                 <mat-option value="light">Light</mat-option>
                 <mat-option value="dark">Dark</mat-option>
                 <mat-option value="system">System Default</mat-option>
@@ -110,11 +76,8 @@
           <form class="settings-form">
             <mat-form-field appearance="outline">
               <mat-label>Default View</mat-label>
-              <mat-select
-                name="calendarDefaultView"
-                [ngModel]="preferences().calendar.defaultView"
-                (ngModelChange)="updateNestedPreference('calendar', 'defaultView', $event)"
-              >
+              <mat-select name="calendarDefaultView" [ngModel]="preferences().calendar.defaultView" 
+                        (ngModelChange)="updateNestedPreference('calendar', 'defaultView', $event)">
                 <mat-option value="day">Day</mat-option>
                 <mat-option value="week">Week</mat-option>
                 <mat-option value="month">Month</mat-option>
@@ -123,11 +86,8 @@
 
             <mat-form-field appearance="outline">
               <mat-label>First Day of Week</mat-label>
-              <mat-select
-                name="firstDayOfWeek"
-                [ngModel]="preferences().calendar.firstDayOfWeek"
-                (ngModelChange)="updateNestedPreference('calendar', 'firstDayOfWeek', $event)"
-              >
+              <mat-select name="firstDayOfWeek" [ngModel]="preferences().calendar.firstDayOfWeek" 
+                        (ngModelChange)="updateNestedPreference('calendar', 'firstDayOfWeek', $event)">
                 <mat-option [value]="0">Sunday</mat-option>
                 <mat-option [value]="1">Monday</mat-option>
                 <mat-option [value]="2">Tuesday</mat-option>
@@ -143,24 +103,16 @@
               <div class="time-range">
                 <mat-form-field appearance="outline">
                   <mat-label>Start Time</mat-label>
-                  <input
-                    name="workingHoursStart"
-                    matInput
-                    type="time"
-                    [ngModel]="preferences().calendar.workingHours.start"
-                    (ngModelChange)="updateWorkingHours('start', $event)"
-                  />
+                  <input name="workingHoursStart" matInput type="time" 
+                        [ngModel]="preferences().calendar.workingHours.start"
+                        (ngModelChange)="updateWorkingHours('start', $event)">
                 </mat-form-field>
 
                 <mat-form-field appearance="outline">
                   <mat-label>End Time</mat-label>
-                  <input
-                    name="workingHoursEnd"
-                    matInput
-                    type="time"
-                    [ngModel]="preferences().calendar.workingHours.end"
-                    (ngModelChange)="updateWorkingHours('end', $event)"
-                  />
+                  <input name="workingHoursEnd" matInput type="time" 
+                        [ngModel]="preferences().calendar.workingHours.end"
+                        (ngModelChange)="updateWorkingHours('end', $event)">
                 </mat-form-field>
               </div>
             </div>
@@ -175,12 +127,9 @@
           <form class="settings-form">
             <mat-form-field appearance="outline">
               <mat-label>Profile Visibility</mat-label>
-              <mat-select
-                name="profileVisibility"
-                [ngModel]="preferences().privacy.profileVisibility"
-                (ngModelChange)="updateNestedPreference('privacy', 'profileVisibility', $event)"
-                [disabled]="loading()"
-              >
+              <mat-select name="profileVisibility" [ngModel]="preferences().privacy.profileVisibility" 
+                        (ngModelChange)="updateNestedPreference('privacy', 'profileVisibility', $event)"
+                        [disabled]="loading()">
                 <mat-option value="public">Public</mat-option>
                 <mat-option value="private">Private</mat-option>
               </mat-select>
@@ -189,12 +138,9 @@
 
             <mat-form-field appearance="outline">
               <mat-label>Access Code Rotation</mat-label>
-              <mat-select
-                name="accessCodeRotation"
-                [ngModel]="preferences().privacy.accessCodeRotation"
-                (ngModelChange)="updateNestedPreference('privacy', 'accessCodeRotation', $event)"
-                [disabled]="loading()"
-              >
+              <mat-select name="accessCodeRotation" [ngModel]="preferences().privacy.accessCodeRotation" 
+                        (ngModelChange)="updateNestedPreference('privacy', 'accessCodeRotation', $event)"
+                        [disabled]="loading()">
                 <mat-option value="daily">Daily</mat-option>
                 <mat-option value="weekly">Weekly</mat-option>
                 <mat-option value="monthly">Monthly</mat-option>
@@ -212,11 +158,8 @@
           <form class="settings-form">
             <mat-form-field appearance="outline">
               <mat-label>Booking Approval Mode</mat-label>
-              <mat-select
-                name="bookingApprovalMode"
-                [ngModel]="preferences().bookingApprovalMode"
-                (ngModelChange)="updatePreference('bookingApprovalMode', $event)"
-              >
+              <mat-select name="bookingApprovalMode" [ngModel]="preferences().bookingApprovalMode" 
+                        (ngModelChange)="updatePreference('bookingApprovalMode', $event)">
                 <mat-option value="auto">Automatic</mat-option>
                 <mat-option value="manual">Manual Review</mat-option>
               </mat-select>
@@ -233,11 +176,8 @@
           <form class="settings-form">
             <mat-form-field appearance="outline">
               <mat-label>Language</mat-label>
-              <mat-select
-                name="language"
-                [ngModel]="preferences().language"
-                (ngModelChange)="updatePreference('language', $event)"
-              >
+              <mat-select name="language" [ngModel]="preferences().language" 
+                        (ngModelChange)="updatePreference('language', $event)">
                 <mat-option value="en">English</mat-option>
                 <mat-option value="es">Español</mat-option>
                 <mat-option value="fr">Français</mat-option>
@@ -248,11 +188,8 @@
 
             <mat-form-field appearance="outline">
               <mat-label>Timezone</mat-label>
-              <mat-select
-                name="timezone"
-                [ngModel]="preferences().timezone"
-                (ngModelChange)="updatePreference('timezone', $event)"
-              >
+              <mat-select name="timezone" [ngModel]="preferences().timezone" 
+                        (ngModelChange)="updatePreference('timezone', $event)">
                 <mat-option value="UTC">UTC</mat-option>
                 <mat-option value="America/New_York">Eastern Time (ET)</mat-option>
                 <mat-option value="America/Chicago">Central Time (CT)</mat-option>
@@ -264,176 +201,6 @@
               </mat-select>
               <mat-hint>Your local timezone</mat-hint>
             </mat-form-field>
-          </form>
-        </div>
-      </div>
-    </mat-tab>
-
-    <mat-tab label="Business">
-      <div class="card">
-        <div class="card-content">
-          <form class="settings-form">
-            <mat-form-field appearance="outline">
-              <mat-label>Business Name</mat-label>
-              <input
-                name="businessName"
-                matInput
-                [(ngModel)]="businessNameModel"
-                placeholder="Business Name"
-              />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Bio</mat-label>
-              <textarea
-                name="bio"
-                matInput
-                [(ngModel)]="bioModel"
-                placeholder="Tell us about your business"
-                rows="4"
-              ></textarea>
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Contact Phone</mat-label>
-              <input
-                name="contactPhone"
-                matInput
-                [(ngModel)]="contactPhoneModel"
-                placeholder="Contact Phone"
-              />
-            </mat-form-field>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Services Offered</mat-label>
-              <mat-chip-grid #chipGrid>
-                <mat-chip-row
-                  *ngFor="let service of servicesArray()"
-                  (removed)="removeService(service)"
-                >
-                  {{ service }}
-                  <button matChipRemove>
-                    <mat-icon>cancel</mat-icon>
-                  </button>
-                </mat-chip-row>
-                <input
-                  placeholder="Add service..."
-                  [matChipInputFor]="chipGrid"
-                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-                  (matChipInputTokenEnd)="addService($event)"
-                  [matAutocomplete]="serviceAuto"
-                />
-              </mat-chip-grid>
-            </mat-form-field>
-            <mat-autocomplete
-              #serviceAuto="matAutocomplete"
-              (optionSelected)="onServiceSelected($event)"
-            >
-              <mat-option *ngFor="let service of commonServices" [value]="service">
-                {{ service }}
-              </mat-option>
-            </mat-autocomplete>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Service Categories</mat-label>
-              <mat-chip-grid #categoriesChipGrid>
-                <mat-chip-row
-                  *ngFor="let category of categoriesArray()"
-                  (removed)="removeCategory(category)"
-                >
-                  {{ category }}
-                  <button matChipRemove>
-                    <mat-icon>cancel</mat-icon>
-                  </button>
-                </mat-chip-row>
-                <input
-                  placeholder="Add category..."
-                  [matChipInputFor]="categoriesChipGrid"
-                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-                  (matChipInputTokenEnd)="addCategory($event)"
-                  [matAutocomplete]="categoryAuto"
-                />
-              </mat-chip-grid>
-            </mat-form-field>
-            <mat-autocomplete
-              #categoryAuto="matAutocomplete"
-              (optionSelected)="onCategorySelected($event)"
-            >
-              <mat-option *ngFor="let category of industryCategories" [value]="category">
-                {{ category }}
-              </mat-option>
-            </mat-autocomplete>
-
-            <mat-form-field appearance="outline">
-              <mat-label>Available Appointment Durations (minutes)</mat-label>
-              <mat-chip-grid #durationsChipGrid>
-                <mat-chip-row
-                  *ngFor="let duration of durationsArray()"
-                  (removed)="removeDuration(duration)"
-                >
-                  {{ duration }} min
-                  <button matChipRemove>
-                    <mat-icon>cancel</mat-icon>
-                  </button>
-                </mat-chip-row>
-                <input
-                  placeholder="Add duration..."
-                  [matChipInputFor]="durationsChipGrid"
-                  [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
-                  (matChipInputTokenEnd)="addDuration($event)"
-                  [matAutocomplete]="durationAuto"
-                />
-              </mat-chip-grid>
-            </mat-form-field>
-            <mat-autocomplete
-              #durationAuto="matAutocomplete"
-              (optionSelected)="onDurationSelected($event)"
-            >
-              <mat-option *ngFor="let duration of commonDurations" [value]="duration.toString()">
-                {{ duration }} minutes
-              </mat-option>
-            </mat-autocomplete>
-
-            <div class="location-section">
-              <h3>Location</h3>
-              <div class="location-grid">
-                <mat-form-field appearance="outline">
-                  <mat-label>Country</mat-label>
-                  <input
-                    name="country"
-                    matInput
-                    [(ngModel)]="locationCountryModel"
-                    placeholder="Country"
-                  />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>City</mat-label>
-                  <input name="city" matInput [(ngModel)]="locationCityModel" placeholder="City" />
-                </mat-form-field>
-
-                <mat-form-field appearance="outline">
-                  <mat-label>Address</mat-label>
-                  <input
-                    name="address"
-                    matInput
-                    [(ngModel)]="locationAddressModel"
-                    placeholder="Address"
-                  />
-                </mat-form-field>
-              </div>
-            </div>
-
-            <div class="business-actions">
-              <button
-                mat-flat-button
-                color="primary"
-                (click)="saveBusinessSettings()"
-                [disabled]="savingBusinessSettings()"
-              >
-                {{ savingBusinessSettings() ? 'Saving...' : 'Save Business Settings' }}
-              </button>
-            </div>
           </form>
         </div>
       </div>

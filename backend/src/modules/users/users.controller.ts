@@ -143,6 +143,29 @@ export class UsersController {
     return new UserPreferencesResponseDto(preferences);
   }
 
+  @Patch('me')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile updated successfully',
+    type: User,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  async updateMe(
+    @Req() req: Request,
+    @Body() updateUserDto: UpdateUserDto,
+  ): Promise<User> {
+    const userId = (req.user as any).id;
+    const user = await this.usersService.updateUser(userId, updateUserDto);
+    const { password, ...result } = user.toObject();
+    return result as User;
+  }
+
   @Patch('me/business')
   @HttpCode(HttpStatus.OK)
   @UseGuards(JwtAuthGuard)

@@ -293,4 +293,38 @@ export class AuthEffects {
     ),
     { dispatch: false }
   );
+
+  refreshUser$ = createEffect(() => {
+    return this.actions$.pipe(
+      ofType(AuthActions.refreshUser),
+      tap(() => console.debug('[AuthEffects] refreshUser dispatched - fetching fresh user data')),
+      switchMap(() =>
+        this.authService.fetchUserData().pipe(
+          tap((user) => console.debug('[AuthEffects] refreshUser API call succeeded', user)),
+          map((user) => AuthActions.refreshUserSuccess({ user })),
+          catchError((error) => {
+            console.error('[AuthEffects] refreshUser failed', error);
+            return of(AuthActions.refreshUserFailure({ error: error.message }));
+          })
+        )
+      )
+    );
+  });
+
+  updateUser$ = createEffect(() => {
+    return this.actions$.pipe(
+      ofType(AuthActions.updateUser),
+      tap(({ updates }) => console.debug('[AuthEffects] updateUser dispatched', updates)),
+      switchMap(({ updates }) =>
+        this.authService.updateCurrentUser(updates).pipe(
+          tap((user) => console.debug('[AuthEffects] updateUser API call succeeded', user)),
+          map((user) => AuthActions.updateUserSuccess({ user })),
+          catchError((error) => {
+            console.error('[AuthEffects] updateUser failed', error);
+            return of(AuthActions.updateUserFailure({ error: error.message }));
+          })
+        )
+      )
+    );
+  });
 }
