@@ -4,7 +4,7 @@ import {
   IsIn,
   IsString,
   ValidateNested,
-  IsObject,
+  // IsObject,
   Matches,
   IsNumber,
   Min,
@@ -52,6 +52,34 @@ class WorkingHoursDto {
     message: 'End time must be in HH:mm format',
   })
   end?: string;
+}
+
+class PrivacyPreferencesDto {
+  @ApiPropertyOptional({
+    description: 'Profile visibility setting',
+    enum: ['public', 'private'],
+  })
+  @IsOptional()
+  @IsIn(['public', 'private'])
+  profileVisibility?: 'public' | 'private';
+
+  @ApiPropertyOptional({
+    description: 'Access code rotation frequency',
+    enum: ['daily', 'weekly', 'monthly'],
+  })
+  @IsOptional()
+  @IsIn(['daily', 'weekly', 'monthly'])
+  accessCodeRotation?: 'daily' | 'weekly' | 'monthly';
+}
+
+class BookingPreferencesDto {
+  @ApiPropertyOptional({
+    description: 'Auto-confirm bookings setting',
+    example: true,
+  })
+  @IsOptional()
+  @IsBoolean()
+  autoConfirmBookings?: boolean;
 }
 
 class CalendarPreferencesDto {
@@ -110,6 +138,32 @@ export class UpdateUserPreferencesDto {
   @ValidateNested()
   @Type(() => CalendarPreferencesDto)
   calendar?: CalendarPreferencesDto;
+
+  @ApiPropertyOptional({
+    description: 'Privacy preferences',
+    type: PrivacyPreferencesDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PrivacyPreferencesDto)
+  privacy?: PrivacyPreferencesDto;
+
+  @ApiPropertyOptional({
+    description: 'Booking preferences',
+    type: BookingPreferencesDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => BookingPreferencesDto)
+  booking?: BookingPreferencesDto;
+
+  @ApiPropertyOptional({
+    description: 'Booking approval mode',
+    enum: ['auto', 'manual'],
+  })
+  @IsOptional()
+  @IsIn(['auto', 'manual'])
+  bookingApprovalMode?: 'auto' | 'manual';
 
   @ApiPropertyOptional({
     description: 'Language preference (ISO 639-1 code)',

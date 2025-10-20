@@ -5,6 +5,11 @@ import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
+import { StatsAnimationService } from './services/stats-animation.service';
+import { LocationParserService } from './services/location-parser.service';
+import { Statistic, AnimatedStats, TrustItem } from './models/home.models';
+import { HowItWorksStep } from './components/how-it-works/how-it-works.component';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
@@ -30,14 +35,6 @@ import { TrustSectionComponent } from './components/trust/trust-section.componen
 import { FinalCtaComponent } from './components/final-cta/final-cta.component';
 
 // Using shared Provider interface from ProviderService
-
-interface Statistic {
-  value: number;
-  label: string;
-  icon: string;
-  color: string;
-  target: number;
-}
 
 @Component({
   selector: 'app-home',
@@ -112,6 +109,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   private searchService = inject(ProviderSearchService);
   private providerService = inject(ProviderService);
   private snackBar = inject(MatSnackBar);
+  private statsAnimation = inject(StatsAnimationService);
+  private locationParser = inject(LocationParserService);
 
   constructor(
     private router: Router,
@@ -136,31 +135,21 @@ export class HomeComponent implements OnInit, OnDestroy {
   }
 
   private animateStats() {
-    const duration = 2000; // 2 seconds
-    const steps = 60;
-    const interval = duration / steps;
-
     const targets = {
       providers: 1247,
       bookings: 15683,
       satisfaction: 98
     };
 
-    let currentStep = 0;
+    // Subscribe to the stats updates
+    this.statsAnimation.stats$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(stats => {
+        this.animatedStats = stats;
+      });
 
-    const timer = setInterval(() => {
-      currentStep++;
-      const progress = currentStep / steps;
-
-      this.animatedStats.providers = Math.floor(targets.providers * progress);
-      this.animatedStats.bookings = Math.floor(targets.bookings * progress);
-      this.animatedStats.satisfaction = Math.floor(targets.satisfaction * progress);
-
-      if (currentStep >= steps) {
-        clearInterval(timer);
-        this.animatedStats = targets;
-      }
-    }, interval);
+    // Start the animation
+    this.statsAnimation.animate(targets);
   }
 
   private loadFeaturedProviders() {
@@ -300,48 +289,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.router.navigate(['/booking-lookup']);
   }
 
-  /**
-   * Parse location string to extract city and country information
-   */
-  private parseLocationInfo(location: string): { city: string | null; country: string | null } {
-    if (!location) {
-      return { city: null, country: null };
-    }
-    
-    // Split by comma to separate location parts
-    const parts = location.split(',').map(part => part.trim());
-    
-    if (parts.length === 0) {
-      return { city: null, country: null };
-    }
-    
-    // Simple heuristic: 
-    // - If only one part, assume it's a city
-    // - If two parts, first is city, second might be state/country
-    // - If three parts, first is city, second is state, third is country
-    
-    let city: string | null = null;
-    let country: string | null = null;
-    
-    if (parts.length >= 1) {
-      city = parts[0];
-    }
-    
-    if (parts.length >= 3) {
-      // Third part is likely the country
-      country = parts[2];
-    } else if (parts.length >= 2) {
-      // Check if second part looks like a country
-      const potentialCountry = parts[parts.length - 1].toLowerCase();
-      const commonCountries = ['usa', 'us', 'united states', 'uk', 'united kingdom', 'canada', 'australia'];
-      if (commonCountries.includes(potentialCountry)) {
-        country = parts[parts.length - 1];
-      } else {
-        // If second part doesn't look like a country, assume it's a city
-        city = parts[0] + ' ' + parts[1]; // Combine first two parts as city name
-      }
-    }
-    
-    return { city, country };
+  private parseLocationInfo(location: string) {
+    return this.locationParser.parseLocationInfo(location);
   }
 }

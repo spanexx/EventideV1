@@ -56,6 +56,22 @@ export class CalendarPreferencesResponse {
   workingHours!: WorkingHoursResponse;
 }
 
+export class PrivacyPreferencesResponse {
+  @ApiProperty({ description: 'Profile visibility setting' })
+  @Expose()
+  profileVisibility!: 'public' | 'private';
+
+  @ApiProperty({ description: 'Access code rotation frequency' })
+  @Expose()
+  accessCodeRotation!: 'daily' | 'weekly' | 'monthly';
+}
+
+export class BookingPreferencesResponse {
+  @ApiProperty({ description: 'Auto-confirm bookings setting' })
+  @Expose()
+  autoConfirmBookings!: boolean;
+}
+
 export class UserPreferencesResponseDto {
   @ApiProperty({
     description: 'Notification preferences',
@@ -77,6 +93,27 @@ export class UserPreferencesResponseDto {
   })
   @Expose()
   calendar!: CalendarPreferencesResponse;
+
+  @ApiProperty({
+    description: 'Privacy preferences',
+    type: PrivacyPreferencesResponse,
+  })
+  @Expose()
+  privacy!: PrivacyPreferencesResponse;
+
+  @ApiProperty({
+    description: 'Booking preferences',
+    type: BookingPreferencesResponse,
+  })
+  @Expose()
+  booking!: BookingPreferencesResponse;
+
+  @ApiProperty({
+    description: 'Booking approval mode',
+    enum: ['auto', 'manual'],
+  })
+  @Expose()
+  bookingApprovalMode!: 'auto' | 'manual' | undefined;
 
   @ApiProperty({
     description: 'Language preference (ISO 639-1 code)',
@@ -106,6 +143,9 @@ export class UserPreferencesResponseDto {
     this.notifications = preferences.notifications;
     this.theme = preferences.theme;
     this.calendar = preferences.calendar;
+    this.privacy = preferences.privacy;
+    this.booking = preferences.booking;
+    this.bookingApprovalMode = preferences.bookingApprovalMode;
     this.language = preferences.language;
     this.timezone = preferences.timezone;
 

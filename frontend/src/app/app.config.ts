@@ -1,4 +1,10 @@
-import { ApplicationConfig, APP_INITIALIZER, inject, provideBrowserGlobalErrorListeners, provideZoneChangeDetection } from '@angular/core';
+import {
+  ApplicationConfig,
+  APP_INITIALIZER,
+  inject,
+  provideBrowserGlobalErrorListeners,
+  provideZoneChangeDetection,
+} from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { LogService } from './services/log.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
@@ -34,25 +40,27 @@ import { BookingEffects } from './booking-wizard/store-bookings/effects/booking.
 import { searchFiltersReducer } from './store/search-filters/search-filters.reducer';
 import { providersReducer } from './store/providers/providers.reducer';
 import { ProvidersEffects } from './store/providers/providers.effects';
-
+import { appearanceReducer } from './store/appearance/appearance.reducer';
+import { AppearanceEffects } from './store/appearance/appearance.effects';
 
 // Function to initialize the app with existing auth state
 function initializeAppFactory(logService: LogService, authService: AuthService, store: Store) {
-  return () => logService.init().then(() => {
-    console.log('APP_INITIALIZER: LogService initialized');
-    
-    // Check if there's a valid token in localStorage
-    console.log('APP_INITIALIZER: Checking if user is authenticated');
-    if (authService.isAuthenticated()) {
-      console.log('APP_INITIALIZER: User is authenticated, dispatching verifyToken');
-      // Dispatch an action to verify the token and load user data
-      store.dispatch(AuthActions.verifyToken());
-    } else {
-      console.log('APP_INITIALIZER: No valid token found');
-    }
-    
-    console.log('APP_INITIALIZER: App initialization complete');
-  });
+  return () =>
+    logService.init().then(() => {
+      console.log('APP_INITIALIZER: LogService initialized');
+
+      // Check if there's a valid token in localStorage
+      console.log('APP_INITIALIZER: Checking if user is authenticated');
+      if (authService.isAuthenticated()) {
+        console.log('APP_INITIALIZER: User is authenticated, dispatching verifyToken');
+        // Dispatch an action to verify the token and load user data
+        store.dispatch(AuthActions.verifyToken());
+      } else {
+        console.log('APP_INITIALIZER: No valid token found');
+      }
+
+      console.log('APP_INITIALIZER: App initialization complete');
+    });
 }
 
 export const appConfig: ApplicationConfig = {
@@ -63,7 +71,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([responseInterceptor, authInterceptor])),
     provideAnimations(),
     provideNativeDateAdapter(),
-    provideStore({ 
+    provideStore({
       auth: authReducer,
       dashboard: dashboardReducer,
       analytics: analyticsReducer,
@@ -71,16 +79,26 @@ export const appConfig: ApplicationConfig = {
       calendar: calendarReducer,
       booking: bookingReducer,
       searchFilters: searchFiltersReducer,
-      providers: providersReducer
+      providers: providersReducer,
+      appearance: appearanceReducer,
     }),
-    provideEffects([AuthEffects, DashboardEffects, AvailabilityEffects, CalendarEffects, BookingEffects, ProvidersEffects]),
+    provideEffects([
+      AuthEffects,
+      DashboardEffects,
+      AvailabilityEffects,
+      CalendarEffects,
+      BookingEffects,
+      ProvidersEffects,
+      AppearanceEffects,
+    ]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     LogService,
     {
       provide: APP_INITIALIZER,
-      useFactory: (logService: LogService, authService: AuthService, store: Store) => initializeAppFactory(logService, authService, store),
+      useFactory: (logService: LogService, authService: AuthService, store: Store) =>
+        initializeAppFactory(logService, authService, store),
       deps: [LogService, AuthService, Store],
-      multi: true
-    }
-  ]
+      multi: true,
+    },
+  ],
 };

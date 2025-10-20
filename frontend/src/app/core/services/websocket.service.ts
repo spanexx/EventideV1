@@ -17,6 +17,7 @@ export interface WebSocketNotification {
   title: string;
   message: string;
   data?: any;
+  source?: 'websocket' | 'ui' | 'storage';
 }
 
 @Injectable({
@@ -169,13 +170,19 @@ export class WebsocketService {
   // Handle incoming notifications
   private handleNotification(notification: WebSocketNotification): void {
     const currentNotifications = this.notificationsSubject.value;
+    // Add source to the notification
+    const notificationWithSource = {
+      ...notification,
+      source: 'websocket' as const
+    };
+    
     // Check if notification already exists to prevent duplicates
     if (!currentNotifications.some(n => n.id === notification.id)) {
-      const updatedNotifications = [notification, ...currentNotifications];
+      const updatedNotifications = [notificationWithSource, ...currentNotifications];
       this.notificationsSubject.next(updatedNotifications);
       // Persist to localStorage for backup
       localStorage.setItem('websocket_notifications', JSON.stringify(updatedNotifications));
-      console.log('New notification received:', notification);
+      console.debug('New notification received:', notificationWithSource);
     }
   }
 
@@ -219,11 +226,17 @@ export class WebsocketService {
 
   // Public API to update notifications array and persist it.
   // Accepts any object shape so UI can add `read`/`timestamp` fields.
-  updateNotifications(notifications: WebSocketNotification[] | any[]): void {
+  updateNotifications(notifications: WebSocketNotification[] | any[], source: 'ui' | 'storage' = 'ui'): void {
     try {
-      this.notificationsSubject.next(notifications as WebSocketNotification[]);
-      localStorage.setItem('websocket_notifications', JSON.stringify(notifications));
-      console.debug('WebsocketService: notifications updated', notifications);
+      // Add source to notifications if not already present
+      const notificationsWithSource = notifications.map(n => ({
+        ...n,
+        source: n.source || source
+      }));
+      
+      this.notificationsSubject.next(notificationsWithSource as WebSocketNotification[]);
+      localStorage.setItem('websocket_notifications', JSON.stringify(notificationsWithSource));
+      console.debug('WebsocketService: notifications updated', notificationsWithSource);
     } catch (err) {
       console.error('WebsocketService:updateNotifications failed', err);
     }

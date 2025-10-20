@@ -9,7 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
-  NotFoundException,
+  // NotFoundException,
   BadRequestException,
   HttpCode,
   HttpStatus,
@@ -26,6 +26,7 @@ import { UsersService } from './users.service';
 import { AccessCodeService } from './services/access-code.service';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateUserPreferencesDto } from './dto/update-user-preferences.dto';
+import { UpdateBusinessSettingsDto } from './dto/update-business-settings.dto';
 import { UserPreferencesResponseDto } from './dto/user-preferences-response.dto';
 import { User } from './user.schema';
 import { RolesGuard } from '../../core/guards/roles.guard';
@@ -142,6 +143,42 @@ export class UsersController {
     return new UserPreferencesResponseDto(preferences);
   }
 
+  @Patch('me/business')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
+  @Throttle({
+    default: { limit: 30, ttl: 60000 },
+    short: { limit: 10, ttl: 10000 },
+  })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update current user business settings' })
+  @ApiResponse({
+    status: 200,
+    description: 'User business settings updated successfully',
+    type: User,
+  })
+  @ApiResponse({ status: 400, description: 'Invalid business settings data' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({
+    status: 429,
+    description: 'Too many requests - please wait before making more changes',
+  })
+  async updateMyBusinessSettings(
+    @Req() req: Request,
+    @Body() updateBusinessSettingsDto: UpdateBusinessSettingsDto,
+  ): Promise<User> {
+    const userId = (req.user as any).id;
+    const user = await this.usersService.updateUser(
+      userId,
+      updateBusinessSettingsDto,
+    );
+    // Remove sensitive fields before returning
+    const { password, ...result } = user.toObject();
+    return result as User;
+  }
+
   @Get(':id')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Get user by ID' })
@@ -167,6 +204,9 @@ export class UsersController {
     @Param('id') id: string,
     @Body() updateUserDto: UpdateUserDto,
   ): Promise<User> {
+    if (!id || id === 'undefined') {
+      throw new BadRequestException('Invalid user id');
+    }
     const user = await this.usersService.updateUser(id, updateUserDto);
     // Remove sensitive fields before returning
     const { password, ...result } = user.toObject();
@@ -216,11 +256,14 @@ export class UsersController {
   @ApiOperation({ summary: 'Get current access code for private profile' })
   @ApiResponse({ status: 200, description: 'Access code retrieved' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async getMyAccessCode(@Req() req: Request): Promise<{ accessCode: string; expiresAt?: Date }> {
+  async getMyAccessCode(
+    @Req() req: Request,
+  ): Promise<{ accessCode: string; expiresAt?: Date }> {
     const userId = (req.user as any).userId;
-    const accessCode = await this.accessCodeService.getOrGenerateAccessCode(userId);
+    const accessCode =
+      await this.accessCodeService.getOrGenerateAccessCode(userId);
     const user = await this.usersService.findById(userId);
-    
+
     return {
       accessCode,
       expiresAt: user.accessCodeGeneratedAt,
@@ -234,10 +277,13 @@ export class UsersController {
   @ApiOperation({ summary: 'Manually rotate access code' })
   @ApiResponse({ status: 200, description: 'Access code rotated' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async rotateMyAccessCode(@Req() req: Request): Promise<{ accessCode: string }> {
+  async rotateMyAccessCode(
+    @Req() req: Request,
+  ): Promise<{ accessCode: string }> {
     const userId = (req.user as any).userId;
-    const accessCode = await this.accessCodeService.forceRotateAccessCode(userId);
-    
+    const accessCode =
+      await this.accessCodeService.forceRotateAccessCode(userId);
+
     return { accessCode };
   }
 }

@@ -21,6 +21,7 @@
       type="text" 
       placeholder="Search in natural language..." 
       [(ngModel)]="searchTerm" 
+      name="searchInput"
       (keyup.enter)="onSearch()" 
       (input)="onSearchInput()"
       (focus)="onSearchFocus()"

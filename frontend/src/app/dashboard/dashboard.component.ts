@@ -20,7 +20,7 @@ import { CommonModule } from '@angular/common';
     RouterOutlet,
     DashboardHeaderComponent,
     DashboardSidebarComponent,
-    FloatingAIChatComponent
+    // FloatingAIChatComponent
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss'

@@ -44,7 +44,9 @@ import { WebsocketService } from '../../../core/services/websocket.service';
         <ng-container *ngIf="isLoggedIn$ | async">
           <button mat-icon-button class="nav-icon-btn notifications-btn" (click)="navigateToNotifications()"
                   matTooltip="View notifications" matTooltipPosition="below"
-                  [matBadge]="unreadCount" matBadgeColor="warn" [matBadgeHidden]="unreadCount === 0">
+                  [matBadge]="unreadCount"
+                  matBadgeColor="warn"
+                  [matBadgeHidden]="unreadCount === 0">
             <mat-icon>notifications</mat-icon>
           </button>
           <button mat-icon-button class="nav-icon-btn profile-btn primary" [matMenuTriggerFor]="profileMenu"
@@ -153,6 +155,29 @@ import { WebsocketService } from '../../../core/services/websocket.service';
     .nav-icon-btn:hover mat-icon {
       transform: scale(1.1);
     }
+    
+    /* Notification badge styling */
+    .notifications-btn {
+      position: relative !important;
+      overflow: visible !important;
+    }
+    .notifications-btn ::ng-deep .mat-badge-content {
+      position: absolute !important;
+      background: #ff4757 !important;
+      color: white !important;
+      font-size: 12px !important;
+      font-weight: 700 !important;
+      width: 20px !important;
+      height: 20px !important;
+      line-height: 20px !important;
+      border-radius: 10px !important;
+      border: 2px solid rgba(255, 255, 255, 0.9) !important;
+      top: 4px !important;
+      right: 4px !important;
+      transform: none !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+    }
+    
     @keyframes fadeInDown { 
       from { 
         opacity: 0; 

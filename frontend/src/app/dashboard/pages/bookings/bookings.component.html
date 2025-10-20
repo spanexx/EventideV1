@@ -12,7 +12,7 @@
     </div>
     <div class="header-actions">
       <mat-form-field appearance="outline" class="search-field">
-        <input matInput [(ngModel)]="searchTerm" (input)="onSearch()" placeholder="Search bookings">
+        <input matInput [(ngModel)]="searchTerm" name="bookingSearch" (input)="onSearch()" placeholder="Search bookings">
         <mat-icon matPrefix>search</mat-icon>
       </mat-form-field>
       <mat-form-field appearance="outline" class="filter-field">

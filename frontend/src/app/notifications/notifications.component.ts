@@ -67,7 +67,7 @@ export class NotificationsComponent implements OnInit, OnDestroy {
       .subscribe(notifications => {
         // Convert WebSocketNotification to our Notification format
         // Preserve read flag and timestamp if provided by the backend
-        this.notifications = notifications.map((n: any) => ({
+        const updatedNotifications = notifications.map((n: any) => ({
           id: n.id,
           type: n.type,
           title: n.title,
@@ -77,8 +77,12 @@ export class NotificationsComponent implements OnInit, OnDestroy {
           data: n.data
         }));
 
-        // Persist via websocket service so both sides stay in sync
-        this.saveNotifications();
+        // Only update if the notifications have actually changed
+        if (JSON.stringify(this.notifications) !== JSON.stringify(updatedNotifications)) {
+          this.notifications = updatedNotifications;
+          // Only persist to localStorage, skip websocket service update to prevent recursion
+          localStorage.setItem('websocket_notifications', JSON.stringify(this.notifications));
+        }
       });
   }
 
@@ -93,7 +97,8 @@ export class NotificationsComponent implements OnInit, OnDestroy {
         message: n.message,
         timestamp: n.emittedAt ? new Date(n.emittedAt) : (n.timestamp ? new Date(n.timestamp) : new Date()),
         read: typeof n.read === 'boolean' ? n.read : false,
-        data: n.data
+        data: n.data,
+        source: n.source
       }));
       return;
     }
@@ -104,10 +109,11 @@ export class NotificationsComponent implements OnInit, OnDestroy {
       this.notifications = JSON.parse(stored).map((n: any) => ({
         ...n,
         timestamp: n.timestamp ? new Date(n.timestamp) : new Date(),
-        read: typeof n.read === 'boolean' ? n.read : false
+        read: typeof n.read === 'boolean' ? n.read : false,
+        source: 'storage'
       }));
       // Sync into service
-      this.websocketService.updateNotifications(this.notifications);
+      this.websocketService.updateNotifications(this.notifications, 'storage');
     }
   }
 
@@ -207,13 +213,20 @@ export class NotificationsComponent implements OnInit, OnDestroy {
     this.notificationService.success('All notifications cleared');
   }
 
-  private saveNotifications() {
-    // Persist to the websocket service and mirror to localStorage
+  private saveNotifications(source: 'ui' | 'storage' = 'ui') {
     try {
-      this.websocketService.updateNotifications(this.notifications as any);
-      localStorage.setItem('websocket_notifications', JSON.stringify(this.notifications));
+      // Store current notifications from service for comparison
+      const currentServiceNotifications = this.websocketService.getNotifications();
+      const currentJson = JSON.stringify(currentServiceNotifications);
+      const newJson = JSON.stringify(this.notifications);
+      
+      // Only update if notifications have changed and they're not from websocket
+      if (currentJson !== newJson) {
+        this.websocketService.updateNotifications(this.notifications as any, source);
+      }
     } catch (err) {
       console.error('Failed to save notifications', err);
+      // Fallback to local storage only
       localStorage.setItem('notifications', JSON.stringify(this.notifications));
     }
   }
