@@ -29,8 +29,6 @@ import { AuthService } from './services/auth.service';
 import { Store } from '@ngrx/store';
 import * as AuthActions from './auth/store/auth';
 import { AuthEffects, authReducer } from './auth/store/auth';
-import { AnalyticsEffects } from './analytics/store/effects/analytics.effects';
-import { analyticsReducer } from './analytics/store/reducers/analytics.reducer';
 import { availabilityReducer } from './dashboard/store-availability';
 import { AvailabilityEffects } from './dashboard/store-availability';
 import { calendarReducer } from './dashboard/store-calendar';
@@ -42,6 +40,7 @@ import { providersReducer } from './store/providers/providers.reducer';
 import { ProvidersEffects } from './store/providers/providers.effects';
 import { appearanceReducer } from './store/appearance/appearance.reducer';
 import { AppearanceEffects } from './store/appearance/appearance.effects';
+import { analyticsReducer } from './dashboard/pages/analytics/store/reducers/analytics.reducer';
 
 // Function to initialize the app with existing auth state
 function initializeAppFactory(logService: LogService, authService: AuthService, store: Store) {

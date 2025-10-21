@@ -25,11 +25,11 @@ const routes: Routes = [
       },
       { 
         path: 'analytics/dashboard', 
-        loadComponent: () => import('../analytics/pages/analytics-dashboard/analytics-dashboard.component').then(m => m.AnalyticsDashboardComponent) 
+        loadComponent: () => import('./pages/analytics/pages/analytics-dashboard/analytics-dashboard.component').then(m => m.AnalyticsDashboardComponent) 
       },
       { 
         path: 'analytics/reports', 
-        loadComponent: () => import('../analytics/pages/reports/reports.component').then(m => m.ReportsComponent) 
+        loadComponent: () => import('./pages/analytics/pages/reports/reports.component').then(m => m.ReportsComponent) 
       },
       { 
         path: 'settings', 

@@ -14,7 +14,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatCardModule } from '@angular/material/card';
 import * as AnalyticsActions from '../../store/actions/analytics.actions';
 import * as AnalyticsSelectors from '../../store/selectors/analytics.selectors';
-import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
+import * as AuthSelectors from '../../../../../auth/store/auth/selectors/auth.selectors';
 import { SummaryCardComponent } from '../../components/summary-cards/summary-card.component';
 import { LineChartComponent } from '../../components/charts/line-chart.component';
 import { BarChartComponent } from '../../components/charts/bar-chart.component';

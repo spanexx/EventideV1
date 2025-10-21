@@ -1,16 +1,16 @@
 import { Injectable } from '@angular/core';
 import { Observable, Subject } from 'rxjs';
 import { io, Socket } from 'socket.io-client';
-import { environment } from '../../../environments/environment';
 import { AnalyticsData } from '../models/analytics.models';
+import { environment } from '../../../../../environments/environment';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AnalyticsSocketService {
   private socket: Socket;
   private analyticsUpdateSubject = new Subject<AnalyticsData>();
-  
+
   public analyticsUpdate$ = this.analyticsUpdateSubject.asObservable();
 
   constructor() {
@@ -23,15 +23,15 @@ export class AnalyticsSocketService {
       this.analyticsUpdateSubject.next(data);
     });
   }
-  
+
   joinProviderRoom(providerId: string): void {
     this.socket.emit('join_analytics_room', { providerId });
   }
-  
+
   leaveProviderRoom(providerId: string): void {
     this.socket.emit('leave_analytics_room', { providerId });
   }
-  
+
   disconnect(): void {
     this.socket.disconnect();
   }

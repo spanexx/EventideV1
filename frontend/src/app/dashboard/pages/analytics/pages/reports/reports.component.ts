@@ -4,7 +4,7 @@ import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import * as AnalyticsActions from '../../store/actions/analytics.actions';
 import * as AnalyticsSelectors from '../../store/selectors/analytics.selectors';
-import * as AuthSelectors from '../../../auth/store/auth/selectors/auth.selectors';
+import * as AuthSelectors from '../../../../../auth/store/auth/selectors/auth.selectors';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';

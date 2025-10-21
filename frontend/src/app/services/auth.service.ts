@@ -196,17 +196,25 @@ export class AuthService {
   }
 
   /**
-   * Handle Google OAuth callback
+   * Fetch current user data
    */
   fetchUserData(): Observable<User> {
-    return this.http.get<{ user: User }>(`${this.API_URL}/me`).pipe(
-      map((response) => response.user),
+    const url = `${environment.apiUrl}/users/me`;
+    return this.http.get<User | { user: User }>(url).pipe(
+      map((response: any) => (response?.user ?? response) as User),
       tap((user) => {
         // Update user data in localStorage
         localStorage.setItem(this.USER_KEY, JSON.stringify(user));
         this.currentUserSubject.next(user);
       }),
-      catchError(this.handleError),
+      catchError((error) => {
+        if (error.status === 404) {
+          console.warn('[AuthService] /users/me returned 404; treating as unauthenticated');
+          this.logout();
+          return throwError(() => new Error('User not found'));
+        }
+        return this.handleError(error);
+      }),
     );
   }
   handleGoogleCallback(token: string, userData: string): void {
