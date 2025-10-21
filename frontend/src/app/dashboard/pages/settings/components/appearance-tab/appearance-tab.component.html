@@ -1,0 +1,31 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Theme</mat-label>
+        <mat-select
+          [(ngModel)]="prefsHandler.preferences().theme"
+          (ngModelChange)="prefsHandler.updatePreference('theme', $event)"
+          name="theme"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          <mat-option value="light">Light</mat-option>
+          <mat-option value="dark">Dark</mat-option>
+          <mat-option value="system">System</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="prefsHandler.saveAppearanceSettings()"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          {{ (prefsHandler.loading()) ? 'Saving...' : 'Save Appearance' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

@@ -88,6 +88,22 @@ export const refreshUserFailure = createAction(
   props<{ error: string }>(),
 );
 
+// Update User Actions
+export const updateUser = createAction(
+  '[Auth] Update User',
+  props<{ updates: any }>(),
+);
+
+export const updateUserSuccess = createAction(
+  '[Auth] Update User Success',
+  props<{ user: User }>(),
+);
+
+export const updateUserFailure = createAction(
+  '[Auth] Update User Failure',
+  props<{ error: string }>(),
+);
+
 // Password Reset Actions
 export const forgotPassword = createAction('[Auth] Forgot Password', props<{ email: string }>());
 

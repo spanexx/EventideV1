@@ -1,0 +1,45 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Profile Visibility</mat-label>
+        <mat-select
+          name="profileVisibility"
+          [ngModel]="prefsHandler.preferences().privacy.profileVisibility"
+          (ngModelChange)="prefsHandler.updateNestedPreference('privacy', 'profileVisibility', $event)"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          <mat-option value="public">Public</mat-option>
+          <mat-option value="private">Private</mat-option>
+        </mat-select>
+        <mat-hint>Control who can view your profile</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Access Code Rotation</mat-label>
+        <mat-select
+          name="accessCodeRotation"
+          [ngModel]="prefsHandler.preferences().privacy.accessCodeRotation"
+          (ngModelChange)="prefsHandler.updateNestedPreference('privacy', 'accessCodeRotation', $event)"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          <mat-option value="daily">Daily</mat-option>
+          <mat-option value="weekly">Weekly</mat-option>
+          <mat-option value="monthly">Monthly</mat-option>
+        </mat-select>
+        <mat-hint>How often your access code is updated</mat-hint>
+      </mat-form-field>
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="prefsHandler.savePrivacySettings()"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          {{ (prefsHandler.loading()) ? 'Saving...' : 'Save Privacy' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

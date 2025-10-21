@@ -1,0 +1,26 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-slide-toggle
+        [(ngModel)]="prefsHandler.preferences().booking.autoConfirmBookings"
+        (ngModelChange)="prefsHandler.updateNestedPreference('booking', 'autoConfirmBookings', $event)"
+        name="autoConfirmBookings"
+        [disabled]="(prefsHandler.loading()) ?? false"
+      >
+        Auto-confirm Bookings
+      </mat-slide-toggle>
+
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="prefsHandler.saveBookingSettings()"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          {{ (prefsHandler.loading()) ? 'Saving...' : 'Save Booking' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

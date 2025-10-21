@@ -1,0 +1,44 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-slide-toggle
+        [(ngModel)]="prefsHandler.preferences().notifications.email"
+        (ngModelChange)="prefsHandler.updateNestedPreference('notifications', 'email', $event)"
+        name="emailNotifications"
+        [disabled]="(prefsHandler.loading()) ?? false"
+      >
+        Email Notifications
+      </mat-slide-toggle>
+
+      <mat-slide-toggle
+        [(ngModel)]="prefsHandler.preferences().notifications.sms"
+        (ngModelChange)="prefsHandler.updateNestedPreference('notifications', 'sms', $event)"
+        name="smsNotifications"
+        [disabled]="(prefsHandler.loading()) ?? false"
+      >
+        SMS Notifications
+      </mat-slide-toggle>
+
+      <mat-slide-toggle
+        [(ngModel)]="prefsHandler.preferences().notifications.push"
+        (ngModelChange)="prefsHandler.updateNestedPreference('notifications', 'push', $event)"
+        name="pushNotifications"
+        [disabled]="(prefsHandler.loading()) ?? false"
+      >
+        Push Notifications
+      </mat-slide-toggle>
+
+      <div class="form-actions">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="prefsHandler.saveNotificationSettings()"
+          [disabled]="(prefsHandler.loading()) ?? false"
+        >
+          {{ (prefsHandler.loading()) ? 'Saving...' : 'Save Notifications' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

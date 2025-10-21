@@ -1,11 +1,13 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { of } from 'rxjs';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, withLatestFrom } from 'rxjs/operators';
 import { AuthService } from '../../../../services/auth.service';
 import { NotificationService } from '../../../../core/services/notification.service';
 import * as AuthActions from '../actions/auth.actions';
+import { selectIsAuthenticated, selectUser } from '../selectors/auth.selectors';
 
 @Injectable()
 export class AuthEffects {
@@ -13,6 +15,7 @@ export class AuthEffects {
   private authService = inject(AuthService);
   private router = inject(Router);
   private notificationService = inject(NotificationService);
+  private store = inject(Store);
 
   login$ = createEffect(() => {
     return this.actions$.pipe(
@@ -23,7 +26,7 @@ export class AuthEffects {
           tap(() => console.debug('[AuthEffects] login API call succeeded')),
           map((response) =>
             AuthActions.loginSuccess({
-              user: response as any, // Type casting may need adjustment based on actual response
+              user: response as any,
               token: response.access_token,
               refreshToken: response.refreshToken,
             }),
@@ -62,7 +65,7 @@ export class AuthEffects {
           tap(() => console.debug('[AuthEffects] signup API call succeeded')),
           map((response) =>
             AuthActions.signupSuccess({
-              user: response as any, // Type casting may need adjustment based on actual response
+              user: response as any,
               email: response.email,
             }),
           ),
@@ -83,7 +86,6 @@ export class AuthEffects {
           console.info(
             '[AuthEffects] signupSuccess, showing verification message and navigating to login',
           );
-          // Show success message to user about email verification
           this.notificationService.success(
             `Account created successfully! Please check your email (${email}) for a verification link before logging in.`,
             { duration: 8000 },
@@ -105,8 +107,6 @@ export class AuthEffects {
       tap(() => {
         console.info('[AuthEffects] logout dispatched, calling AuthService.logout');
         this.authService.logout();
-
-        // Trigger full app refresh after logout
         console.info('[AuthEffects] Triggering full app refresh after logout');
         window.location.reload();
       }),
@@ -131,7 +131,6 @@ export class AuthEffects {
               const refreshToken = this.authService.getRefreshToken();
 
               if (user) {
-                // Dispatch login success to restore full auth state
                 console.debug('[AuthEffects] verifyToken succeeded, restoring user from storage');
                 return AuthActions.loginSuccess({
                   user,
@@ -190,7 +189,6 @@ export class AuthEffects {
     { dispatch: false },
   );
 
-  // Add effect to navigate to dashboard after Google login success
   googleLoginSuccess$ = createEffect(
     () =>
       this.actions$.pipe(
@@ -226,7 +224,7 @@ export class AuthEffects {
       tap(() => console.debug('[AuthEffects] refreshUser dispatched')),
       switchMap(() =>
         this.authService.fetchUserData().pipe(
-          tap((user) => console.debug('[AuthEffects] refreshUser API call succeeded')),
+          tap((user) => console.debug('[AuthEffects] refreshUser API call succeeded', user)),
           map((user) => AuthActions.refreshUserSuccess({ user })),
           catchError((error) => {
             console.error('[AuthEffects] refreshUser failed', error);
@@ -236,6 +234,7 @@ export class AuthEffects {
       ),
     );
   });
+
 
   forgotPassword$ = createEffect(() => {
     return this.actions$.pipe(
