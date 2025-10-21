@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, effect } from '@angular/core';
+import { Component, OnInit, signal, computed, effect, inject, DestroyRef } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -21,7 +21,7 @@ import {
   selectUserEmail,
   selectUserFullName,
 } from '../../../auth/store/auth/selectors/auth.selectors';
-import { Observable } from 'rxjs';
+import { Observable, Subject, takeUntil } from 'rxjs';
 import {
   selectTheme,
   selectLanguage,
@@ -32,8 +32,10 @@ import {
   updateTimezone,
   updateAppearancePreferences,
 } from '../../../store/appearance';
+import * as AuthActions from '../../../auth/store/auth/actions/auth.actions';
 import { MatChipInputEvent } from '@angular/material/chips';
 import { COMMA, ENTER } from '@angular/cdk/keycodes';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-settings',
@@ -309,49 +311,64 @@ export class SettingsComponent implements OnInit {
   categoriesArray = computed(() => this.categories());
   durationsArray = computed(() => this.availableDurations().map((d) => d.toString()));
 
+  // Destroy subject for memory leak prevention
+  private destroy$ = new Subject<void>();
+
   constructor(
     private settingsService: SettingsService,
     private snackBar: MatSnackBar,
     private store: Store,
     private authService: AuthService,
+    private destroyRef: DestroyRef, // Inject DestroyRef for takeUntilDestroyed
   ) {
     // Effect to sync service updates with local signal
     effect(() => {
-      this.settingsService.preferences$.subscribe((prefs) => {
-        this.preferencesState.set(prefs);
-      });
+      this.settingsService.preferences$
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((prefs) => {
+          this.preferencesState.set(prefs);
+        });
     });
 
     // Effect to sync appearance preferences from NgRx store with local signal
     effect(() => {
-      this.store.select(selectTheme).subscribe((theme) => {
-        this.preferencesState.update((prefs) => ({
-          ...prefs,
-          theme,
-        }));
-      });
+      this.store
+        .select(selectTheme)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((theme) => {
+          this.preferencesState.update((prefs) => ({
+            ...prefs,
+            theme,
+          }));
+        });
     });
 
     effect(() => {
-      this.store.select(selectLanguage).subscribe((language) => {
-        this.preferencesState.update((prefs) => ({
-          ...prefs,
-          language,
-        }));
-      });
+      this.store
+        .select(selectLanguage)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((language) => {
+          this.preferencesState.update((prefs) => ({
+            ...prefs,
+            language,
+          }));
+        });
     });
 
     effect(() => {
-      this.store.select(selectTimezone).subscribe((timezone) => {
-        this.preferencesState.update((prefs) => ({
-          ...prefs,
-          timezone,
-        }));
-      });
+      this.store
+        .select(selectTimezone)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((timezone) => {
+          this.preferencesState.update((prefs) => ({
+            ...prefs,
+            timezone,
+          }));
+        });
     });
 
     // Subscribe to current user to populate editable fields
-    this.authService.currentUser$.subscribe((u) => {
+    this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((u) => {
       const user = u as AuthUser | null;
       this.firstName.set(user?.firstName ?? '');
       this.lastName.set(user?.lastName ?? '');
@@ -373,6 +390,9 @@ export class SettingsComponent implements OnInit {
   ngOnInit(): void {
     // Load appearance preferences from NgRx store first
     this.store.dispatch(loadAppearancePreferences());
+
+    // Refresh user data from the API to ensure we have the latest business data
+    this.store.dispatch(AuthActions.refreshUser());
 
     this.loadPreferences();
 
@@ -429,6 +449,265 @@ export class SettingsComponent implements OnInit {
         console.error('Failed to update business settings', err);
         this.snackBar.open('Failed to update business settings', 'Close', { duration: 3000 });
         this.savingBusinessSettings.set(false);
+      },
+    });
+  }
+
+  // Individual save methods for different settings sections
+  public saveNotificationSettings(): void {
+    this.loading.set(true);
+
+    const currentPrefs = this.preferences();
+    const allPrefs = {
+      bookingApprovalMode: currentPrefs.bookingApprovalMode,
+      notifications: currentPrefs.notifications, // Update with current notification settings
+      calendar: currentPrefs.calendar,
+      privacy: currentPrefs.privacy,
+      booking: currentPrefs.booking,
+      theme: currentPrefs.theme,
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    this.settingsService.updatePreferences(allPrefs).subscribe({
+      next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
+
+        // Dispatch to NgRx store to update the appearance preferences
+        this.store.dispatch(
+          updateAppearancePreferences({
+            preferences: {
+              theme: updated.theme,
+              language: updated.language,
+              timezone: updated.timezone,
+            },
+          }),
+        );
+
+        this.snackBar.open('Notification settings saved', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+      error: (err: Error) => {
+        this.snackBar.open('Error saving notification settings', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+    });
+  }
+
+  public saveAppearanceSettings(): void {
+    this.loading.set(true);
+
+    const currentPrefs = this.preferences();
+    const appearancePrefs = {
+      theme: currentPrefs.theme,
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    // Combine all preferences to make a single API call
+    const allPrefs = {
+      bookingApprovalMode: currentPrefs.bookingApprovalMode,
+      notifications: currentPrefs.notifications,
+      calendar: currentPrefs.calendar,
+      privacy: currentPrefs.privacy,
+      booking: currentPrefs.booking,
+      ...appearancePrefs, // Spread appearance settings to override any defaults
+    };
+
+    // Update all preferences via the settings service in a single call
+    this.settingsService.updatePreferences(allPrefs).subscribe({
+      next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
+
+        // Dispatch to NgRx store to update the appearance preferences
+        this.store.dispatch(
+          updateAppearancePreferences({
+            preferences: {
+              theme: updated.theme,
+              language: updated.language,
+              timezone: updated.timezone,
+            },
+          }),
+        );
+
+        this.snackBar.open('Appearance settings saved', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+      error: (err: Error) => {
+        this.snackBar.open('Error saving appearance settings', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+    });
+  }
+
+  public saveCalendarSettings(): void {
+    this.loading.set(true);
+
+    const currentPrefs = this.preferences();
+    const allPrefs = {
+      bookingApprovalMode: currentPrefs.bookingApprovalMode,
+      notifications: currentPrefs.notifications,
+      calendar: currentPrefs.calendar, // Update with current calendar settings
+      privacy: currentPrefs.privacy,
+      booking: currentPrefs.booking,
+      theme: currentPrefs.theme,
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    this.settingsService.updatePreferences(allPrefs).subscribe({
+      next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
+
+        // Dispatch to NgRx store to update the appearance preferences
+        this.store.dispatch(
+          updateAppearancePreferences({
+            preferences: {
+              theme: updated.theme,
+              language: updated.language,
+              timezone: updated.timezone,
+            },
+          }),
+        );
+
+        this.snackBar.open('Calendar settings saved', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+      error: (err: Error) => {
+        this.snackBar.open('Error saving calendar settings', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+    });
+  }
+
+  public savePrivacySettings(): void {
+    this.loading.set(true);
+
+    const currentPrefs = this.preferences();
+    const allPrefs = {
+      bookingApprovalMode: currentPrefs.bookingApprovalMode,
+      notifications: currentPrefs.notifications,
+      calendar: currentPrefs.calendar,
+      privacy: currentPrefs.privacy, // Update with current privacy settings
+      booking: currentPrefs.booking,
+      theme: currentPrefs.theme,
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    this.settingsService.updatePreferences(allPrefs).subscribe({
+      next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
+
+        // Dispatch to NgRx store to update the appearance preferences
+        this.store.dispatch(
+          updateAppearancePreferences({
+            preferences: {
+              theme: updated.theme,
+              language: updated.language,
+              timezone: updated.timezone,
+            },
+          }),
+        );
+
+        this.snackBar.open('Privacy settings saved', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+      error: (err: Error) => {
+        this.snackBar.open('Error saving privacy settings', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+    });
+  }
+
+  public saveBookingSettings(): void {
+    this.loading.set(true);
+
+    const currentPrefs = this.preferences();
+    const allPrefs = {
+      bookingApprovalMode: currentPrefs.bookingApprovalMode,
+      notifications: currentPrefs.notifications,
+      calendar: currentPrefs.calendar,
+      privacy: currentPrefs.privacy,
+      booking: currentPrefs.booking, // Update with current booking settings
+      theme: currentPrefs.theme,
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    this.settingsService.updatePreferences(allPrefs).subscribe({
+      next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
+
+        // Dispatch to NgRx store to update the appearance preferences
+        this.store.dispatch(
+          updateAppearancePreferences({
+            preferences: {
+              theme: updated.theme,
+              language: updated.language,
+              timezone: updated.timezone,
+            },
+          }),
+        );
+
+        this.snackBar.open('Booking settings saved', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+      error: (err: Error) => {
+        this.snackBar.open('Error saving booking settings', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+    });
+  }
+
+  public saveLocalizationSettings(): void {
+    this.loading.set(true);
+
+    const currentPrefs = this.preferences();
+    const localizationPrefs = {
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    // Combine all preferences to make a single API call
+    const allPrefs = {
+      bookingApprovalMode: currentPrefs.bookingApprovalMode,
+      notifications: currentPrefs.notifications,
+      calendar: currentPrefs.calendar,
+      privacy: currentPrefs.privacy,
+      booking: currentPrefs.booking,
+      theme: currentPrefs.theme,
+      ...localizationPrefs, // Spread localization settings to override any defaults
+    };
+
+    // Update all preferences via the settings service in a single call
+    this.settingsService.updatePreferences(allPrefs).subscribe({
+      next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
+
+        // Dispatch to NgRx store to update the appearance preferences
+        this.store.dispatch(
+          updateAppearancePreferences({
+            preferences: {
+              language: updated.language,
+              timezone: updated.timezone,
+              theme: updated.theme,
+            },
+          }),
+        );
+
+        this.snackBar.open('Localization settings saved', 'Close', { duration: 3000 });
+        this.loading.set(false);
+      },
+      error: (err: Error) => {
+        this.snackBar.open('Error saving localization settings', 'Close', { duration: 3000 });
+        this.loading.set(false);
       },
     });
   }
@@ -514,17 +793,27 @@ export class SettingsComponent implements OnInit {
     });
   }
 
+  // Update preference functions only update local state - no API calls
   public updatePreference<K extends keyof UserPreferences>(
     key: K,
     value: UserPreferences[K],
   ): void {
-    // For appearance-related preferences, dispatch to NgRx store
+    // For appearance-related preferences, only update local state
     if (key === 'theme') {
-      this.store.dispatch(updateTheme({ theme: value as 'light' | 'dark' | 'system' }));
+      this.preferencesState.update((prefs) => ({
+        ...prefs,
+        theme: value as 'light' | 'dark' | 'system',
+      }));
     } else if (key === 'language') {
-      this.store.dispatch(updateLanguage({ language: value as string }));
+      this.preferencesState.update((prefs) => ({
+        ...prefs,
+        language: value as string,
+      }));
     } else if (key === 'timezone') {
-      this.store.dispatch(updateTimezone({ timezone: value as string }));
+      this.preferencesState.update((prefs) => ({
+        ...prefs,
+        timezone: value as string,
+      }));
     } else if (key === 'bookingApprovalMode') {
       // Keep bookingApprovalMode and booking.autoConfirmBookings in sync
       const autoConfirm = (value as string) === 'auto';
@@ -572,12 +861,32 @@ export class SettingsComponent implements OnInit {
     }));
   }
 
+  // Debounce function for working hours input
+  private debounceWorkingHours = (func: (...args: any[]) => void, delay: number) => {
+    let timeoutId: any;
+    return (...args: any[]) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+  };
+
+  private debouncedUpdateWorkingHours = this.debounceWorkingHours(
+    this.internalUpdateWorkingHours.bind(this),
+    300,
+  );
+
   public updateWorkingHours(type: 'start' | 'end', value: string): void {
+    // Call debounced version
+    this.debouncedUpdateWorkingHours(type, value);
+  }
+
+  private internalUpdateWorkingHours(type: 'start' | 'end', value: string): void {
     // Validate time format (HH:mm)
     if (!/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(value)) {
       this.snackBar.open('Please enter a valid time in 24-hour format (HH:mm)', 'Close', {
         duration: 3000,
       });
+      // Revert to previous value if invalid
       return;
     }
 
@@ -621,7 +930,7 @@ export class SettingsComponent implements OnInit {
     // Get current preferences
     const currentPrefs = this.preferences();
 
-    // Update appearance preferences via NgRx store
+    // Update appearance preferences via NgRx store (this will trigger API call)
     this.store.dispatch(
       updateAppearancePreferences({
         preferences: {
@@ -641,8 +950,18 @@ export class SettingsComponent implements OnInit {
       booking: currentPrefs.booking,
     };
 
-    this.settingsService.updatePreferences(nonAppearancePrefs).subscribe({
+    // Combine both appearance and non-appearance preferences
+    const allPrefs = {
+      ...nonAppearancePrefs,
+      theme: currentPrefs.theme,
+      language: currentPrefs.language,
+      timezone: currentPrefs.timezone,
+    };
+
+    this.settingsService.updatePreferences(allPrefs).subscribe({
       next: (updated: UserPreferences) => {
+        // Update the local state after successful save
+        this.preferencesState.set(updated);
         this.snackBar.open('Preferences saved successfully', 'Close', { duration: 3000 });
         this.loading.set(false);
       },

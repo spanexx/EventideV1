@@ -27,19 +27,19 @@ export const initialState: AuthState = {
   forgotPasswordMessage: null,
   verificationSuccess: false,
   verificationMessage: null,
-  isLoading: false
+  isLoading: false,
 };
 
 export const authReducer = createReducer(
   initialState,
-  
+
   // Login
   on(AuthActions.login, (state) => ({
     ...state,
     loading: true,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.loginSuccess, (state, { user, token, refreshToken }) => ({
     ...state,
     user,
@@ -47,58 +47,58 @@ export const authReducer = createReducer(
     refreshToken: refreshToken || null,
     isAuthenticated: true,
     loading: false,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.loginFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error
+    error,
   })),
-  
+
   // Signup
   on(AuthActions.signup, (state) => ({
     ...state,
     loading: true,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.signupSuccess, (state, { user, email }) => ({
     ...state,
     user: { ...user, email },
     loading: false,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.signupFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error
+    error,
   })),
-  
+
   // Logout
   on(AuthActions.logout, () => ({
-    ...initialState
+    ...initialState,
   })),
-  
+
   on(AuthActions.logoutSuccess, () => ({
-    ...initialState
+    ...initialState,
   })),
-  
+
   // Token Verification
   on(AuthActions.verifyToken, (state) => ({
     ...state,
     loading: true,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.verifyTokenSuccess, (state, { user }) => ({
     ...state,
     user,
     isAuthenticated: true,
-    loading: false
+    loading: false,
   })),
-  
+
   on(AuthActions.verifyTokenFailure, (state, { error }) => ({
     ...state,
     loading: false,
@@ -106,24 +106,24 @@ export const authReducer = createReducer(
     isAuthenticated: false,
     user: null,
     token: null,
-    refreshToken: null
+    refreshToken: null,
   })),
-  
+
   // Token Refresh
   on(AuthActions.refreshToken, (state) => ({
     ...state,
     loading: true,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.refreshTokenSuccess, (state, { token, refreshToken }) => ({
     ...state,
     token,
     refreshToken: refreshToken || null,
     loading: false,
-    isAuthenticated: true
+    isAuthenticated: true,
   })),
-  
+
   on(AuthActions.refreshTokenFailure, (state, { error }) => ({
     ...state,
     loading: false,
@@ -131,91 +131,110 @@ export const authReducer = createReducer(
     isAuthenticated: false,
     user: null,
     token: null,
-    refreshToken: null
+    refreshToken: null,
   })),
-  
+
   // Google Login
   on(AuthActions.googleLogin, (state) => ({
     ...state,
     loading: true,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.googleLoginSuccess, (state, { user, token }) => ({
     ...state,
     user,
     token,
     isAuthenticated: true,
     loading: false,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.googleLoginFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error
+    error,
   })),
-  
+
   // Load User
   on(AuthActions.loadUser, (state) => ({
     ...state,
     loading: true,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.loadUserSuccess, (state, { user }) => ({
     ...state,
     user,
     isAuthenticated: true,
-    loading: false
+    loading: false,
   })),
-  
+
   on(AuthActions.loadUserFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error
+    error,
   })),
-  
+
+  on(AuthActions.refreshUser, (state) => ({
+    ...state,
+    loading: true,
+    error: null,
+  })),
+
+  on(AuthActions.refreshUserSuccess, (state, { user }) => ({
+    ...state,
+    user,
+    isAuthenticated: true,
+    loading: false,
+  })),
+
+  on(AuthActions.refreshUserFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
+    error,
+  })),
+
   // Forgot Password
   on(AuthActions.forgotPassword, (state) => ({
     ...state,
     loading: true,
     error: null,
-    forgotPasswordMessage: null
+    forgotPasswordMessage: null,
   })),
-  
+
   on(AuthActions.forgotPasswordSuccess, (state, { message }) => ({
     ...state,
     loading: false,
     forgotPasswordMessage: message,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.forgotPasswordFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error
+    error,
   })),
-  
+
   // Reset Password
   on(AuthActions.resetPassword, (state) => ({
     ...state,
     loading: true,
     error: null,
-    resetPasswordMessage: null
+    resetPasswordMessage: null,
   })),
-  
+
   on(AuthActions.resetPasswordSuccess, (state, { message }) => ({
     ...state,
     loading: false,
     resetPasswordMessage: message,
-    error: null
+    error: null,
   })),
-  
+
   on(AuthActions.resetPasswordFailure, (state, { error }) => ({
     ...state,
     loading: false,
-    error
+    error,
   })),
 
   // Email Verification
@@ -225,7 +244,7 @@ export const authReducer = createReducer(
     isLoading: true,
     error: null,
     verificationSuccess: false,
-    verificationMessage: null
+    verificationMessage: null,
   })),
 
   on(AuthActions.verifyEmailSuccess, (state, { message }) => ({
@@ -234,7 +253,7 @@ export const authReducer = createReducer(
     isLoading: false,
     verificationSuccess: true,
     verificationMessage: message,
-    error: null
+    error: null,
   })),
 
   on(AuthActions.verifyEmailFailure, (state, { error }) => ({
@@ -242,8 +261,8 @@ export const authReducer = createReducer(
     loading: false,
     isLoading: false,
     verificationSuccess: false,
-    error
-  }))
+    error,
+  })),
 );
 
 export default authReducer;

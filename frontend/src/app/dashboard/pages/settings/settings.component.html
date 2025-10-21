@@ -78,6 +78,16 @@
             >
               SMS Notifications
             </mat-slide-toggle>
+            <div class="save-button-section">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="saveNotificationSettings()"
+                [disabled]="loading()"
+              >
+                {{ loading() ? 'Saving...' : 'Save Notification Settings' }}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -99,6 +109,16 @@
                 <mat-option value="system">System Default</mat-option>
               </mat-select>
             </mat-form-field>
+            <div class="save-button-section">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="saveAppearanceSettings()"
+                [disabled]="loading()"
+              >
+                {{ loading() ? 'Saving...' : 'Save Appearance Settings' }}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -164,6 +184,16 @@
                 </mat-form-field>
               </div>
             </div>
+            <div class="save-button-section">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="saveCalendarSettings()"
+                [disabled]="loading()"
+              >
+                {{ loading() ? 'Saving...' : 'Save Calendar Settings' }}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -201,6 +231,16 @@
               </mat-select>
               <mat-hint>How often your access code is updated</mat-hint>
             </mat-form-field>
+            <div class="save-button-section">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="savePrivacySettings()"
+                [disabled]="loading()"
+              >
+                {{ loading() ? 'Saving...' : 'Save Privacy Settings' }}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -222,6 +262,16 @@
               </mat-select>
               <mat-hint>How new bookings are processed</mat-hint>
             </mat-form-field>
+            <div class="save-button-section">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="saveBookingSettings()"
+                [disabled]="loading()"
+              >
+                {{ loading() ? 'Saving...' : 'Save Booking Settings' }}
+              </button>
+            </div>
           </form>
         </div>
       </div>
@@ -264,6 +314,16 @@
               </mat-select>
               <mat-hint>Your local timezone</mat-hint>
             </mat-form-field>
+            <div class="save-button-section">
+              <button
+                mat-flat-button
+                color="primary"
+                (click)="saveLocalizationSettings()"
+                [disabled]="loading()"
+              >
+                {{ loading() ? 'Saving...' : 'Save Localization Settings' }}
+              </button>
+            </div>
           </form>
         </div>
       </div>
