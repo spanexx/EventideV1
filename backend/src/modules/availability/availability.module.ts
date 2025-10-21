@@ -22,7 +22,7 @@ import { WebsocketsModule } from '../../core/websockets';
 import { UsersModule } from '../../modules/users/users.module';
 import { AiModule } from '../../core/ai/ai.module';
 import { CommandModule } from 'nestjs-command';
-import { AvailabilityCommand } from './commands/availability.command';
+// import { AvailabilityCommand } from './commands/availability.command';
 
 // Import modular components
 import { BookingProvider } from './services/providers/booking.provider';
@@ -59,7 +59,7 @@ import { BulkCreationHandler } from './services/handlers/bulk-creation.handler';
     AvailabilitySlotGeneratorService,
     AvailabilityCreationService,
     AvailabilityNotificationService,
-    AvailabilityCommand,
+    // AvailabilityCommand,
     AvailabilityMigrationService,
     AvailabilitySchedulerService,
     // Modular components
