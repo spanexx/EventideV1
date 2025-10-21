@@ -68,7 +68,7 @@ backend/backend-logs/*
 
 _summaries.txt
 
-# Additional ignored patterns
+Additional ignored patterns
 docs/
 *.md
 logger
@@ -83,3 +83,5 @@ PLAN/
 
 .bmad*
 backup*
+.zed/
+backups/
