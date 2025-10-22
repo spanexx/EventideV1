@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concat, of } from 'rxjs';
-import { map, mergeMap, catchError, switchMap, concatMap, exhaustMap } from 'rxjs/operators';
+import { map, mergeMap, catchError, switchMap, concatMap, exhaustMap, tap } from 'rxjs/operators';
 import { AvailabilityService } from '../../services/availability.service';
 import * as AvailabilityActions from '../actions/availability.actions';
 import { SnackbarService } from '../../../shared/services/snackbar.service';
@@ -195,6 +195,27 @@ export class AvailabilityEffects {
         )
       )
     )
+  );
+
+  // Invalidate cache on any successful mutation
+  clearCacheOnSuccess$ = createEffect(
+    () => this.actions$.pipe(
+      ofType(
+        AvailabilityActions.createAvailabilitySuccess,
+        AvailabilityActions.updateAvailabilitySuccess,
+        AvailabilityActions.deleteAvailabilitySuccess,
+        AvailabilityActions.createAIOptimizedAvailabilitySuccess,
+        AvailabilityActions.updateAIAnalyzedSuccess,
+        AvailabilityActions.deleteAIAssessedSuccess,
+        AvailabilityActions.createBulkAIOptimizedSuccess,
+        AvailabilityActions.loadAIEnhancedAvailabilitySuccess // refreshes data
+      ),
+      tap(() => {
+        console.debug('[AvailabilityEffects] Clearing availability cache after mutation');
+        this.availabilityService.clearAvailabilityCache();
+      })
+    ),
+    { dispatch: false }
   );
 
   createBulkAIOptimized$ = createEffect(() =>

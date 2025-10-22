@@ -1,6 +1,6 @@
-import { Component, OnInit, AfterViewInit, ViewChild, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, HostListener, ChangeDetectorRef, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { Observable, BehaviorSubject, Subscription } from 'rxjs';
+import { Observable, BehaviorSubject, Subscription, Subject } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
 import { DateSelectArg, EventClickArg, EventApi } from '@fullcalendar/core';
 import { FullCalendarModule } from '@fullcalendar/angular';
@@ -28,7 +28,7 @@ import { calculateDurationInMinutes } from '../../utils/dashboard.utils';
 import { renderEventContent, handleDayCellRender } from '../../utils/calendar-rendering.utils';
 import { CalendarService } from './calendar/calendar.service';
 import { CalendarEventsService } from './calendar/calendar-events.service';
-import { take } from 'rxjs/operators';
+import { take, takeUntil } from 'rxjs/operators';
 
 // Import our new pending changes services
 import { 
@@ -96,7 +96,7 @@ import { AIConflictResolverComponent } from '../../../shared/components/ai-compo
   templateUrl: './availability.component.html',
   styleUrl: './availability.component.scss'
 })
-export class AvailabilityComponent implements OnInit, AfterViewInit {
+export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild('calendar') calendarComponent!: FullCalendarComponent;
   @ViewChild('contextMenu') contextMenu!: MatMenu;
   @ViewChild(MatMenuTrigger) contextMenuTrigger!: MatMenuTrigger;
@@ -129,6 +129,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
   smartMetrics$ = this.smartMetricsSubject.asObservable();
   viewRecommendation$ = this.viewRecommendationSubject.asObservable();
   smartRecommendations$ = this.smartRecommendationsSubject.asObservable();
+  
+  // Teardown
+  private destroy$ = new Subject<void>();
   
   // MIGRATION: Removed manual state properties - header component gets state directly from signals
   // pendingChangesCount, canUndo, canRedo, undoDescription, redoDescription are now signals
@@ -234,9 +237,11 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     }
     
     // Listen for go to date requests from dialog coordinator
-    this.dialogCoordinatorService.goToDateRequested$.subscribe(request => {
-      this.handleGoToDateRequest(request);
-    });
+    this.dialogCoordinatorService.goToDateRequested$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(request => {
+        this.handleGoToDateRequest(request);
+      });
     
     // Load availability data
     const today = new Date();
@@ -248,32 +253,41 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     this.initializeSmartCalendar();
     
     // Get the current user and load availability for that user
-    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
-      if (userId) {
-        this.store.dispatch(AvailabilityActions.loadAvailability({ 
-          providerId: userId, 
-          date: today
-        }));
-      }
-    });
+    this.store.select(AuthSelectors.selectUserId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(userId => {
+        if (userId) {
+          console.log('[AvailabilityComponent] Loading availability for user', userId);
+          this.store.dispatch(AvailabilityActions.loadAvailability({ 
+            providerId: userId, 
+            date: today
+          }));
+        }
+      });
     
     // Subscribe to error updates and show snackbar notifications
-    this.error$.subscribe(error => {
-      if (error) {
-        this.snackbarService.showError('Error loading availability: ' + error);
-      }
-    });
+    this.error$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(error => {
+        if (error) {
+          console.log('[AvailabilityComponent] Error loading availability:', error);
+          this.snackbarService.showError('Error loading availability: ' + error);
+        }
+      });
     
     // Subscribe to calendar state changes and update smart calendar manager
-    this.store.select(CalendarSelectors.selectCurrentView).subscribe(currentView => {
-      this.smartCalendarManager.updateConfig({
-        viewType: currentView,
-        contentDensity: 'medium',
-        adaptiveDisplay: true,
-        smartFiltering: true,
-        contextualInfo: true
+    this.store.select(CalendarSelectors.selectCurrentView)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(currentView => {
+        console.log('[AvailabilityComponent] Updating smart calendar manager with current view:', currentView);
+        this.smartCalendarManager.updateConfig({
+          viewType: currentView,
+          contentDensity: 'medium',
+          adaptiveDisplay: true,
+          smartFiltering: true,
+          contextualInfo: true
+        });
       });
-    });
   }
 
   ngAfterViewInit(): void {
@@ -300,7 +314,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     let isInitialized = false;
     let previousAvailability: Availability[] = [];
     
-    this.availability$.subscribe(availability => {
+    this.availability$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(availability => {
       console.log(`[AvailabilityComponent] Availability updated - ${availability.length} slots`);
       
       // MIGRATION: Initialize the signal-based pending changes service with the original state
@@ -321,7 +337,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
     
     // MIGRATION: Subscribe to signal-based pending changes current state for calendar updates
     // This includes both the original state and any pending changes
-    this.pendingChangesSignalService.getCurrentState$.subscribe(currentAvailability => {
+    this.pendingChangesSignalService.getCurrentState$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(currentAvailability => {
       console.log(`[AvailabilityComponent] Signal-based pending changes state updated - ${currentAvailability.length} slots`);
       
       // Only update calendar if we have been initialized and calendar is available
@@ -341,7 +359,7 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
       } else {
         console.log('[AvailabilityComponent] Calendar not yet initialized or calendar component not available');
       }
-    });
+      });
   }
 
   // Event handlers
@@ -829,6 +847,12 @@ export class AvailabilityComponent implements OnInit, AfterViewInit {
 
   onRefresh(): void {
     this.refreshAvailability();
+  }
+
+  ngOnDestroy(): void {
+    console.debug('[AvailabilityComponent] Destroying component, unsubscribing streams');
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   /**

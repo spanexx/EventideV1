@@ -106,12 +106,28 @@ export class AvailabilityService {
   private readonly API_URL = `${environment.apiUrl}/availability`;
   private readonly AI_API_URL = `${environment.apiUrl}/availability/ai`;
   private readonly BULK_AI_URL = `${environment.apiUrl}/availability/bulk/ai`;
+  // Simple in-memory TTL cache for weekly availability fetches
+  private readonly availabilityCache = new Map<string, { data: AIEnhancedAvailabilityResponse; ts: number }>();
+  private readonly availabilityCacheTTL = 5 * 60 * 1000; // 5 minutes
 
   constructor(
     private http: HttpClient,
     private cacheService: CalendarCacheService,
     private aiService: AIService
   ) { }
+
+  // Build deterministic cache key per provider/week/analysis flag
+  private buildAvailabilityCacheKey(providerId: string, startDate: Date, endDate: Date, includeAnalysis: boolean): string {
+    return [providerId, startDate.toISOString(), endDate.toISOString(), includeAnalysis ? 'ai' : 'noai'].join('|');
+  }
+
+  // Public invalidation API (used by effects after mutations)
+  clearAvailabilityCache(): void {
+    if (this.availabilityCache.size) {
+      console.debug('[AvailabilityService] Clearing availability cache');
+    }
+    this.availabilityCache.clear();
+  }
 
   getAvailability(providerId: string, date: Date): Observable<Availability[]> {
     // Calculate start and end dates for the week with proper timezone handling
@@ -303,6 +319,14 @@ export class AvailabilityService {
     params = params.append('endDate', endDate.toISOString());
     params = params.append('includeAnalysis', includeAnalysis.toString());
 
+    const cacheKey = this.buildAvailabilityCacheKey(providerId, startDate, endDate, includeAnalysis);
+    const cached = this.availabilityCache.get(cacheKey);
+    if (cached && (Date.now() - cached.ts) < this.availabilityCacheTTL) {
+      console.debug('[AvailabilityService] Cache hit for availability', { providerId, startDate, endDate, includeAnalysis });
+      return of(cached.data);
+    }
+
+    console.debug('[AvailabilityService] Cache miss for availability, fetching', { providerId, startDate, endDate, includeAnalysis });
     return this.http.get<AIEnhancedAvailabilityResponse>(`${this.AI_API_URL}/${providerId}/enhanced`, { params }).pipe(
       map(response => ({
         ...response,
@@ -314,11 +338,19 @@ export class AvailabilityService {
           endTime: new Date(slot.endTime)
         }))
       })),
+      map((normalized) => {
+        this.availabilityCache.set(cacheKey, { data: normalized, ts: Date.now() });
+        return normalized;
+      }),
       catchError(error => {
         console.error('AI enhanced availability failed, falling back to basic:', error);
         // Fallback to basic availability if AI fails
         return this.getAvailability(providerId, date).pipe(
-          map(data => ({ data, aiAnalysis: undefined }))
+          map(data => ({ data, aiAnalysis: undefined } as AIEnhancedAvailabilityResponse)),
+          map((fallback) => {
+            this.availabilityCache.set(cacheKey, { data: fallback, ts: Date.now() });
+            return fallback;
+          })
         );
       })
     );
