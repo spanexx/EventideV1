@@ -52,37 +52,37 @@ tskdb_stdio*
 tskdb.json
 
 # Private/secret files
-# GEMINI.md
-# QWEN.md
-# tskdb_stdio-default.json
-# commands/
-# prompt.prepare
-# Event.md
-# backend/scripts/
-# test*
-# backend/browser-logs/*
-# backend/backend-logs/*
-# .qwen*
+GEMINI.md
+QWEN.md
+tskdb_stdio-default.json
+commands/
+prompt.prepare
+Event.md
+backend/scripts/
+test*
+backend/browser-logs/*
+backend/backend-logs/*
+.qwen*
 
 .tskdb_backup*
 
 _summaries.txt
 
 # Additional ignored patterns
-# docs/
-# *.md
-# logger
-# backend/browser-logs/
-# backend/backend-logs/
-# memory.json
+docs/
+*.md
+logger
+backend/browser-logs/
+backend/backend-logs/
+memory.json
 
-# langGraph/
-# backend/eventide-474521-241c82b583e5.json
-# PLAN/
-# *.txt
+langGraph/
+backend/eventide-474521-241c82b583e5.json
+PLAN/
+*.txt
 
-# # .bmad
-# .bmad-core/
-# backup*
-# .zed/
-# backups/
+# .bmad
+.bmad-core/
+backup*
+.zed/
+backups/
