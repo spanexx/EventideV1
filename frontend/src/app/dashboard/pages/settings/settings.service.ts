@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, Observable, catchError, of, tap } from 'rxjs';
 import { environment } from '../../../../environments/environment';
+import { AuthService } from '../../../core/services/auth.service';
 
 export interface UserPreferences {
   bookingApprovalMode: 'auto' | 'manual';
@@ -67,8 +68,13 @@ export class SettingsService {
 
   public preferences$ = this.preferencesSubject.asObservable();
 
+  private authService = inject(AuthService);
+
   constructor(private http: HttpClient) {
-    this.loadInitialPreferences();
+    // Only load from API if authenticated
+    if (this.authService.isAuthenticated()) {
+      this.loadInitialPreferences();
+    }
   }
 
   private loadFromStorage(): UserPreferences {
@@ -105,6 +111,11 @@ export class SettingsService {
   }
 
   public getPreferences(): Observable<UserPreferences> {
+    // Don't make API call if not authenticated
+    if (!this.authService.isAuthenticated()) {
+      return of(this.loadFromStorage());
+    }
+
     return this.http.get<UserPreferences>(this.apiUrl).pipe(
       tap((preferences) => {
         this.preferencesSubject.next(preferences);
