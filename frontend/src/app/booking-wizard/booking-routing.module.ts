@@ -23,6 +23,14 @@ const routes: Routes = [
       { 
         path: 'confirmation', 
         loadComponent: () => import('./components/booking-confirmation/booking-confirmation.component').then(m => m.BookingConfirmationComponent) 
+      },
+      { 
+        path: 'payment-checkout', 
+        loadComponent: () => import('./components/payment-checkout/payment-checkout.component').then(m => m.PaymentCheckoutComponent) 
+      },
+      { 
+        path: 'payment-success', 
+        loadComponent: () => import('./components/payment-success/payment-success.component').then(m => m.PaymentSuccessComponent) 
       }
     ]
   }

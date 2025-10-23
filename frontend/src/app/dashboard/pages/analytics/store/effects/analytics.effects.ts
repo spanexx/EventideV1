@@ -40,24 +40,38 @@ export class AnalyticsEffects implements OnInit, OnDestroy {
   loadAnalyticsData$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AnalyticsActions.loadAnalyticsData),
-      mergeMap(({ request }) =>
-        this.analyticsService.getAnalyticsData(request).pipe(
-          map(data => AnalyticsActions.loadAnalyticsDataSuccess({ data })),
-          catchError(error => of(AnalyticsActions.loadAnalyticsDataFailure({ error: error.message })))
-        )
-      )
+      mergeMap(({ request }) => {
+        console.log('🔄 [AnalyticsEffects] Loading analytics data from backend', request);
+        return this.analyticsService.getAnalyticsData(request).pipe(
+          map(data => {
+            console.log('✅ [AnalyticsEffects] Analytics data loaded successfully', { dataLength: JSON.stringify(data).length });
+            return AnalyticsActions.loadAnalyticsDataSuccess({ data });
+          }),
+          catchError(error => {
+            console.error('❌ [AnalyticsEffects] Failed to load analytics data', error);
+            return of(AnalyticsActions.loadAnalyticsDataFailure({ error: error.message }));
+          })
+        );
+      })
     )
   );
   
   generateReport$ = createEffect(() =>
     this.actions$.pipe(
       ofType(AnalyticsActions.generateReport),
-      mergeMap(({ request, reportType }) =>
-        this.analyticsService.generateReport(request, reportType).pipe(
-          map(report => AnalyticsActions.generateReportSuccess({ report })),
-          catchError(error => of(AnalyticsActions.generateReportFailure({ error: error.message })))
-        )
-      )
+      mergeMap(({ request, reportType }) => {
+        console.log('🔄 [AnalyticsEffects] Generating report from backend', { request, reportType });
+        return this.analyticsService.generateReport(request, reportType).pipe(
+          map(report => {
+            console.log('✅ [AnalyticsEffects] Report generated successfully', { reportType: report.type, dataLength: report.data?.length });
+            return AnalyticsActions.generateReportSuccess({ report });
+          }),
+          catchError(error => {
+            console.error('❌ [AnalyticsEffects] Failed to generate report', error);
+            return of(AnalyticsActions.generateReportFailure({ error: error.message }));
+          })
+        );
+      })
     )
   );
 }

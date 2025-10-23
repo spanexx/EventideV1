@@ -21,6 +21,7 @@ import { BookingValidationService } from './services/booking-validation.service'
 import { BookingSerialKeyService } from './services/booking-serial-key.service';
 import { BookingSearchService } from './services/booking-search.service';
 import { NotificationService } from '../../core/notifications/notification.service';
+import { BookingQueueService } from '../../core/queue/booking-queue.service';
 import { BookingCreationService } from './services/booking-creation.service';
 import { QRCodeService } from 'src/core/utils/qr-code.service';
 import { IAvailability } from '../availability/interfaces/availability.interface';
@@ -42,6 +43,7 @@ export class BookingService {
     private readonly searchService: BookingSearchService,
     private readonly notificationService: NotificationService,
     private readonly bookingCreationService: BookingCreationService,
+    private readonly bookingQueueService: BookingQueueService,
   ) {
     this.checkTransactionSupport();
   }
@@ -123,6 +125,11 @@ export class BookingService {
           // Handle status changes
           if (updateBookingDto.status && updateBookingDto.status !== oldBooking.status) {
             await this.handleBookingStatusChange(updatedBooking, oldBooking, session);
+            // Cancel auto-complete if terminal state
+            if ([BookingStatus.CANCELLED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW].includes(updateBookingDto.status as BookingStatus)) {
+              this.logger.log(`[BookingService] Cancelling auto-complete job for booking ${updatedBooking._id} due to terminal status ${updateBookingDto.status}`);
+              await this.bookingQueueService.cancelAutoComplete((updatedBooking as any)._id || (updatedBooking as any).id);
+            }
           }
 
           // Send notifications for modifications
@@ -183,6 +190,11 @@ export class BookingService {
         // Handle status changes
         if (updateBookingDto.status && updateBookingDto.status !== oldBooking.status) {
           await this.handleBookingStatusChange(updatedBooking, oldBooking, null);
+          // Cancel auto-complete if terminal state
+          if ([BookingStatus.CANCELLED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW].includes(updateBookingDto.status as BookingStatus)) {
+            this.logger.log(`[BookingService] Cancelling auto-complete job for booking ${updatedBooking._id} due to terminal status ${updateBookingDto.status}`);
+            await this.bookingQueueService.cancelAutoComplete((updatedBooking as any)._id || (updatedBooking as any).id);
+          }
         }
 
         // Send notifications for modifications
@@ -203,6 +215,13 @@ export class BookingService {
             oldBooking.status as BookingStatus,
             updateBookingDto.status as BookingStatus
           );
+        }
+
+        // Reschedule job if endTime changed and not terminal status
+        if (updateBookingDto.endTime && ![BookingStatus.CANCELLED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW].includes(updatedBooking.status as BookingStatus)) {
+          const newEnd = updateBookingDto.endTime as Date;
+          this.logger.log(`[BookingService] Rescheduling auto-complete for booking ${updatedBooking._id} to ${newEnd.toISOString()}`);
+          await this.bookingQueueService.rescheduleAutoComplete((updatedBooking as any)._id || (updatedBooking as any).id, newEnd);
         }
 
         // Invalidate related query caches

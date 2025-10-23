@@ -7,6 +7,8 @@ import {
   IsPhoneNumber,
   IsUUID,
   Matches,
+  IsNumber,
+  Min,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -69,6 +71,15 @@ export class CreateBookingDto {
   @IsString()
   @Length(0, 500)
   notes?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  totalAmount?: number;
+
+  @IsOptional()
+  @IsString()
+  currency?: string;
 
   @IsOptional()
   @IsString()

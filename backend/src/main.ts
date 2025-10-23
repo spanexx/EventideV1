@@ -56,7 +56,6 @@ async function bootstrap() {
       origin: process.env.FRONTEND_URL ? [process.env.FRONTEND_URL] : true,
       credentials: true,
     });
-    app.useGlobalPipes(new ValidationPipe());
     app.useGlobalInterceptors(new ResponseInterceptor());
     app.useGlobalFilters(new GlobalExceptionFilter(app.getHttpAdapter()));
     // Set global prefix for all routes

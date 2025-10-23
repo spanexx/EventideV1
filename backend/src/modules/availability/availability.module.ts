@@ -13,6 +13,7 @@ import { AvailabilityCreationService } from './services/availability-creation.se
 import { AvailabilityNotificationService } from './services/availability-notification.service';
 import { AvailabilityMigrationService } from './services/availability-migration.service';
 import { AvailabilitySchedulerService } from './services/availability-scheduler.service';
+import { AvailabilityProcessor } from './processors/availability.processor';
 import { AvailabilityController } from './availability.controller';
 import { AvailabilityBasicController } from './controllers/availability-basic.controller';
 import { AvailabilityAiController } from './controllers/availability-ai.controller';
@@ -74,6 +75,8 @@ import { BulkCreationHandler } from './services/handlers/bulk-creation.handler';
     AvailabilityInstanceProvider,
     AvailabilityUpdateHandler,
     BulkCreationHandler,
+    // Add BullMQ processor
+    AvailabilityProcessor,
   ],
   controllers: [
     AvailabilityController, // Keep existing controller for backward compatibility

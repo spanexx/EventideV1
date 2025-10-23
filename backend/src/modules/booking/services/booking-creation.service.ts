@@ -12,6 +12,7 @@ import { BookingInstanceUtils } from './utils/booking-instance.utils';
 import { BookingBaseService } from './booking-base.service';
 import { BookingSerialKeyService } from './booking-serial-key.service';
 import { UsersService } from '../../users/users.service';
+import { BookingQueueService } from '../../../core/queue/booking-queue.service';
 import { BookingValidationService } from './booking-validation.service';
 
 @Injectable()
@@ -28,6 +29,7 @@ export class BookingCreationService {
     private readonly serialKeyService: BookingSerialKeyService,
     private readonly usersService: UsersService,
     private readonly validationService: BookingValidationService,
+    private readonly bookingQueueService: BookingQueueService,
   ) {}
 
   /**
@@ -111,6 +113,13 @@ export class BookingCreationService {
     session: any
   ): Promise<IBooking[]> {
     const createdBookings = await this.recurringStrategy.createRecurringBookings(template, baseBooking, session);
+    // Schedule auto-completion for each created booking after it ends
+    try {
+      await this.bookingQueueService.scheduleAutoCompleteMany(createdBookings);
+      this.logger.log(`[BookingCreation] Scheduled auto-completion for ${createdBookings.length} bookings`);
+    } catch (err) {
+      this.logger.error(`[BookingCreation] Failed to schedule auto-completion for recurring bookings: ${(err as any)?.message}`);
+    }
     await this.notificationHandler.handleRecurringBookingSummary(template, createdBookings, session);
     return createdBookings;
   }
@@ -164,6 +173,9 @@ export class BookingCreationService {
       serialKey,
       status: autoConfirm ? 'confirmed' : 'pending',
       duration: (new Date(createBookingDto.endTime).getTime() - new Date(createBookingDto.startTime).getTime()) / 60000,
+      totalAmount: (createBookingDto as any).totalAmount || 5000,
+      currency: (createBookingDto as any).currency || 'usd',
+      paymentStatus: 'pending',
     } as any;
     const newBooking = await this.baseService.create(bookingData, session);
 
@@ -171,6 +183,15 @@ export class BookingCreationService {
     await this.notificationHandler.handleBookingNotifications(newBooking, provider, availabilityId, session);
 
     await this.handleBookingCache(createBookingDto, newBooking);
+
+    // Schedule auto-completion after booking ends
+    try {
+      const bookingId = (newBooking as any)._id || (newBooking as any).id;
+      await this.bookingQueueService.scheduleAutoComplete(bookingId, new Date(newBooking.endTime));
+      this.logger.log(`[BookingCreation] Scheduled auto-completion for booking ${bookingId}`);
+    } catch (err) {
+      this.logger.error(`[BookingCreation] Failed to schedule auto-completion: ${(err as any)?.message}`);
+    }
 
     return newBooking;
   }

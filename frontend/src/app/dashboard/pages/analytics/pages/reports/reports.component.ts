@@ -56,6 +56,8 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
   
   ngOnInit(): void {
+    console.log('📈 [ReportsComponent] Initializing reports component');
+    
     // Listen for error updates to show notifications
     this.error$.pipe(
       takeUntil(this.destroy$)
@@ -63,8 +65,12 @@ export class ReportsComponent implements OnInit, OnDestroy {
       if (error) {
         // In a real implementation, we would show a snackbar notification
         console.error('Report generation error:', error);
+        // Log to backend browser logs
+        this.logToBackend('error', 'Report generation error:', error);
       }
     });
+    
+    console.log('✅ [ReportsComponent] Reports component initialized successfully');
   }
   
   ngOnDestroy(): void {
@@ -73,9 +79,23 @@ export class ReportsComponent implements OnInit, OnDestroy {
   }
   
   generateReport(): void {
+    console.log('🔄 [ReportsComponent] Generating report', {
+      reportType: this.reportType,
+      startDate: this.startDate,
+      endDate: this.endDate
+    });
+    
     // Get the current user and generate report for that user
     this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
       if (userId) {
+        console.log('👤 [ReportsComponent] Dispatching generate report for user', { userId, reportType: this.reportType });
+        this.logToBackend('info', 'ReportsComponent: Generating report', {
+          userId,
+          reportType: this.reportType,
+          startDate: this.startDate,
+          endDate: this.endDate
+        });
+        
         this.store.dispatch(AnalyticsActions.generateReport({
           request: {
             providerId: userId,
@@ -86,21 +106,40 @@ export class ReportsComponent implements OnInit, OnDestroy {
           },
           reportType: this.reportType
         }));
+      } else {
+        console.warn('⚠️ [ReportsComponent] No user ID found, cannot generate report');
+        this.logToBackend('warn', 'ReportsComponent: No user ID found, cannot generate report');
       }
     });
   }
   
   retryGenerate(): void {
+    console.log('🔄 [ReportsComponent] Retrying to generate report');
+    this.logToBackend('info', 'ReportsComponent: Retrying to generate report');
     this.generateReport();
   }
   
   downloadReport(): void {
+    console.log('📥 [ReportsComponent] Downloading report');
+    this.logToBackend('info', 'ReportsComponent: Downloading report');
+    
     // In a real implementation, this would trigger a file download
     this.report$.pipe(
       takeUntil(this.destroy$)
     ).subscribe((report: any) => {
       if (report) {
+        console.log('📄 [ReportsComponent] Report data received, initiating download', {
+          reportType: report.reportType,
+          dataLength: report.data?.length
+        });
+        this.logToBackend('info', 'ReportsComponent: Report data received, initiating download', {
+          reportType: report.reportType,
+          dataLength: report.data?.length
+        });
         this.downloadFile(report.data, `analytics-report.${report.reportType}`);
+      } else {
+        console.warn('⚠️ [ReportsComponent] No report data available for download');
+        this.logToBackend('warn', 'ReportsComponent: No report data available for download');
       }
     });
   }
@@ -122,5 +161,21 @@ export class ReportsComponent implements OnInit, OnDestroy {
     // Clean up
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+  }
+  
+  private logToBackend(level: string, message: string, data?: any): void {
+    // In a real implementation, this would send logs to the backend
+    // For now, we're just logging to the console which will be captured by browser logs
+    const logEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      data,
+      component: 'ReportsComponent',
+      url: window.location.href
+    };
+    
+    // This will be captured by the browser logs system
+    console.log(`[BrowserLog] ${level.toUpperCase()}:`, logEntry);
   }
 }

@@ -1,0 +1,12 @@
+{
+    "type": "entity",
+    "name": "BookingWizard",
+    "entityType": "component",
+    "observations": [
+        "Current content needs improvement",
+        "Needs examination of availability system",
+        "Focus on slot display logic",
+        "Needs to handle booked slots correctly",
+        "Must handle recurring slots as templates"
+    ]
+}

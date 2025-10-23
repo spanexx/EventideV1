@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Availability, AvailabilityDocument, AvailabilityType } from '../availability.schema';
@@ -19,63 +18,38 @@ export class AvailabilitySchedulerService {
    * Weekly job to extend recurring slots
    * Runs every Sunday at 2 AM
    */
-  @Cron(CronExpression.EVERY_WEEK, {
-    name: 'extend-recurring-slots',
-    timeZone: 'UTC',
-  })
-  async extendRecurringSlots(): Promise<void> {
+  public async extendRecurringSlots(): Promise<void> {
     this.logger.log('Starting weekly recurring slot extension job');
-    
     try {
-      // Find all unique recurring patterns (by providerId, dayOfWeek, startTime)
       const recurringPatterns = await this.availabilityModel.aggregate([
-        {
-          $match: {
-            type: AvailabilityType.RECURRING,
-            status: 'active'
-          }
-        },
-        {
-          $group: {
-            _id: {
-              providerId: '$providerId',
-              dayOfWeek: '$dayOfWeek',
-              startTime: '$startTime',
-              endTime: '$endTime',
-              duration: '$duration',
-              maxBookings: '$maxBookings'
-            },
-            latestWeek: { $max: '$weekOf' },
-            count: { $sum: 1 }
-          }
-        }
+        { $match: { type: AvailabilityType.RECURRING, status: 'active' } },
+        { $group: {
+          _id: {
+            providerId: '$providerId',
+            dayOfWeek: '$dayOfWeek',
+            startTime: '$startTime',
+            endTime: '$endTime',
+            duration: '$duration',
+            maxBookings: '$maxBookings'
+          },
+          latestWeek: { $max: '$weekOf' },
+          count: { $sum: 1 }
+        } }
       ]);
-
       this.logger.log(`Found ${recurringPatterns.length} recurring patterns to extend`);
-
       const now = new Date();
-      const weeksToGenerate = 4; // Generate 4 weeks ahead
-
+      const weeksToGenerate = 4;
       for (const pattern of recurringPatterns) {
         const { providerId, dayOfWeek, startTime, endTime, duration, maxBookings } = pattern._id;
         const latestWeek = new Date(pattern.latestWeek);
-        
-        // Generate slots for next 4 weeks from latest existing week
         const slotsToCreate: any[] = [];
-        
         for (let week = 1; week <= weeksToGenerate; week++) {
           const nextWeekStart = new Date(latestWeek);
-          nextWeekStart.setDate(latestWeek.getDate() + (week * 7));
-          
-          // Find target day in this week
+          nextWeekStart.setDate(latestWeek.getDate() + week * 7);
           const targetDay = new Date(nextWeekStart);
           const daysToAdd = (dayOfWeek - nextWeekStart.getDay() + 7) % 7;
           targetDay.setDate(nextWeekStart.getDate() + daysToAdd);
-          
-          // Skip if date is in the past
           if (targetDay <= now) continue;
-          
-          // Create slot data
           const slotData = {
             providerId,
             type: AvailabilityType.RECURRING,
@@ -87,24 +61,19 @@ export class AvailabilitySchedulerService {
             duration,
             maxBookings,
             isBooked: false,
-            status: 'active' as const
+            status: 'active' as const,
           };
-          
           slotsToCreate.push(slotData);
         }
-
         if (slotsToCreate.length > 0) {
           await this.availabilityModel.insertMany(slotsToCreate);
           this.logger.log(`Extended ${slotsToCreate.length} slots for provider ${providerId}, dayOfWeek ${dayOfWeek}`);
-          
-          // Clear cache for this provider
           await this.cacheService.clearProviderCache(providerId);
         }
       }
-
       this.logger.log('Completed weekly recurring slot extension job');
     } catch (error) {
-      this.logger.error('Failed to extend recurring slots:', error.message, error.stack);
+      this.logger.error('Failed to extend recurring slots:', (error as any).message, (error as any).stack);
     }
   }
 
@@ -112,26 +81,19 @@ export class AvailabilitySchedulerService {
    * Daily cleanup job to remove old past slots
    * Runs every day at 3 AM
    */
-  @Cron(CronExpression.EVERY_DAY_AT_3AM, {
-    name: 'cleanup-past-slots',
-    timeZone: 'UTC',
-  })
-  async cleanupPastSlots(): Promise<void> {
+  public async cleanupPastSlots(): Promise<void> {
     this.logger.log('Starting daily cleanup of past slots');
-    
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
       const result = await this.availabilityModel.deleteMany({
         endTime: { $lt: thirtyDaysAgo },
         isBooked: false,
-        status: { $ne: 'active' }
+        status: { $ne: 'active' },
       });
-      
       this.logger.log(`Cleaned up ${result.deletedCount} old past slots`);
     } catch (error) {
-      this.logger.error('Failed to cleanup past slots:', error.message, error.stack);
+      this.logger.error('Failed to cleanup past slots:', (error as any).message, (error as any).stack);
     }
   }
 

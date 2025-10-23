@@ -37,7 +37,6 @@
     <app-summary-card
       title="Total Bookings"
       [value]="(metrics$ | async)?.totalBookings || 0"
-      [change]="5.2"
       icon="event"
       [loading]="(loading$ | async) || false"
       [hasError]="!!(error$ | async)">
@@ -46,7 +45,6 @@
     <app-summary-card
       title="Revenue"
       [value]="((metrics$ | async)?.revenue | currency) || 0"
-      [change]="12.4"
       icon="attach_money"
       [loading]="(loading$ | async) || false"
       [hasError]="!!(error$ | async)">
@@ -55,7 +53,6 @@
     <app-summary-card
       title="Occupancy Rate"
       [value]="((metrics$ | async)?.occupancyRate || 0) + '%'"
-      [change]="-2.1"
       icon="assessment"
       [loading]="(loading$ | async) || false"
       [hasError]="!!(error$ | async)">
@@ -64,7 +61,6 @@
     <app-summary-card
       title="Cancellations"
       [value]="(metrics$ | async)?.cancellations || 0"
-      [change]="-15.8"
       icon="cancel"
       [loading]="(loading$ | async) || false"
       [hasError]="!!(error$ | async)">

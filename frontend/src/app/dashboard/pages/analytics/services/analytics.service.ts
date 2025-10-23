@@ -1,101 +1,73 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { AnalyticsData, AnalyticsRequest, ReportData } from '../models/analytics.models';
+import { environment } from '../../../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AnalyticsService {
-  // In a real implementation, these methods would make HTTP requests to the backend API
+  private readonly API_URL = `${environment.apiUrl}/analytics`;
+  
+  constructor(private http: HttpClient) { }
   
   getAnalyticsData(request: AnalyticsRequest): Observable<AnalyticsData> {
-    // Simulate API call
-    const data: AnalyticsData = {
-      metrics: {
-        totalBookings: 42,
-        revenue: 2450.00,
-        cancellations: 3,
-        occupancyRate: 78
-      },
-      revenueData: {
-        daily: [
-          { date: new Date(), amount: 150 },
-          { date: new Date(), amount: 200 },
-          { date: new Date(), amount: 175 }
-        ],
-        weekly: [
-          { date: new Date(), amount: 1200 },
-          { date: new Date(), amount: 1500 },
-          { date: new Date(), amount: 1300 }
-        ],
-        monthly: [
-          { date: new Date(), amount: 5000 },
-          { date: new Date(), amount: 6200 },
-          { date: new Date(), amount: 5800 }
-        ]
-      },
-      occupancyData: {
-        daily: [
-          { date: new Date(), rate: 65 },
-          { date: new Date(), rate: 70 },
-          { date: new Date(), rate: 75 }
-        ],
-        weekly: [
-          { date: new Date(), rate: 68 },
-          { date: new Date(), rate: 72 },
-          { date: new Date(), rate: 76 }
-        ],
-        monthly: [
-          { date: new Date(), rate: 70 },
-          { date: new Date(), rate: 74 },
-          { date: new Date(), rate: 78 }
-        ]
-      },
-      bookingTrends: [
-        { date: new Date(), count: 5 },
-        { date: new Date(), count: 7 },
-        { date: new Date(), count: 6 }
-      ]
+    console.log('🌐 [AnalyticsService] Making GET request to analytics endpoint', {
+      url: this.API_URL,
+      params: {
+        startDate: request.dateRange.startDate.toISOString(),
+        endDate: request.dateRange.endDate.toISOString()
+      }
+    });
+    
+    // Convert dates to ISO strings for the API
+    const params = {
+      startDate: request.dateRange.startDate.toISOString(),
+      endDate: request.dateRange.endDate.toISOString()
     };
     
-    return of(data);
+    return this.http.get<AnalyticsData>(this.API_URL, { params }).pipe(
+      // Log the response
+      tap({
+        next: (data) => console.log('✅ [AnalyticsService] Analytics data received', { 
+          dataLength: JSON.stringify(data).length,
+          metrics: data.metrics
+        }),
+        error: (error) => console.error('❌ [AnalyticsService] Error fetching analytics data', error)
+      })
+    );
   }
   
   generateReport(request: AnalyticsRequest, type: 'pdf' | 'csv'): Observable<ReportData> {
-    // Simulate API call
-    let reportData: string;
+    console.log('🌐 [AnalyticsService] Making GET request to report endpoint', {
+      url: `${this.API_URL}/report`,
+      params: {
+        startDate: request.dateRange.startDate.toISOString(),
+        endDate: request.dateRange.endDate.toISOString(),
+        reportType: type
+      }
+    });
     
-    if (type === 'pdf') {
-      reportData = this.generatePDFReport(request);
-    } else {
-      reportData = this.generateCSVReport(request);
-    }
-    
-    const report: ReportData = {
-      type,
-      data: reportData
+    // Convert dates to ISO strings for the API
+    const params = {
+      startDate: request.dateRange.startDate.toISOString(),
+      endDate: request.dateRange.endDate.toISOString(),
+      reportType: type
     };
     
-    return of(report);
+    return this.http.get<ReportData>(`${this.API_URL}/report`, { params }).pipe(
+      // Log the response
+      tap({
+        next: (report) => console.log('✅ [AnalyticsService] Report generated', { 
+          reportType: report.type,
+          dataLength: report.data?.length
+        }),
+        error: (error) => console.error('❌ [AnalyticsService] Error generating report', error)
+      })
+    );
   }
   
-  private generatePDFReport(request: AnalyticsRequest): string {
-    // In a real implementation, this would generate an actual PDF
-    return `PDF Report for ${request.providerId}
-    Date Range: ${request.dateRange.startDate.toDateString()} - ${request.dateRange.endDate.toDateString()}
-    
-    This is a placeholder for a PDF report. In a real implementation, this would contain actual analytics data
-    formatted as a PDF document.
-    
-    Total Bookings: 42
-    Revenue: $2,450.00
-    Cancellations: 3
-    Occupancy Rate: 78%`;
-  }
-  
-  private generateCSVReport(request: AnalyticsRequest): string {
-    // In a real implementation, this would generate an actual CSV
-    return `Provider ID,Date Range,Total Bookings,Revenue,Cancellations,Occupancy Rate
-${request.providerId},"${request.dateRange.startDate.toDateString()} - ${request.dateRange.endDate.toDateString()}",42,2450.00,3,78`;
-  }
+
 }

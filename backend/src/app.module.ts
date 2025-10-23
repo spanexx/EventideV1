@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+import { Module, OnModuleInit } from '@nestjs/common';
+import { AvailabilityQueueService } from './core/queue/availability-queue.service';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -23,6 +24,9 @@ import { NotificationModule } from './core/notifications/notification.module';
 import { AgentsModule } from './agents/agents.module';
 import { KnowledgeBaseModule } from './modules/knowledge-base/knowledge-base.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { QueueModule } from './core/queue/queue.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { PaymentModule } from './modules/payment/payment.module';
 
 @Module({
   imports: [
@@ -94,8 +98,20 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     AgentsModule, // Add this line
     KnowledgeBaseModule,
     DashboardModule,
+    QueueModule,
+    AnalyticsModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService, LogManagerService],
 })
-export class AppModule {}
+export class AppModule implements OnModuleInit {
+  constructor(private readonly availabilityQueueService: AvailabilityQueueService) {}
+
+  async onModuleInit() {
+    // Ensure repeatable jobs are created once at startup
+    await this.availabilityQueueService.scheduleExtendRecurring();
+    await this.availabilityQueueService.scheduleCleanupPast();
+    // Booking auto‑complete jobs are scheduled per‑booking, no global init needed
+  }
+}

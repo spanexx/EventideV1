@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { CacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-yet';
+import * as redisStore from 'cache-manager-redis-store';
 import { CachingService } from './caching.service';
 import { ConfigService } from '@nestjs/config';
 
@@ -13,15 +13,10 @@ import { ConfigService } from '@nestjs/config';
         if (useRedis) {
           try {
             return {
-              store: await redisStore({
-                socket: {
-                  host: configService.get<string>('REDIS_HOST', 'localhost'),
-                  port: configService.get<number>('REDIS_PORT', 6379),
-                },
-                database: 0,
-                ttl: configService.get<number>('CACHE_TTL', 300) * 1000,
-                url: `redis://${configService.get<string>('REDIS_HOST', 'localhost')}:${configService.get<number>('REDIS_PORT', 6379)}`,
-              }),
+              store: redisStore,
+              host: configService.get<string>('REDIS_HOST', 'localhost'),
+              port: configService.get<number>('REDIS_PORT', 6379),
+              ttl: configService.get<number>('CACHE_TTL', 300) * 1000,
               isGlobal: true,
             };
           } catch (error) {

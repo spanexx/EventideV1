@@ -72,10 +72,32 @@ export class Booking {
   @IsNumber()
   duration: number; // in minutes
 
+  @Prop({ type: Number, required: true })
+  @IsNumber()
+  totalAmount: number; // in cents
+
+  @Prop({ type: String, required: true, default: 'usd' })
+  @IsString()
+  currency: string;
+
+  @Prop({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  stripeCheckoutSessionId?: string;
+
+  @Prop({ type: String, required: false })
+  @IsOptional()
+  @IsString()
+  stripePaymentIntentId?: string;
+
+  @Prop({ type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' })
+  @IsString()
+  paymentStatus: string;
+
   @Prop({
     type: String,
     enum: BookingStatus,
-    default: BookingStatus.CONFIRMED,
+    default: BookingStatus.PENDING,
   })
   @IsEnum(BookingStatus)
   status: BookingStatus;

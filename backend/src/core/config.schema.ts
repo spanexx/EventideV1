@@ -23,7 +23,11 @@ export const configValidationSchema = Joi.object({
   USE_REDIS: Joi.boolean().default(true),
   REDIS_HOST: Joi.string().default('localhost'),
   REDIS_PORT: Joi.number().default(6379),
+  REDIS_PASSWORD: Joi.string().allow('').optional(),
+  REDIS_DB: Joi.number().default(0),
   CACHE_TTL: Joi.number().default(300),
+  // Booking auto-completion
+  BOOKING_AUTOCOMPLETE_AFTER_HOURS: Joi.number().default(2),
   // Google Cloud Configuration
   GOOGLE_CLOUD_PROJECT_ID: Joi.string().optional(),
   GOOGLE_CLOUD_LOCATION: Joi.string().optional(),

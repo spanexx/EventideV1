@@ -18,6 +18,9 @@ export interface Booking {
   endTime: Date;
   duration?: number;
   status: BookingStatus;
+  totalAmount?: number;
+  currency?: string;
+  paymentStatus?: 'pending' | 'paid' | 'failed' | 'refunded';
   notes?: string;
   serialKey?: string;
   qrCode?: string;
@@ -52,6 +55,8 @@ export interface CreateBookingRequest {
   guestPhone?: string;
   startTime: Date;
   endTime: Date;
+  totalAmount?: number;
+  currency?: string;
   notes?: string;
   guestId?: string;
   serialKey?: string;

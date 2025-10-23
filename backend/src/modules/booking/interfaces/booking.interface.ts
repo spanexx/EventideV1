@@ -10,6 +10,9 @@ export interface IBooking {
   endTime: Date;
   duration: number;
   status: string;
+  totalAmount: number;
+  currency: string;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   notes?: string;
   idempotencyKey?: string;
   createdAt: Date;

@@ -19,6 +19,8 @@ import { UsersModule } from '../users/users.module';
 import { EmailModule } from '../../core/email/email.module';
 import { BookingCreationService } from './services/booking-creation.service';
 import { BookingCancellationService } from './services/booking-cancellation.service';
+import { QueueModule } from '../../core/queue/queue.module';
+import { BookingProcessor } from './processors/booking.processor';
 
 // Import modular components
 import { RecurringBookingStrategy } from './services/strategies/recurring-booking.strategy';
@@ -36,6 +38,7 @@ import { BookingInstanceUtils } from './services/utils/booking-instance.utils';
     UsersModule,
     EmailModule,
     NotificationModule,
+    QueueModule,
   ],
   controllers: [BookingController],
   providers: [
@@ -48,6 +51,7 @@ import { BookingInstanceUtils } from './services/utils/booking-instance.utils';
     BookingSearchService,
     BookingCreationService,
     BookingCancellationService,
+    BookingProcessor,
     SerialKeyService,
     QRCodeService,
     // Modular components
