@@ -76,6 +76,14 @@ export class PreferencesHandler {
             ? (preferences as any).booking.autoConfirmBookings
             : (currentPreferences.booking?.autoConfirmBookings ?? true),
       },
+      payment: {
+        ...currentPreferences.payment,
+        ...(preferences as any).payment,
+      },
+      subscription: {
+        ...currentPreferences.subscription,
+        ...(preferences as any).subscription,
+      },
       privacy: {
         ...currentPreferences.privacy,
         ...(preferences as any).privacy,
