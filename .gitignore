@@ -86,3 +86,10 @@ PLAN/
 backup*
 .zed/
 backups/
+
+# IDE-specific
+.copilot/
+.qoder/
+.windsurf/
+.github/instructions/
+scripts/
