@@ -34,6 +34,16 @@ export interface Provider {
   reviewCount?: number;
   matchScore?: number;
   matchReasons?: string[];
+  preferences?: {
+    payment?: {
+      requirePaymentForBookings?: boolean;
+      hourlyRate?: number;
+      currency?: string;
+    };
+    booking?: {
+      autoConfirmBookings?: boolean;
+    };
+  };
 }
 
 @Injectable({
@@ -97,6 +107,16 @@ export class ProviderService {
     this.cache$.next([]);
     this.lastFetched = 0;
     console.log('🗑️ Provider cache cleared');
+  }
+
+  /**
+   * Get a single provider by ID
+   */
+  getProviderById(id: string): Observable<Provider> {
+    console.log('🌐 Fetching provider by ID:', id);
+    return this.http.get<Provider>(`${this.API_URL}/${id}`).pipe(
+      tap(provider => console.log('✅ Provider fetched:', provider))
+    );
   }
 
   /**

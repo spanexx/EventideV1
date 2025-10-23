@@ -92,7 +92,7 @@ export class Booking {
 
   @Prop({ type: String, enum: ['pending', 'paid', 'failed', 'refunded'], default: 'pending' })
   @IsString()
-  paymentStatus: string;
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
 
   @Prop({
     type: String,

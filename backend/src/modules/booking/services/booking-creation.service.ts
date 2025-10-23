@@ -164,6 +164,29 @@ export class BookingCreationService {
     const autoConfirm = provider?.preferences?.booking?.autoConfirmBookings ?? true;
     this.logger.log(`[BookingCreation] Provider ${availability.providerId} auto-confirm: ${autoConfirm}`);
 
+    // Check payment requirements
+    const requirePayment = provider?.preferences?.payment?.requirePaymentForBookings ?? false;
+    const hourlyRate = provider?.preferences?.payment?.hourlyRate ?? 5000;
+    const currency = provider?.preferences?.payment?.currency ?? 'usd';
+    const duration = (new Date(createBookingDto.endTime).getTime() - new Date(createBookingDto.startTime).getTime()) / 60000;
+    
+    // Calculate amount based on provider's hourly rate
+    let totalAmount = 0;
+    let paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded' = 'pending';
+    
+    if (requirePayment) {
+      // Calculate based on hourly rate and duration
+      const hours = duration / 60;
+      totalAmount = Math.round(hourlyRate * hours);
+      paymentStatus = 'pending';
+      this.logger.log(`[BookingCreation] Payment required: ${totalAmount} ${currency} (${hours}h @ ${hourlyRate}/h)`);
+    } else {
+      // Free booking
+      totalAmount = 0;
+      paymentStatus = 'paid'; // Mark as paid since no payment needed
+      this.logger.log(`[BookingCreation] Free booking - no payment required`);
+    }
+
     const serialKey = this.serialKeyService.generateBookingSerialKey(createBookingDto.startTime as any);
     const guestId = (createBookingDto as any).guestId || `guest_${this.serialKeyService.generateBookingSerialKey(new Date() as any)}`;
 
@@ -172,10 +195,10 @@ export class BookingCreationService {
       guestId,
       serialKey,
       status: autoConfirm ? 'confirmed' : 'pending',
-      duration: (new Date(createBookingDto.endTime).getTime() - new Date(createBookingDto.startTime).getTime()) / 60000,
-      totalAmount: (createBookingDto as any).totalAmount || 5000,
-      currency: (createBookingDto as any).currency || 'usd',
-      paymentStatus: 'pending',
+      duration,
+      totalAmount: (createBookingDto as any).totalAmount || totalAmount,
+      currency: (createBookingDto as any).currency || currency,
+      paymentStatus,
     } as any;
     const newBooking = await this.baseService.create(bookingData, session);
 

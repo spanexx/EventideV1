@@ -7,6 +7,7 @@ import { take, filter, takeUntil, tap } from 'rxjs/operators';
 import * as BookingActions from '../../store-bookings/actions/booking.actions';
 import * as BookingSelectors from '../../store-bookings/selectors/booking.selectors';
 import { GuestInfo, Booking } from '../../../shared/models/booking.models';
+import { ProviderInfoService } from '../../services/provider-info.service';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -111,7 +112,8 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
     private fb: FormBuilder,
     private router: Router,
     private route: ActivatedRoute,
-    private store: Store
+    private store: Store,
+    private providerInfoService: ProviderInfoService
   ) {
     this.guestForm = this.fb.group({
       name: ['', Validators.required],
@@ -134,6 +136,24 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
     // Get providerId from parent route
     this.providerId = this.route.parent?.snapshot.paramMap.get('providerId') || '';
     console.log('📋 [Guest Information] Provider ID from route:', this.providerId);
+    
+    // Fetch provider info to check payment requirements
+    if (this.providerId) {
+      this.providerInfoService.getProviderInfo(this.providerId)
+        .pipe(takeUntil(this.destroy$))
+        .subscribe({
+          next: (provider) => {
+            console.log('✅ [Guest Information] Provider info loaded:', {
+              requiresPayment: provider.preferences?.payment?.requirePaymentForBookings,
+              hourlyRate: provider.preferences?.payment?.hourlyRate,
+              currency: provider.preferences?.payment?.currency
+            });
+          },
+          error: (err) => {
+            console.error('❌ [Guest Information] Failed to load provider info:', err);
+          }
+        });
+    }
     console.log('📋 [Guest Information] Form initial state:', this.guestForm.value);
     console.log('📋 [Guest Information] Form valid:', this.guestForm.valid);
     
@@ -273,10 +293,24 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
           console.log('✅ [Guest Information] Booking created successfully:', {
             id: booking.id,
             status: booking.status,
-            serialKey: booking.serialKey
+            serialKey: booking.serialKey,
+            totalAmount: booking.totalAmount,
+            paymentStatus: booking.paymentStatus
           });
-          console.log('🚀 [Guest Information] Navigating to confirmation');
-          this.router.navigate(['/booking', this.providerId, 'confirmation']);
+          
+          // Check if payment is required
+          const requiresPayment = this.providerInfoService.requiresPayment();
+          const bookingRequiresPayment = booking.totalAmount && booking.totalAmount > 0;
+          
+          if (requiresPayment && bookingRequiresPayment && booking.paymentStatus === 'pending') {
+            console.log('💳 [Guest Information] Payment required - redirecting to checkout');
+            this.router.navigate(['/booking', this.providerId, 'payment-checkout'], {
+              queryParams: { bookingId: booking.id }
+            });
+          } else {
+            console.log('🚀 [Guest Information] Free booking - navigating to confirmation');
+            this.router.navigate(['/booking', this.providerId, 'confirmation']);
+          }
         } else if (error) {
           console.error('❌ [Guest Information] Booking creation failed:', error);
         } else {

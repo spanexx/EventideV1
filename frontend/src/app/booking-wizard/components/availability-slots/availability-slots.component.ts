@@ -5,6 +5,7 @@ import { Subject, combineLatest, merge } from 'rxjs';
 import { takeUntil, filter, map, startWith, withLatestFrom } from 'rxjs/operators';
 import * as BookingActions from '../../store-bookings/actions/booking.actions';
 import * as BookingSelectors from '../../store-bookings/selectors/booking.selectors';
+import { ProviderInfoService } from '../../services/provider-info.service';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -164,7 +165,8 @@ export class AvailabilitySlotsComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private store: Store
+    private store: Store,
+    private providerInfoService: ProviderInfoService
   ) {
     // Initialize observables
     this.availableSlots$ = this.store.select(BookingSelectors.selectAvailability);

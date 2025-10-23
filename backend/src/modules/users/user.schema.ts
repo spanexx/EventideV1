@@ -197,6 +197,19 @@ export class User {
   @Prop({ type: Date, required: false })
   resetPasswordExpires?: Date;
 
+  // Payment and subscription fields
+  @Prop({ type: String, required: false })
+  stripeCustomerId?: string;
+
+  @Prop({ type: String, required: false })
+  stripeAccountId?: string; // For providers receiving payments
+
+  @Prop({ type: Date, required: false })
+  subscriptionStartDate?: Date;
+
+  @Prop({ type: Date, required: false })
+  subscriptionEndDate?: Date;
+
   createdAt: Date = new Date();
   updatedAt: Date = new Date();
 }

@@ -5,6 +5,7 @@ import { Subject } from 'rxjs';
 import { takeUntil, take } from 'rxjs/operators';
 import * as BookingActions from '../../store-bookings/actions/booking.actions';
 import * as BookingSelectors from '../../store-bookings/selectors/booking.selectors';
+import { ProviderInfoService } from '../../services/provider-info.service';
 import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
@@ -84,7 +85,8 @@ export class DurationSelectionComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private route: ActivatedRoute,
-    private store: Store
+    private store: Store,
+    private providerInfoService: ProviderInfoService
   ) {
     this.error$ = this.store.select(BookingSelectors.selectBookingError);
   }
@@ -108,6 +110,21 @@ export class DurationSelectionComponent implements OnInit, OnDestroy {
       this.loading = false;
       return;
     }
+    
+    // Load provider info early for payment checks later
+    this.providerInfoService.getProviderInfo(this.providerId)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (provider) => {
+          console.log('✅ [Duration Selection] Provider info cached:', {
+            requiresPayment: provider.preferences?.payment?.requirePaymentForBookings,
+            hourlyRate: provider.preferences?.payment?.hourlyRate
+          });
+        },
+        error: (err) => {
+          console.error('❌ [Duration Selection] Failed to load provider info:', err);
+        }
+      });
     
     // Load provider's availability to get unique durations
     this.store.dispatch(BookingActions.loadAvailableSlots({

@@ -21,6 +21,16 @@ export interface UserPreferences {
   booking: {
     autoConfirmBookings: boolean;
   };
+  payment: {
+    requirePaymentForBookings: boolean;
+    hourlyRate?: number; // in cents
+    currency: string;
+    acceptedPaymentMethods?: string[];
+  };
+  subscription: {
+    tier: 'free' | 'premium';
+    features?: string[];
+  };
   language: string;
   timezone: string;
 }
@@ -47,6 +57,16 @@ export const defaultUserPreferences: UserPreferences = {
   },
   booking: {
     autoConfirmBookings: true, // Default: auto-confirm bookings
+  },
+  payment: {
+    requirePaymentForBookings: false, // Default: free bookings
+    hourlyRate: 5000, // Default: $50/hour (in cents)
+    currency: 'usd',
+    acceptedPaymentMethods: ['card'],
+  },
+  subscription: {
+    tier: 'free',
+    features: [],
   },
   language: 'en',
   timezone: 'UTC',
