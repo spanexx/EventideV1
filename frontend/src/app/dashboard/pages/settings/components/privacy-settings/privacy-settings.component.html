@@ -1,0 +1,44 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Profile Visibility</mat-label>
+        <mat-select
+          name="profileVisibility"
+          [ngModel]="preferences?.privacy?.profileVisibility"
+          (ngModelChange)="preferenceChange.emit({key: 'privacy', value: {profileVisibility: $event}})"
+          [disabled]="loading"
+        >
+          <mat-option value="public">Public</mat-option>
+          <mat-option value="private">Private</mat-option>
+        </mat-select>
+        <mat-hint>Control who can view your profile</mat-hint>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Access Code Rotation</mat-label>
+        <mat-select
+          name="accessCodeRotation"
+          [ngModel]="preferences?.privacy?.accessCodeRotation"
+          (ngModelChange)="preferenceChange.emit({key: 'privacy', value: {accessCodeRotation: $event}})"
+          [disabled]="loading"
+        >
+          <mat-option value="daily">Daily</mat-option>
+          <mat-option value="weekly">Weekly</mat-option>
+          <mat-option value="monthly">Monthly</mat-option>
+        </mat-select>
+        <mat-hint>How often your access code is updated</mat-hint>
+      </mat-form-field>
+      <div class="save-button-section">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="save.emit()"
+          [disabled]="loading"
+        >
+          {{ loading ? 'Saving...' : 'Save Privacy Settings' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

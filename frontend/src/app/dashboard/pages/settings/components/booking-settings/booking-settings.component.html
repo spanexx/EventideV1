@@ -1,0 +1,91 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Booking Approval Mode</mat-label>
+        <mat-select
+          name="bookingApprovalMode"
+          [ngModel]="preferences?.bookingApprovalMode"
+          (ngModelChange)="preferenceChange.emit({key: 'bookingApprovalMode', value: $event})"
+        >
+          <mat-option value="auto">Automatic</mat-option>
+          <mat-option value="manual">Manual Review</mat-option>
+        </mat-select>
+        <mat-hint>How new bookings are processed</mat-hint>
+      </mat-form-field>
+      <mat-slide-toggle
+        name="requirePayment"
+        color="primary"
+        [ngModel]="preferences?.payment?.requirePaymentForBookings"
+        (ngModelChange)="preferenceChange.emit({key: 'payment', value: {requirePaymentForBookings: $event}})"
+      >
+        Require payment for bookings
+      </mat-slide-toggle>
+
+      <div class="payment-settings" *ngIf="preferences?.payment?.requirePaymentForBookings">
+        <div class="payment-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Hourly rate</mat-label>
+            <input
+              name="hourlyRate"
+              matInput
+              type="number"
+              min="0"
+              step="1"
+              [ngModel]="preferences?.payment?.hourlyRate || 0"
+              (ngModelChange)="onHourlyRateChange($event)"
+            />
+            <mat-hint>Amount in cents (e.g. 5000 = $50.00)</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Currency</mat-label>
+            <mat-select
+              name="currency"
+              [ngModel]="preferences?.payment?.currency"
+              (ngModelChange)="preferenceChange.emit({key: 'payment', value: {currency: $event}})"
+            >
+              <mat-option value="usd">USD ($)</mat-option>
+              <mat-option value="eur">EUR (€)</mat-option>
+              <mat-option value="gbp">GBP (£)</mat-option>
+              <mat-option value="cad">CAD ($)</mat-option>
+              <mat-option value="aud">AUD ($)</mat-option>
+            </mat-select>
+          </mat-form-field>
+        </div>
+
+        <div class="payment-methods">
+          <h3>Accepted payment methods</h3>
+          <mat-chip-grid #paymentChipGrid>
+            <mat-chip-row
+              *ngFor="let method of preferences?.payment?.acceptedPaymentMethods || []"
+              (removed)="removePaymentMethod(method)"
+            >
+              {{ method | titlecase }}
+              <button matChipRemove>
+                <mat-icon>cancel</mat-icon>
+              </button>
+            </mat-chip-row>
+            <input
+              placeholder="Add method (e.g. card, bank_transfer)"
+              [matChipInputFor]="paymentChipGrid"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+              (matChipInputTokenEnd)="addPaymentMethod($event)"
+            />
+          </mat-chip-grid>
+          <mat-hint>Press Enter after typing each method.</mat-hint>
+        </div>
+      </div>
+      <div class="save-button-section">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="save.emit()"
+          [disabled]="loading"
+        >
+          {{ loading ? 'Saving...' : 'Save Booking Settings' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

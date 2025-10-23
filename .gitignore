@@ -81,13 +81,13 @@ backend/eventide-474521-241c82b583e5.json
 PLAN/
 *.txt
 
-# .bmad
+.bmad
 .bmad-core/
 backup*
 .zed/
 backups/
 
-# IDE-specific
+IDE-specific
 .copilot/
 .qoder/
 .windsurf/

@@ -1,0 +1,45 @@
+<div class="guest-information">
+    <h2>Your Information</h2>
+    <form [formGroup]="guestForm" (ngSubmit)="submitForm()">
+        <mat-form-field>
+            <input matInput placeholder="Full Name" formControlName="name">
+            <mat-error *ngIf="guestForm.get('name')?.hasError('required')">
+                Name is required
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+            <input matInput placeholder="Email" formControlName="email">
+            <mat-error *ngIf="guestForm.get('email')?.hasError('required')">
+                Email is required
+            </mat-error>
+            <mat-error *ngIf="guestForm.get('email')?.hasError('email')">
+                Please enter a valid email address
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+            <input matInput placeholder="Phone" formControlName="phone">
+            <mat-error *ngIf="guestForm.get('phone')?.hasError('invalidPhone')">
+                Please enter a valid phone number
+            </mat-error>
+        </mat-form-field>
+
+        <mat-form-field>
+            <textarea matInput placeholder="Notes (optional)" formControlName="notes" rows="3"></textarea>
+        </mat-form-field>
+
+        <div class="actions">
+            <button mat-button type="button" (click)="goBack()">Back</button>
+            <button mat-raised-button color="primary" type="submit"
+                [disabled]="guestForm.invalid || (loading$ | async)">
+                <span *ngIf="!(loading$ | async)">Confirm Booking</span>
+                <span *ngIf="loading$ | async">Processing...</span>
+            </button>
+        </div>
+    </form>
+
+    <div *ngIf="error$ | async as error" class="error-message">
+        {{ error }}
+    </div>
+</div>

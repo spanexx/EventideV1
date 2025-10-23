@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit, ViewChild, HostListener, ChangeDetectorRef, OnDestroy } from '@angular/core';
+import { Component, OnInit, AfterViewInit, ViewChild, HostListener, ChangeDetectorRef, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable, BehaviorSubject, Subscription, Subject } from 'rxjs';
 import { FullCalendarComponent } from '@fullcalendar/angular';
@@ -80,6 +80,7 @@ import { AIConflictResolverComponent } from '../../../shared/components/ai-compo
 @Component({
   selector: 'app-availability',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FullCalendarModule,
@@ -853,6 +854,23 @@ export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
     console.debug('[AvailabilityComponent] Destroying component, unsubscribing streams');
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  // TrackBy functions for performance optimization
+  trackByAvailabilitySlot(index: number, slot: any): string {
+    return slot.id || `${slot.startTime}-${slot.endTime}-${slot.date}`;
+  }
+
+  trackByCalendarEvent(index: number, event: any): string {
+    return event.id || `${event.title}-${event.start}-${event.end}`;
+  }
+
+  trackByFilterOption(index: number, option: any): string {
+    return option.id || option.value || option.label || index.toString();
+  }
+
+  trackByDialogOption(index: number, option: any): string {
+    return option.id || option.label || option.value || index.toString();
   }
 
   /**

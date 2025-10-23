@@ -1,8 +1,9 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, catchError, of, tap } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, of, tap, distinctUntilChanged, shareReplay } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-import { AuthService } from '../../../core/services/auth.service';
+import { Store } from '@ngrx/store';
+import { selectIsAuthenticated } from '../../../auth/store/auth/selectors/auth.selectors';
 
 export interface UserPreferences {
   bookingApprovalMode: 'auto' | 'manual';
@@ -26,6 +27,12 @@ export interface UserPreferences {
   };
   booking: {
     autoConfirmBookings: boolean;
+  };
+  payment: {
+    requirePaymentForBookings: boolean;
+    hourlyRate?: number;
+    currency: string;
+    acceptedPaymentMethods?: string[];
   };
   language: string;
   timezone: string;
@@ -54,33 +61,63 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   booking: {
     autoConfirmBookings: true,
   },
+  payment: {
+    requirePaymentForBookings: false,
+    hourlyRate: 5000,
+    currency: 'usd',
+    acceptedPaymentMethods: ['card'],
+  },
   language: 'en',
   timezone: 'UTC',
 };
+
+interface StoredPreferences {
+  version: number;
+  data: UserPreferences;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class SettingsService {
   private readonly STORAGE_KEY = 'user_preferences';
+  private readonly VERSION = 1;
   private apiUrl = `${environment.apiUrl}/users/me/preferences`;
   private preferencesSubject = new BehaviorSubject<UserPreferences>(this.loadFromStorage());
+  private isAuthenticated = false;
+  private preferencesLoadedFromApi = false;
+  private preferencesCache$?: Observable<UserPreferences>;
 
   public preferences$ = this.preferencesSubject.asObservable();
 
-  private authService = inject(AuthService);
+  constructor(private http: HttpClient, private store: Store) {
+    this.store
+      .select(selectIsAuthenticated)
+      .pipe(distinctUntilChanged())
+      .subscribe((isAuthenticated) => {
+        this.isAuthenticated = isAuthenticated;
 
-  constructor(private http: HttpClient) {
-    // Only load from API if authenticated
-    if (this.authService.isAuthenticated()) {
-      this.loadInitialPreferences();
-    }
+        if (isAuthenticated) {
+          this.loadInitialPreferences();
+        } else {
+          this.preferencesLoadedFromApi = false;
+          const cached = this.loadFromStorage();
+          this.preferencesSubject.next(cached);
+        }
+      });
   }
 
   private loadFromStorage(): UserPreferences {
     try {
-      const stored = localStorage.getItem(this.STORAGE_KEY);
-      return stored ? JSON.parse(stored) : DEFAULT_PREFERENCES;
+      const raw = localStorage.getItem(this.STORAGE_KEY);
+      if (!raw) return DEFAULT_PREFERENCES;
+      
+      const stored: StoredPreferences = JSON.parse(raw);
+      if (stored.version !== this.VERSION) {
+        localStorage.removeItem(this.STORAGE_KEY);
+        return DEFAULT_PREFERENCES;
+      }
+      return stored.data;
     } catch (e) {
       console.error('Error loading preferences from storage:', e);
       return DEFAULT_PREFERENCES;
@@ -89,13 +126,21 @@ export class SettingsService {
 
   private saveToStorage(preferences: UserPreferences): void {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(preferences));
+      const stored: StoredPreferences = {
+        version: this.VERSION,
+        data: preferences
+      };
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(stored));
     } catch (e) {
       console.error('Error saving preferences to storage:', e);
     }
   }
 
   private loadInitialPreferences(): void {
+    if (this.preferencesLoadedFromApi) {
+      return;
+    }
+
     // First load from storage (already done in constructor)
     // Then try to get from API
     this.getPreferences()
@@ -103,6 +148,7 @@ export class SettingsService {
         tap((preferences) => {
           this.preferencesSubject.next(preferences);
           this.saveToStorage(preferences);
+          this.preferencesLoadedFromApi = true;
         }),
       )
       .subscribe({
@@ -112,24 +158,31 @@ export class SettingsService {
 
   public getPreferences(): Observable<UserPreferences> {
     // Don't make API call if not authenticated
-    if (!this.authService.isAuthenticated()) {
+    if (!this.isAuthenticated) {
       return of(this.loadFromStorage());
     }
 
-    return this.http.get<UserPreferences>(this.apiUrl).pipe(
-      tap((preferences) => {
-        this.preferencesSubject.next(preferences);
-        this.saveToStorage(preferences);
-      }),
-      catchError((error: HttpErrorResponse) => {
-        // If API fails, use cached preferences
-        console.warn('Failed to fetch preferences from API, using cached:', error);
-        return of(this.loadFromStorage());
-      }),
-    );
+    // Use cached observable if available
+    if (!this.preferencesCache$) {
+      this.preferencesCache$ = this.http.get<UserPreferences>(this.apiUrl).pipe(
+        tap((preferences) => {
+          this.preferencesSubject.next(preferences);
+          this.saveToStorage(preferences);
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.warn('Failed to fetch preferences from API, using cached:', error);
+          return of(this.loadFromStorage());
+        }),
+        shareReplay({ bufferSize: 1, refCount: true })
+      );
+    }
+    return this.preferencesCache$;
   }
 
   public updatePreferences(preferences: Partial<UserPreferences>): Observable<UserPreferences> {
+    // Invalidate cache on update
+    this.preferencesCache$ = undefined;
+    
     return this.http.patch<UserPreferences>(this.apiUrl, preferences).pipe(
       tap((updatedPreferences) => {
         this.preferencesSubject.next(updatedPreferences);

@@ -1,8 +1,7 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
-import { Store } from '@ngrx/store';
-import { Observable, Subject, timer } from 'rxjs';
-import { first, takeUntil, filter, take, timeout } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
+import { Store } from '@ngrx/store';
+import { Observable, Subject } from 'rxjs';
+import { filter, take, takeUntil } from 'rxjs/operators';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -15,16 +14,20 @@ import { MatCardModule } from '@angular/material/card';
 import * as AnalyticsActions from '../../store/actions/analytics.actions';
 import * as AnalyticsSelectors from '../../store/selectors/analytics.selectors';
 import * as AuthSelectors from '../../../../../auth/store/auth/selectors/auth.selectors';
+import { AnalyticsService } from '../../services/analytics.service';
 import { SummaryCardComponent } from '../../components/summary-cards/summary-card.component';
 import { LineChartComponent } from '../../components/charts/line-chart.component';
 import { BarChartComponent } from '../../components/charts/bar-chart.component';
-
+import { Component, OnInit } from '@angular/core';
+import { OnDestroy } from '@angular/core';
+import { ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'app-analytics-dashboard',
   templateUrl: './analytics-dashboard.component.html',
   styleUrls: ['./analytics-dashboard.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, 
     FormsModule, 
@@ -54,7 +57,10 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
   
   private destroy$ = new Subject<void>();
   
-  constructor(private store: Store) {
+  constructor(
+    private store: Store,
+    private analyticsService: AnalyticsService
+  ) {
     this.loading$ = this.store.select(AnalyticsSelectors.selectAnalyticsLoading);
     this.error$ = this.store.select(AnalyticsSelectors.selectAnalyticsError);
     this.metrics$ = this.store.select(AnalyticsSelectors.selectMetrics);
@@ -95,7 +101,10 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
       startDate: this.startDate,
       endDate: this.endDate
     });
-    
+
+    // Clear cache when date range changes to ensure fresh data
+    this.analyticsService.clearAnalyticsCache();
+
     // Get the current user and load analytics data for that user
     this.store.select(AuthSelectors.selectUserId).pipe(
       filter(userId => userId !== ''), // Wait for a non-empty user ID

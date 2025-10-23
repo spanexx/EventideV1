@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable, Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
@@ -9,18 +9,20 @@ import { CommonModule } from '@angular/common';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatDatepickerModule } from '@angular/material/datepicker';
-import { MatInputModule } from '@angular/material/input';
+import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
-import { FormsModule } from '@angular/forms';
+import { MatIconModule } from '@angular/material/icon';
+import { AnalyticsService } from '../../services/analytics.service';
 
 @Component({
   selector: 'app-reports',
   templateUrl: './reports.component.html',
   styleUrls: ['./reports.component.scss'],
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -45,7 +47,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
   
   private destroy$ = new Subject<void>();
   
-  constructor(private store: Store) {
+  constructor(
+    private store: Store,
+    private analyticsService: AnalyticsService
+  ) {
     // Set default date range to last 30 days
     this.startDate.setDate(this.endDate.getDate() - 30);
     
@@ -84,9 +89,14 @@ export class ReportsComponent implements OnInit, OnDestroy {
       startDate: this.startDate,
       endDate: this.endDate
     });
-    
+
+    // Clear report cache when generating new report to ensure fresh data
+    this.analyticsService.clearReportCache();
+
     // Get the current user and generate report for that user
-    this.store.select(AuthSelectors.selectUserId).subscribe(userId => {
+    this.store.select(AuthSelectors.selectUserId).pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(userId => {
       if (userId) {
         console.log('👤 [ReportsComponent] Dispatching generate report for user', { userId, reportType: this.reportType });
         this.logToBackend('info', 'ReportsComponent: Generating report', {

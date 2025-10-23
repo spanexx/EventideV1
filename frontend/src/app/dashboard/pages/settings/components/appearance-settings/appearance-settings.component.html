@@ -1,0 +1,28 @@
+<div class="card">
+  <div class="card-content">
+    <form class="settings-form">
+      <mat-form-field appearance="outline">
+        <mat-label>Theme</mat-label>
+        <mat-select
+          name="theme"
+          [ngModel]="preferences?.theme"
+          (ngModelChange)="preferenceChange.emit({key: 'theme', value: $event})"
+        >
+          <mat-option value="light">Light</mat-option>
+          <mat-option value="dark">Dark</mat-option>
+          <mat-option value="system">System Default</mat-option>
+        </mat-select>
+      </mat-form-field>
+      <div class="save-button-section">
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="save.emit()"
+          [disabled]="loading"
+        >
+          {{ loading ? 'Saving...' : 'Save Appearance Settings' }}
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

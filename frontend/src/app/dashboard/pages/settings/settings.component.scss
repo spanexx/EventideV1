@@ -1,5 +1,6 @@
 @use '../../../../styles.scss';
 
+// Page layout
 .page-container {
   max-width: 1200px;
   margin: 0 auto;
@@ -24,293 +25,102 @@
     line-height: 1.5;
   }
 }
-.grid {
-  display: grid;
-  gap: var(--spacing-xl);
-  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-}
 
+// Tab styling
 .settings-tabs {
   margin-top: var(--spacing-lg);
-
-  .mat-tab-labels {
-    gap: var(--spacing-md);
-    padding: var(--spacing-sm) var(--spacing-lg);
-  }
-
-  .mat-tab-body-wrapper {
-    margin-top: var(--spacing-lg);
-  }
-
-  .card {
-    border-radius: 12px;
-    box-shadow: none;
-    border: 1px solid var(--border);
-  }
-}
-
-.card {
-  background: var(--card);
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  overflow: hidden;
-
-  &:hover {
-    background: color-mix(in srgb, var(--card) 97%, white);
-  }
-
-  .card-header {
-  padding: var(--spacing-lg);
-  background: var(--card);
-  border-bottom: 1px solid var(--border);
-
-  .card-title {
-    font-size: var(--font-size-lg);
-    font-weight: 500;
-    color: var(--foreground);
-    margin: 0 0 var(--spacing-xs) 0;
-    display: flex;
-    align-items: center;
-    gap: var(--spacing-sm);
-
-    mat-icon {
-      color: var(--primary);
-    }
-  }
-
-  .card-description {
-    font-size: var(--font-size-sm);
-    color: var(--muted-foreground);
-    margin: 0;
-    line-height: 1.5;
-  }
-}
-
-.card-content {
-  padding: var(--spacing-lg);
-  background: var(--card);
-
-  .settings-form {
-    padding: 0;
-  }
-}
-
-.card-footer {
-  padding: var(--spacing-md) var(--spacing-lg);
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-sm);
-  background: var(--card);
-  border-top: 1px solid var(--border);
-
-  button {
-    min-width: 100px;
-    border-radius: 6px;
-    font-weight: 500;
-    font-size: 14px;
-    /* subtle overlay on hover, no elevation changes */
-    &[color="primary"] {
-      background: var(--primary);
-      color: var(--primary-foreground);
-
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 6px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(0,0,0,0));
-        opacity: 0;
-        transition: opacity 160ms ease;
-        pointer-events: none;
-      }
-
-      &:hover::after {
-        opacity: 1;
+  
+  ::ng-deep .mat-tab-group {
+    .mat-tab-header {
+      border-bottom: 1px solid var(--border);
+      
+      .mat-tab-label-container {
+        .mat-tab-list {
+          .mat-tab-labels {
+            gap: var(--spacing-md);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            
+            .mat-tab-label {
+              opacity: 1;
+              min-width: 120px;
+              padding: var(--spacing-sm) var(--spacing-md);
+              border-radius: var(--radius-md);
+              color: var(--muted-foreground);
+              font-weight: var(--font-weight-medium);
+              transition: all 0.2s ease;
+              
+              &:hover:not(.mat-tab-label-active) {
+                background: var(--muted);
+                color: var(--foreground);
+              }
+              
+              &.mat-tab-label-active {
+                background: color-mix(in srgb, var(--primary) 10%, transparent);
+                color: var(--primary);
+                
+                .mat-tab-label-content {
+                  font-weight: var(--font-weight-semibold);
+                }
+              }
+              
+              &:focus {
+                outline: 2px solid var(--ring);
+                outline-offset: 2px;
+              }
+              
+              .mat-tab-label-content {
+                display: flex;
+                align-items: center;
+                gap: var(--spacing-xs);
+              }
+            }
+          }
+          
+          .mat-ink-bar {
+            background: var(--primary);
+            height: 3px;
+            border-radius: 3px 3px 0 0;
+          }
+        }
       }
     }
-
-    &:not([color="primary"]) {
-      background: var(--muted);
-      color: var(--foreground);
-      border: 1px solid var(--border);
-
-      &::after {
-        content: '';
-        position: absolute;
-        inset: 0;
-        border-radius: 6px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(0,0,0,0));
-        opacity: 0;
-        transition: opacity 160ms ease;
-        pointer-events: none;
-      }
-
-      &:hover::after {
-        opacity: 1;
+    
+    .mat-tab-body-wrapper {
+      margin-top: var(--spacing-lg);
+      
+      .mat-tab-body {
+        .mat-tab-body-content {
+          padding: 0;
+        }
       }
     }
   }
 }
 
-.settings-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-
-  mat-form-field {
-    width: 100%;
-
-    ::ng-deep .mat-mdc-text-field-wrapper {
-      padding-left: 12px;
-    }
-  }
-
-  .profile-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: var(--spacing-lg);
-
-    @media (max-width: 768px) {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  .profile-actions {
-    margin-top: var(--spacing-md);
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  mat-slide-toggle {
-    display: flex;
-    padding: 14px 16px;
-    margin: 0;
-    border-radius: 10px;
-    background-color: rgb(242, 242, 247);
-    transition: background-color 0.2s ease;
-
-    & + mat-slide-toggle {
-      margin-top: 8px;
-    }
-
-    &:hover {
-      background-color: rgb(235, 235, 240);
-    }
-
-    ::ng-deep {
-      .mdc-form-field {
-        width: 100%;
-        flex-direction: row-reverse;
-        justify-content: space-between;
-        margin: 0;
-      }
-
-      .mdc-switch {
-        margin: 0;
-        --mdc-switch-selected-track-color: rgb(52, 199, 89);
-        --mdc-switch-selected-handle-color: white;
-        --mdc-switch-selected-hover-state-layer-color: transparent;
-        --mdc-switch-selected-focus-state-layer-color: transparent;
-        --mdc-switch-selected-pressed-state-layer-color: transparent;
-        --mdc-switch-unselected-track-color: rgb(229, 229, 234);
-        --mdc-switch-unselected-handle-color: white;
-        --mdc-switch-unselected-hover-state-layer-color: transparent;
-        --mdc-switch-unselected-focus-state-layer-color: transparent;
-        --mdc-switch-unselected-pressed-state-layer-color: transparent;
-      }
-
-      .mdc-switch.mdc-switch--selected:enabled .mdc-switch__shadow,
-      .mdc-switch.mdc-switch--unselected:enabled .mdc-switch__shadow {
-        box-shadow: none;
-      }
-
-      .mdc-switch__handle {
-        border-radius: 50%;
-      }
-
-      .mdc-switch__track {
-        border-radius: 16px;
-        border: none;
-      }
-
-      .mdc-label {
-        margin: 0;
-        font-size: 15px;
-        font-weight: 400;
-        color: rgb(29, 29, 31);
-      }
-    }
-  }
-
-  .time-range {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--spacing-lg);
-
-    /* Time inputs removed */
-  }
-
-  .working-hours {
-    background: var(--card);
-    padding: var(--spacing-lg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-
-    h3 {
-      margin: 0 0 var(--spacing-lg) 0;
-      font-size: var(--font-size-lg);
-      font-weight: 500;
-    }
-  }
-
-  .location-section {
-    background: var(--card);
-    padding: var(--spacing-lg);
-    border-radius: 12px;
-    border: 1px solid var(--border);
-
-    h3 {
-      margin: 0 0 var(--spacing-lg) 0;
-      font-size: var(--font-size-lg);
-      font-weight: 500;
-    }
-
-    .location-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--spacing-lg);
-    }
-  }
-
-  .business-actions {
-    margin-top: var(--spacing-md);
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  mat-chip-grid {
-    width: 100%;
-  }
-}
-
+// Mobile responsive
 @media (max-width: 768px) {
   .page-container {
     padding: var(--spacing-lg);
   }
-
-  .grid {
-    grid-template-columns: 1fr;
-  }
-
-  .card-footer {
-    flex-direction: column;
-
-    button {
-      width: 100%;
+  
+  .settings-tabs {
+    ::ng-deep .mat-tab-group {
+      .mat-tab-header {
+        .mat-tab-label-container {
+          .mat-tab-list {
+            .mat-tab-labels {
+              gap: var(--spacing-xs);
+              padding: var(--spacing-xs) var(--spacing-sm);
+              
+              .mat-tab-label {
+                min-width: auto;
+                padding: var(--spacing-xs) var(--spacing-sm);
+                font-size: var(--font-size-sm);
+              }
+            }
+          }
+        }
+      }
     }
   }
-
-  .time-range {
-    grid-template-columns: 1fr;
-  }
-}}
+}

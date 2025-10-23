@@ -35,6 +35,12 @@ export class SettingsPreferencesHandlerService {
     booking: {
       autoConfirmBookings: true,
     },
+    payment: {
+      requirePaymentForBookings: false,
+      hourlyRate: 5000,
+      currency: 'usd',
+      acceptedPaymentMethods: ['card'],
+    },
     language: 'en',
     timezone: 'UTC',
   };
@@ -67,6 +73,10 @@ export class SettingsPreferencesHandlerService {
       booking: {
         ...this.defaultPreferences.booking,
         ...prefs?.booking,
+      },
+      payment: {
+        ...this.defaultPreferences.payment,
+        ...prefs?.payment,
       },
       bookingApprovalMode:
         prefs?.bookingApprovalMode ?? (prefs?.booking?.autoConfirmBookings ? 'auto' : 'manual'),
@@ -162,6 +172,7 @@ export class SettingsPreferencesHandlerService {
       calendar: currentPrefs.calendar,
       privacy: currentPrefs.privacy,
       booking: currentPrefs.booking,
+      payment: currentPrefs.payment,
       theme: currentPrefs.theme,
       language: currentPrefs.language,
       timezone: currentPrefs.timezone,
@@ -220,6 +231,7 @@ export class SettingsPreferencesHandlerService {
   saveBookingSettings(): void {
     this.savePreferencesCommon('Booking settings', {
       booking: this.preferences().booking,
+      payment: this.preferences().payment,
     });
   }
 
@@ -301,6 +313,7 @@ export class SettingsPreferencesHandlerService {
       calendar: currentPrefs.calendar,
       privacy: currentPrefs.privacy,
       booking: currentPrefs.booking,
+      payment: currentPrefs.payment,
       theme: currentPrefs.theme,
       language: currentPrefs.language,
       timezone: currentPrefs.timezone,

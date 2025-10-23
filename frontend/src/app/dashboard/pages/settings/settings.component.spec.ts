@@ -6,6 +6,9 @@ import { Store } from '@ngrx/store';
 import { of, throwError } from 'rxjs';
 import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FormsModule } from '@angular/forms';
+import { SettingsProfileService } from './services/settings-profile.service';
+import { SettingsBusinessService } from './services/settings-business.service';
+import { SettingsPreferencesHandlerService } from './services/settings-preferences-handler.service';
 
 describe('SettingsComponent', () => {
   let component: SettingsComponent;
@@ -13,6 +16,9 @@ describe('SettingsComponent', () => {
   let settingsService: jasmine.SpyObj<SettingsService>;
   let snackBar: jasmine.SpyObj<MatSnackBar>;
   let store: jasmine.SpyObj<Store>;
+  let profileService: jasmine.SpyObj<SettingsProfileService>;
+  let businessService: jasmine.SpyObj<SettingsBusinessService>;
+  let preferencesHandler: jasmine.SpyObj<SettingsPreferencesHandlerService>;
 
     const mockPreferences: UserPreferences = {
     bookingApprovalMode: 'auto',
@@ -37,6 +43,12 @@ describe('SettingsComponent', () => {
     booking: {
       autoConfirmBookings: true,
     },
+    payment: {
+      requirePaymentForBookings: false,
+      hourlyRate: 5000,
+      currency: 'usd',
+      acceptedPaymentMethods: ['card'],
+    },
     language: 'en',
     timezone: 'UTC',
   };
@@ -57,6 +69,19 @@ describe('SettingsComponent', () => {
     ]);
     const snackBarSpy = jasmine.createSpyObj('MatSnackBar', ['open']);
     const storeSpy = jasmine.createSpyObj('Store', ['select']);
+    const profileServiceSpy = jasmine.createSpyObj('SettingsProfileService', ['saveProfile']);
+    const businessServiceSpy = jasmine.createSpyObj('SettingsBusinessService', ['saveBusinessSettings']);
+    const preferencesHandlerSpy = jasmine.createSpyObj('SettingsPreferencesHandlerService', [
+      'saveNotificationSettings',
+      'saveAppearanceSettings',
+      'saveCalendarSettings',
+      'savePrivacySettings',
+      'saveBookingSettings',
+      'saveLocalizationSettings',
+      'savePreferences',
+      'resetToDefaults',
+      'loadPreferences'
+    ]);
 
     serviceSpy.getPreferences.and.returnValue(of(mockPreferences));
     serviceSpy.updatePreferences.and.returnValue(of(mockPreferences));
@@ -73,13 +98,19 @@ describe('SettingsComponent', () => {
       providers: [
         { provide: SettingsService, useValue: serviceSpy },
         { provide: MatSnackBar, useValue: snackBarSpy },
-        { provide: Store, useValue: storeSpy }
+        { provide: Store, useValue: storeSpy },
+        { provide: SettingsProfileService, useValue: profileServiceSpy },
+        { provide: SettingsBusinessService, useValue: businessServiceSpy },
+        { provide: SettingsPreferencesHandlerService, useValue: preferencesHandlerSpy }
       ]
     }).compileComponents();
 
     settingsService = TestBed.inject(SettingsService) as jasmine.SpyObj<SettingsService>;
     snackBar = TestBed.inject(MatSnackBar) as jasmine.SpyObj<MatSnackBar>;
     store = TestBed.inject(Store) as jasmine.SpyObj<Store>;
+    profileService = TestBed.inject(SettingsProfileService) as jasmine.SpyObj<SettingsProfileService>;
+    businessService = TestBed.inject(SettingsBusinessService) as jasmine.SpyObj<SettingsBusinessService>;
+    preferencesHandler = TestBed.inject(SettingsPreferencesHandlerService) as jasmine.SpyObj<SettingsPreferencesHandlerService>;
   });
 
   beforeEach(() => {
@@ -92,109 +123,53 @@ describe('SettingsComponent', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should load preferences on init', () => {
-    expect(settingsService.getPreferences).toHaveBeenCalled();
-    expect(component.preferences()).toEqual(mockPreferences);
+  it('should save profile through profile service', () => {
+    component.saveProfile();
+    expect(profileService.saveProfile).toHaveBeenCalled();
   });
 
-  it('should load user profile from store', () => {
-    expect(store.select).toHaveBeenCalled();
-    component.userEmail$.subscribe(email => {
-      expect(email).toBe(mockUser.email);
-    });
+  it('should save business settings through business service', () => {
+    component.saveBusinessSettings();
+    expect(businessService.saveBusinessSettings).toHaveBeenCalled();
   });
 
-  it('should save preferences', () => {
-    const updatedPrefs = { ...mockPreferences, theme: 'light' as const };
-    component.preferences.set(updatedPrefs);
+  it('should save notification settings through preferences handler', () => {
+    component.saveNotificationSettings();
+    expect(preferencesHandler.saveNotificationSettings).toHaveBeenCalled();
+  });
+
+  it('should save appearance settings through preferences handler', () => {
+    component.saveAppearanceSettings();
+    expect(preferencesHandler.saveAppearanceSettings).toHaveBeenCalled();
+  });
+
+  it('should save calendar settings through preferences handler', () => {
+    component.saveCalendarSettings();
+    expect(preferencesHandler.saveCalendarSettings).toHaveBeenCalled();
+  });
+
+  it('should save privacy settings through preferences handler', () => {
+    component.savePrivacySettings();
+    expect(preferencesHandler.savePrivacySettings).toHaveBeenCalled();
+  });
+
+  it('should save booking settings through preferences handler', () => {
+    component.saveBookingSettings();
+    expect(preferencesHandler.saveBookingSettings).toHaveBeenCalled();
+  });
+
+  it('should save localization settings through preferences handler', () => {
+    component.saveLocalizationSettings();
+    expect(preferencesHandler.saveLocalizationSettings).toHaveBeenCalled();
+  });
+
+  it('should save preferences through preferences handler', () => {
     component.savePreferences();
-    
-    expect(settingsService.updatePreferences).toHaveBeenCalledWith(updatedPrefs);
-    expect(snackBar.open).toHaveBeenCalledWith('Preferences saved successfully', 'Close', { duration: 3000 });
+    expect(preferencesHandler.savePreferences).toHaveBeenCalled();
   });
 
-  it('should reset preferences', () => {
+  it('should reset to defaults through preferences handler', () => {
     component.resetToDefaults();
-    expect(settingsService.resetPreferences).toHaveBeenCalled();
-    expect(snackBar.open).toHaveBeenCalledWith('Preferences reset to defaults', 'Close', { duration: 3000 });
-  });
-
-  it('should show error when preferences load fails', () => {
-    settingsService.getPreferences.and.returnValue(throwError(() => new Error('Failed')));
-    component.loadPreferences();
-    expect(snackBar.open).toHaveBeenCalledWith('Error loading preferences', 'Close', { duration: 3000 });
-  });
-
-  it('should update nested preferences', () => {
-    // Act
-    component.updateNestedPreference('notifications', 'email', false);
-
-    // Assert
-    expect(component.preferences().notifications.email).toBe(false);
-  });
-
-  it('should update working hours with validation', () => {
-    // Valid case
-    component.updateWorkingHours('start', '08:00');
-    expect(component.preferences().calendar.workingHours.start).toBe('08:00');
-
-    // Invalid time format
-    component.updateWorkingHours('start', '25:00');
-    expect(component.preferences().calendar.workingHours.start).toBe('08:00');
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Please enter a valid time in 24-hour format (HH:mm)',
-      'Close',
-      { duration: 3000 }
-    );
-
-    // End time before start time
-    component.updateWorkingHours('end', '07:00');
-    expect(component.preferences().calendar.workingHours.end).toBe('17:00');
-    expect(snackBar.open).toHaveBeenCalledWith(
-      'Working hours start must be before end time',
-      'Close',
-      { duration: 3000 }
-    );
-  });
-
-  it('should detect changes in nested preferences', () => {
-    // Arrange
-    const currentPrefs = component.preferences();
-    const updatedPrefs = {
-      ...currentPrefs,
-      calendar: {
-        ...currentPrefs.calendar,
-        defaultView: 'month' as const
-      }
-    };
-    settingsService.getCurrentPreferences.and.returnValue(currentPrefs);
-
-    // Act
-    component.preferences.set(updatedPrefs);
-
-    // Assert
-    expect(component.hasChanges()).toBe(true);
-  });
-
-  it('should detect changes in preferences', () => {
-    const updatedPrefs = { ...mockPreferences, theme: 'light' as const };
-    component.preferences.set(updatedPrefs);
-    expect(component.hasChanges()).toBe(true);
-  });
-
-  it('should handle save preferences failure', () => {
-    const updatedPrefs = { ...mockPreferences, theme: 'light' as const };
-    component.preferences.set(updatedPrefs);
-    settingsService.updatePreferences.and.returnValue(throwError(() => new Error('Failed')));
-    
-    component.savePreferences();
-    expect(snackBar.open).toHaveBeenCalledWith('Error saving preferences', 'Close', { duration: 3000 });
-  });
-
-  it('should handle reset preferences failure', () => {
-    settingsService.resetPreferences.and.returnValue(throwError(() => new Error('Failed')));
-    
-    component.resetToDefaults();
-    expect(snackBar.open).toHaveBeenCalledWith('Error resetting preferences', 'Close', { duration: 3000 });
+    expect(preferencesHandler.resetToDefaults).toHaveBeenCalled();
   });
 });

@@ -32,6 +32,7 @@ export class SettingsBusinessService {
     if (user) {
       this.businessName.set(user.businessName || '');
       this.bio.set(user.bio || '');
+      this.contactPhone.set(user.contactPhone || '');
       this.services.set(user.services || []);
       this.categories.set(user.categories || []);
       this.customCategories.set(user.customCategories || []);
@@ -41,6 +42,19 @@ export class SettingsBusinessService {
       this.locationCityModel.set(user.locationCity || '');
       this.locationAddressModel.set(user.locationAddress || '');
     }
+  }
+
+  updateField(updates: any) {
+    if (updates.businessName !== undefined) this.businessName.set(updates.businessName);
+    if (updates.bio !== undefined) this.bio.set(updates.bio);
+    if (updates.contactPhone !== undefined) this.contactPhone.set(updates.contactPhone);
+    if (updates.services !== undefined) this.services.set(updates.services);
+    if (updates.categories !== undefined) this.categories.set(updates.categories);
+    if (updates.customCategories !== undefined) this.customCategories.set(updates.customCategories);
+    if (updates.availableDurations !== undefined) this.availableDurations.set(updates.availableDurations);
+    if (updates.locationDetails?.country !== undefined) this.locationCountryModel.set(updates.locationDetails.country);
+    if (updates.locationDetails?.city !== undefined) this.locationCityModel.set(updates.locationDetails.city);
+    if (updates.locationDetails?.address !== undefined) this.locationAddressModel.set(updates.locationDetails.address);
   }
 
   // ngModel bridges for templates (getter/setter over signals)
@@ -62,7 +76,8 @@ export class SettingsBusinessService {
       categories: this.categories(),
       customCategories: this.customCategories(),
       availableDurations: this.availableDurations(),
-      locationDetails: this.locationDetails(),
+      locationCountry: this.locationCountryModel(),
+      locationCity: this.locationCityModel(),
       locationAddress: this.locationAddressModel(),
     };
 

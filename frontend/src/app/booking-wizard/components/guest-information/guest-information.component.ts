@@ -15,82 +15,8 @@ import { MatButtonModule } from '@angular/material/button';
 
 @Component({
   selector: 'app-guest-information',
-  template: `
-    <div class="guest-information">
-      <h2>Your Information</h2>
-      <form [formGroup]="guestForm" (ngSubmit)="submitForm()">
-        <mat-form-field>
-          <input matInput placeholder="Full Name" formControlName="name">
-          <mat-error *ngIf="guestForm.get('name')?.hasError('required')">
-            Name is required
-          </mat-error>
-        </mat-form-field>
-        
-        <mat-form-field>
-          <input matInput placeholder="Email" formControlName="email">
-          <mat-error *ngIf="guestForm.get('email')?.hasError('required')">
-            Email is required
-          </mat-error>
-          <mat-error *ngIf="guestForm.get('email')?.hasError('email')">
-            Please enter a valid email address
-          </mat-error>
-        </mat-form-field>
-        
-        <mat-form-field>
-          <input matInput placeholder="Phone" formControlName="phone">
-          <mat-error *ngIf="guestForm.get('phone')?.hasError('invalidPhone')">
-            Please enter a valid phone number
-          </mat-error>
-        </mat-form-field>
-        
-        <mat-form-field>
-          <textarea matInput placeholder="Notes (optional)" formControlName="notes" rows="3"></textarea>
-        </mat-form-field>
-        
-        <div class="actions">
-          <button mat-button type="button" (click)="goBack()">Back</button>
-          <button mat-raised-button color="primary" type="submit" [disabled]="guestForm.invalid || (loading$ | async)">
-            <span *ngIf="!(loading$ | async)">Confirm Booking</span>
-            <span *ngIf="loading$ | async">Processing...</span>
-          </button>
-        </div>
-      </form>
-      
-      <div *ngIf="error$ | async as error" class="error-message">
-        {{ error }}
-      </div>
-    </div>
-  `,
-  styles: [`
-    .guest-information {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 20px;
-    }
-    
-    form {
-      width: 100%;
-      max-width: 400px;
-    }
-    
-    mat-form-field {
-      width: 100%;
-    }
-    
-    .actions {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      margin-top: 20px;
-    }
-    
-    .error-message {
-      color: #f44336;
-      text-align: center;
-      margin-top: 10px;
-    }
-  `],
+  templateUrl: './guest-information.component.html',
+  styleUrls: ['./guest-information.component.scss'],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -136,24 +62,6 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
     // Get providerId from parent route
     this.providerId = this.route.parent?.snapshot.paramMap.get('providerId') || '';
     console.log('📋 [Guest Information] Provider ID from route:', this.providerId);
-    
-    // Fetch provider info to check payment requirements
-    if (this.providerId) {
-      this.providerInfoService.getProviderInfo(this.providerId)
-        .pipe(takeUntil(this.destroy$))
-        .subscribe({
-          next: (provider) => {
-            console.log('✅ [Guest Information] Provider info loaded:', {
-              requiresPayment: provider.preferences?.payment?.requirePaymentForBookings,
-              hourlyRate: provider.preferences?.payment?.hourlyRate,
-              currency: provider.preferences?.payment?.currency
-            });
-          },
-          error: (err) => {
-            console.error('❌ [Guest Information] Failed to load provider info:', err);
-          }
-        });
-    }
     console.log('📋 [Guest Information] Form initial state:', this.guestForm.value);
     console.log('📋 [Guest Information] Form valid:', this.guestForm.valid);
     
@@ -297,18 +205,15 @@ export class GuestInformationComponent implements OnInit, OnDestroy {
             totalAmount: booking.totalAmount,
             paymentStatus: booking.paymentStatus
           });
-          
-          // Check if payment is required
+
           const requiresPayment = this.providerInfoService.requiresPayment();
           const bookingRequiresPayment = booking.totalAmount && booking.totalAmount > 0;
-          
+
           if (requiresPayment && bookingRequiresPayment && booking.paymentStatus === 'pending') {
-            console.log('💳 [Guest Information] Payment required - redirecting to checkout');
             this.router.navigate(['/booking', this.providerId, 'payment-checkout'], {
               queryParams: { bookingId: booking.id }
             });
           } else {
-            console.log('🚀 [Guest Information] Free booking - navigating to confirmation');
             this.router.navigate(['/booking', this.providerId, 'confirmation']);
           }
         } else if (error) {
