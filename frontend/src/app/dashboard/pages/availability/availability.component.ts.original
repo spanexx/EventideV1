@@ -220,8 +220,6 @@ export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
 
 
   ngOnInit(): void {
-    console.log('🚀 [AvailabilityComponent] ngOnInit called - Component initializing');
-    
     // Load calendar preferences first
     console.log('[AvailabilityComponent] Loading calendar preferences');
     this.calendarStateService.loadPreferences();
@@ -256,25 +254,25 @@ export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
     this.initializeSmartCalendar();
     
     // Get the current user and load availability for that user
-    // FIXED: Removed take(1) to allow reloading when returning to component
+    // Use filter + take(1) to ensure we get the initial value immediately
     console.log('🔍 [AvailabilityComponent] Subscribing to userId selector');
     this.store.select(AuthSelectors.selectUserId)
       .pipe(
         filter(userId => {
-          console.log('🔍 [AvailabilityComponent] UserId from store:', userId, 'Type:', typeof userId);
-          return !!userId && userId !== '';
+          console.log('🔍 [AvailabilityComponent] UserId from store:', userId);
+          return !!userId;
         }),
+        take(1),
         takeUntil(this.destroy$)
       )
       .subscribe(userId => {
-        console.log('✅ [AvailabilityComponent] Loading availability for user', userId, 'at', new Date().toISOString());
+        console.log('✅ [AvailabilityComponent] Loading availability for user', userId);
         this.store.dispatch(AvailabilityActions.loadAvailability({ 
           providerId: userId, 
           date: today
         }));
         // Trigger change detection to ensure UI updates with OnPush
         this.cdr.markForCheck();
-        console.log('✅ [AvailabilityComponent] Change detection marked');
       });
     
     // Subscribe to error updates and show snackbar notifications
@@ -862,10 +860,9 @@ export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    console.log('🔴 [AvailabilityComponent] ngOnDestroy called - Component being destroyed at', new Date().toISOString());
+    console.debug('[AvailabilityComponent] Destroying component, unsubscribing streams');
     this.destroy$.next();
     this.destroy$.complete();
-    console.log('🔴 [AvailabilityComponent] All subscriptions cleaned up');
   }
 
   // TrackBy functions for performance optimization

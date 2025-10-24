@@ -82,6 +82,41 @@ class BookingPreferencesDto {
   autoConfirmBookings?: boolean;
 }
 
+class PaymentPreferencesDto {
+  @ApiPropertyOptional({
+    description: 'Require payment for bookings',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  requirePaymentForBookings?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Hourly rate in cents',
+    example: 5000,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  hourlyRate?: number;
+
+  @ApiPropertyOptional({
+    description: 'Currency code (ISO 4217)',
+    example: 'usd',
+  })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({
+    description: 'Accepted payment methods',
+    example: ['card', 'bank_transfer'],
+    type: [String],
+  })
+  @IsOptional()
+  acceptedPaymentMethods?: string[];
+}
+
 class CalendarPreferencesDto {
   @ApiPropertyOptional({
     description: 'Default calendar view',
@@ -156,6 +191,15 @@ export class UpdateUserPreferencesDto {
   @ValidateNested()
   @Type(() => BookingPreferencesDto)
   booking?: BookingPreferencesDto;
+
+  @ApiPropertyOptional({
+    description: 'Payment preferences',
+    type: PaymentPreferencesDto,
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => PaymentPreferencesDto)
+  payment?: PaymentPreferencesDto;
 
   @ApiPropertyOptional({
     description: 'Booking approval mode',

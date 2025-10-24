@@ -34,6 +34,7 @@ export class PreferencesHandler {
       `Received preferences DTO:`,
       JSON.stringify(preferences, null, 2),
     );
+    this.logger.log(`💰 Payment field in DTO: ${JSON.stringify((preferences as any).payment, null, 2)}`);
 
     const user = await this.userModel.findById(userId).exec();
     if (!user) {
@@ -46,6 +47,7 @@ export class PreferencesHandler {
       `Current user preferences:`,
       JSON.stringify(currentPreferences, null, 2),
     );
+    this.logger.log(`💰 Current payment preferences: ${JSON.stringify(currentPreferences.payment, null, 2)}`);
 
     const updatedPreferences: UserPreferences = {
       notifications: {
@@ -99,6 +101,7 @@ export class PreferencesHandler {
     this.logger.log(
       `New timezone value: ${preferences.timezone} -> ${updatedPreferences.timezone}`,
     );
+    this.logger.log(`💰 Merged payment preferences: ${JSON.stringify(updatedPreferences.payment, null, 2)}`);
 
     user.preferences = updatedPreferences;
     const savedUser = await user.save();
@@ -111,6 +114,7 @@ export class PreferencesHandler {
       `Saved user preferences:`,
       JSON.stringify(savedUser.preferences, null, 2),
     );
+    this.logger.log(`💰 Saved payment preferences: ${JSON.stringify(savedUser.preferences.payment, null, 2)}`);
     this.logger.log(`Successfully updated preferences for user: ${userId}`);
 
     // Log what we're returning
@@ -119,6 +123,7 @@ export class PreferencesHandler {
       JSON.stringify(savedUser.preferences, null, 2),
     );
     this.logger.log(`Returning timezone: ${savedUser.preferences.timezone}`);
+    this.logger.log(`💰 Returning payment preferences: ${JSON.stringify(savedUser.preferences.payment, null, 2)}`);
 
     return savedUser.preferences;
   }

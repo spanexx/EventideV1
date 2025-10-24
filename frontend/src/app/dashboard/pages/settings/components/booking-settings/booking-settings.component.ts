@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnChanges, SimpleChanges } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
@@ -29,7 +29,7 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
   templateUrl: './booking-settings.component.html',
   styleUrl: './booking-settings.component.scss',
 })
-export class BookingSettingsComponent {
+export class BookingSettingsComponent implements OnChanges {
   @Input() preferences?: UserPreferences;
   @Input() loading!: boolean;
   @Output() preferenceChange = new EventEmitter<{key: string, value: any}>();
@@ -40,6 +40,13 @@ export class BookingSettingsComponent {
 
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
   paymentMethodSuggestions = ['card', 'bank_transfer', 'cash', 'paypal'];
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['preferences']) {
+      const val = this.preferences?.payment?.requirePaymentForBookings;
+      console.log('🧩 [BookingSettingsComponent] Input preferences changed. requirePaymentForBookings =', val);
+    }
+  }
 
   onHourlyRateChange(value: number | string): void {
     const parsed = typeof value === 'string' ? parseInt(value, 10) : value;

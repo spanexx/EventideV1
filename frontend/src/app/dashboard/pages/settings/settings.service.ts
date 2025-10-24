@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { BehaviorSubject, Observable, catchError, of, tap, distinctUntilChanged, shareReplay } from 'rxjs';
+import { BehaviorSubject, Observable, catchError, of, tap, distinctUntilChanged, shareReplay, map } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import { Store } from '@ngrx/store';
 import { selectIsAuthenticated } from '../../../auth/store/auth/selectors/auth.selectors';
@@ -165,6 +165,20 @@ export class SettingsService {
     // Use cached observable if available
     if (!this.preferencesCache$) {
       this.preferencesCache$ = this.http.get<UserPreferences>(this.apiUrl).pipe(
+        map((preferences) => {
+          // Guard: backend may omit payment in response
+          const current = this.preferencesSubject.getValue();
+          const merged: UserPreferences = {
+            ...preferences,
+            payment: (preferences as any).payment ?? current.payment ?? DEFAULT_PREFERENCES.payment,
+          } as UserPreferences;
+
+          console.log('[SettingsService] getPreferences response:', JSON.stringify(preferences));
+          if (!(preferences as any).payment) {
+            console.warn('[SettingsService] payment missing in GET response; preserving current/default payment');
+          }
+          return merged;
+        }),
         tap((preferences) => {
           this.preferencesSubject.next(preferences);
           this.saveToStorage(preferences);
@@ -184,9 +198,23 @@ export class SettingsService {
     this.preferencesCache$ = undefined;
     
     return this.http.patch<UserPreferences>(this.apiUrl, preferences).pipe(
-      tap((updatedPreferences) => {
-        this.preferencesSubject.next(updatedPreferences);
-        this.saveToStorage(updatedPreferences);
+      map((updatedPreferences) => {
+        // Guard: if backend response omits payment, preserve current payment to avoid UI flip
+        const current = this.preferencesSubject.getValue();
+        const merged: UserPreferences = {
+          ...updatedPreferences,
+          payment: (updatedPreferences as any).payment ?? current.payment,
+        } as UserPreferences;
+
+        // Debug logging
+        console.log('[SettingsService] updatePreferences response:', JSON.stringify(updatedPreferences));
+        if (!(updatedPreferences as any).payment) {
+          console.warn('[SettingsService] payment was missing in response; preserving current payment');
+        }
+
+        this.preferencesSubject.next(merged);
+        this.saveToStorage(merged);
+        return merged;
       }),
       catchError((error: HttpErrorResponse) => {
         console.error('Failed to update preferences:', error);

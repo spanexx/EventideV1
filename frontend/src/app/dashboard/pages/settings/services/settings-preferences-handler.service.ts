@@ -163,6 +163,9 @@ export class SettingsPreferencesHandlerService {
     sectionName: string,
     updateSection: Partial<UserPreferences>,
   ): void {
+    console.log(`📤 [SettingsPreferencesHandler] savePreferencesCommon called for: ${sectionName}`);
+    console.log('📤 [SettingsPreferencesHandler] Update section:', JSON.stringify(updateSection, null, 2));
+    
     this.loading.set(true);
 
     const currentPrefs = this.preferences();
@@ -179,15 +182,33 @@ export class SettingsPreferencesHandlerService {
       ...updateSection,
     };
 
+    console.log('📤 [SettingsPreferencesHandler] Full preferences being sent to backend:', JSON.stringify(allPrefs, null, 2));
+    console.log('📤 [SettingsPreferencesHandler] Payment in full prefs:', JSON.stringify(allPrefs.payment, null, 2));
+
     this.settingsService.updatePreferences(allPrefs).subscribe({
       next: (updated: UserPreferences) => {
-        this.preferencesState.set(updated);
+        console.log('📥 [SettingsPreferencesHandler] Received response from backend:', JSON.stringify(updated, null, 2));
+        console.log('📥 [SettingsPreferencesHandler] Payment in response:', JSON.stringify(updated.payment, null, 2));
+        
+        // Guard: if backend response omits payment, preserve current payment
+        const current = this.preferences();
+        const merged: UserPreferences = {
+          ...updated,
+          payment: (updated as any).payment ?? current.payment,
+        } as UserPreferences;
+        if (!(updated as any).payment) {
+          console.warn('[SettingsPreferencesHandler] payment missing in response; preserved current payment');
+        }
+
+        this.preferencesState.set(merged);
+        console.log('✅ [SettingsPreferencesHandler] State updated with response');
+        
         this.store.dispatch(
           updateAppearancePreferences({
             preferences: {
-              theme: updated.theme,
-              language: updated.language,
-              timezone: updated.timezone,
+              theme: merged.theme,
+              language: merged.language,
+              timezone: merged.timezone,
             },
           }),
         );
@@ -195,6 +216,7 @@ export class SettingsPreferencesHandlerService {
         this.loading.set(false);
       },
       error: (err: Error) => {
+        console.error('❌ [SettingsPreferencesHandler] Error saving preferences:', err);
         this.snackBar.open(`Error saving ${sectionName}`, 'Close', { duration: 3000 });
         this.loading.set(false);
       },
@@ -229,9 +251,15 @@ export class SettingsPreferencesHandlerService {
   }
 
   saveBookingSettings(): void {
+    const bookingPrefs = this.preferences().booking;
+    const paymentPrefs = this.preferences().payment;
+    console.log('💾 [SettingsPreferencesHandler] saveBookingSettings called');
+    console.log('💾 [SettingsPreferencesHandler] Booking preferences:', JSON.stringify(bookingPrefs, null, 2));
+    console.log('💾 [SettingsPreferencesHandler] Payment preferences:', JSON.stringify(paymentPrefs, null, 2));
+    
     this.savePreferencesCommon('Booking settings', {
-      booking: this.preferences().booking,
-      payment: this.preferences().payment,
+      booking: bookingPrefs,
+      payment: paymentPrefs,
     });
   }
 
@@ -321,7 +349,16 @@ export class SettingsPreferencesHandlerService {
 
     this.settingsService.updatePreferences(allPrefs).subscribe({
       next: (updated: UserPreferences) => {
-        this.preferencesState.set(updated);
+        // Guard: if backend response omits payment, preserve current payment
+        const current = this.preferences();
+        const merged: UserPreferences = {
+          ...updated,
+          payment: (updated as any).payment ?? current.payment,
+        } as UserPreferences;
+        if (!(updated as any).payment) {
+          console.warn('[SettingsPreferencesHandler] payment missing in response; preserved current payment');
+        }
+        this.preferencesState.set(merged);
         this.snackBar.open('Preferences saved successfully', 'Close', { duration: 3000 });
         this.loading.set(false);
       },

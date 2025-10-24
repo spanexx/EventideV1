@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { Observable, Subject } from 'rxjs';
-import { takeUntil } from 'rxjs/operators';
+import { takeUntil, filter, take } from 'rxjs/operators';
 import * as AnalyticsActions from '../../store/actions/analytics.actions';
 import * as AnalyticsSelectors from '../../store/selectors/analytics.selectors';
 import * as AuthSelectors from '../../../../../auth/store/auth/selectors/auth.selectors';
@@ -94,10 +94,16 @@ export class ReportsComponent implements OnInit, OnDestroy {
     this.analyticsService.clearReportCache();
 
     // Get the current user and generate report for that user
+    console.log('🔍 [ReportsComponent] Subscribing to userId selector');
     this.store.select(AuthSelectors.selectUserId).pipe(
+      filter(userId => {
+        console.log('🔍 [ReportsComponent] UserId from store:', userId, 'Type:', typeof userId);
+        return !!userId && userId !== '';
+      }),
+      take(1),
       takeUntil(this.destroy$)
-    ).subscribe(userId => {
-      if (userId) {
+    ).subscribe({
+      next: (userId) => {
         console.log('👤 [ReportsComponent] Dispatching generate report for user', { userId, reportType: this.reportType });
         this.logToBackend('info', 'ReportsComponent: Generating report', {
           userId,
@@ -116,9 +122,10 @@ export class ReportsComponent implements OnInit, OnDestroy {
           },
           reportType: this.reportType
         }));
-      } else {
-        console.warn('⚠️ [ReportsComponent] No user ID found, cannot generate report');
-        this.logToBackend('warn', 'ReportsComponent: No user ID found, cannot generate report');
+      },
+      error: (error) => {
+        console.error('❌ [ReportsComponent] Error getting userId', error);
+        this.logToBackend('error', 'Failed to get userId', error);
       }
     });
   }

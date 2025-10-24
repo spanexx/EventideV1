@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, DestroyRef, ChangeDetectionStrategy } from '@angular/core';
+import { Component, OnInit, effect, inject, DestroyRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -97,6 +97,7 @@ export class SettingsComponent implements OnInit {
     private store: Store,
     private authService: AuthService,
     private destroyRef: DestroyRef,
+    private cdr: ChangeDetectorRef,
     public profileService: SettingsProfileService,
     public businessService: SettingsBusinessService,
     public preferencesHandler: SettingsPreferencesHandlerService,
@@ -107,6 +108,8 @@ export class SettingsComponent implements OnInit {
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe((prefs) => {
           this.preferencesHandler.setPreferences(prefs);
+          // Ensure OnPush components update when preferences change (e.g., preserved payment)
+          this.cdr.markForCheck();
         });
     });
 

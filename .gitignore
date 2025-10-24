@@ -52,17 +52,17 @@ tskdb_stdio*
 tskdb.json
 
 # Private/secret files
-GEMINI.md
-QWEN.md
-tskdb_stdio-default.json
-commands/
-prompt.prepare
-Event.md
-backend/scripts/
-test*
-backend/browser-logs/*
-backend/backend-logs/*
-.qwen*
+ GEMINI.md
+ QWEN.md
+ tskdb_stdio-default.json
+ commands/
+ prompt.prepare
+ Event.md
+ backend/scripts/
+ test*
+ backend/browser-logs/*
+ backend/backend-logs/*
+ .qwen*
 
 .tskdb_backup*
 

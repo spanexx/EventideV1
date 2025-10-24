@@ -72,6 +72,24 @@ export class BookingPreferencesResponse {
   autoConfirmBookings!: boolean;
 }
 
+export class PaymentPreferencesResponse {
+  @ApiProperty({ description: 'Require payment for bookings' })
+  @Expose()
+  requirePaymentForBookings!: boolean;
+
+  @ApiProperty({ description: 'Hourly rate in cents', required: false })
+  @Expose()
+  hourlyRate?: number;
+
+  @ApiProperty({ description: 'Currency code (ISO 4217)' })
+  @Expose()
+  currency!: string;
+
+  @ApiProperty({ description: 'Accepted payment methods', type: [String], required: false })
+  @Expose()
+  acceptedPaymentMethods?: string[];
+}
+
 export class UserPreferencesResponseDto {
   @ApiProperty({
     description: 'Notification preferences',
@@ -107,6 +125,13 @@ export class UserPreferencesResponseDto {
   })
   @Expose()
   booking!: BookingPreferencesResponse;
+
+  @ApiProperty({
+    description: 'Payment preferences',
+    type: PaymentPreferencesResponse,
+  })
+  @Expose()
+  payment!: PaymentPreferencesResponse;
 
   @ApiProperty({
     description: 'Booking approval mode',
@@ -145,11 +170,13 @@ export class UserPreferencesResponseDto {
     this.calendar = preferences.calendar;
     this.privacy = preferences.privacy;
     this.booking = preferences.booking;
+    this.payment = preferences.payment;
     this.bookingApprovalMode = preferences.bookingApprovalMode;
     this.language = preferences.language;
     this.timezone = preferences.timezone;
 
     console.log('🔧 Setting timezone to:', preferences.timezone);
+    console.log('💰 Setting payment to:', JSON.stringify(preferences.payment, null, 2));
 
     this.updatedAt = updatedAt;
 

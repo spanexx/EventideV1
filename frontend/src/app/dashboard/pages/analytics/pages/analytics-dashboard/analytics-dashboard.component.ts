@@ -106,21 +106,32 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
     this.analyticsService.clearAnalyticsCache();
 
     // Get the current user and load analytics data for that user
+    console.log('🔍 [AnalyticsDashboardComponent] Subscribing to userId selector');
     this.store.select(AuthSelectors.selectUserId).pipe(
-      filter(userId => userId !== ''), // Wait for a non-empty user ID
+      filter(userId => {
+        console.log('🔍 [AnalyticsDashboardComponent] UserId from store:', userId, 'Type:', typeof userId);
+        return !!userId && userId !== '';
+      }),
       take(1), // Take only the first non-empty user ID
       takeUntil(this.destroy$)
-    ).subscribe(userId => {
-      console.log('👤 [AnalyticsDashboardComponent] Dispatching load analytics data for user', { userId });
-      this.store.dispatch(AnalyticsActions.loadAnalyticsData({
-        request: {
-          providerId: userId,
-          dateRange: {
-            startDate: this.startDate,
-            endDate: this.endDate
+    ).subscribe({
+      next: (userId) => {
+        console.log('✅ [AnalyticsDashboardComponent] Dispatching load analytics data for user', { userId });
+        this.logToBackend('info', 'Loading analytics data', { userId, startDate: this.startDate, endDate: this.endDate });
+        this.store.dispatch(AnalyticsActions.loadAnalyticsData({
+          request: {
+            providerId: userId,
+            dateRange: {
+              startDate: this.startDate,
+              endDate: this.endDate
+            }
           }
-        }
-      }));
+        }));
+      },
+      error: (error) => {
+        console.error('❌ [AnalyticsDashboardComponent] Error getting userId', error);
+        this.logToBackend('error', 'Failed to get userId', error);
+      }
     });
   }
   
