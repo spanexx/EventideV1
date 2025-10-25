@@ -1,0 +1,16 @@
+=== E2E Analysis Report ===
+Target: /home/spanexx/Shared/Projects/EventideV1/frontend/src/app/dashboard/pages/settings
+Issue: Settings fields not populated
+Date: 2025-10-24T11:22:32.763Z
+Files analyzed: 25
+
+=== Duplicate Logic ===
+- /home/spanexx/Shared/Projects/EventideV1/frontend/src/app/dashboard/pages/settings/components/appearance-settings/appearance-settings.component.ts ↔ /home/spanexx/Shared/Projects/EventideV1/frontend/src/app/dashboard/pages/settings/components/localization-settings/localization-settings.component.ts
+- /home/spanexx/Shared/Projects/EventideV1/frontend/src/app/dashboard/pages/settings/components/appearance-settings/appearance-settings.component.ts ↔ /home/spanexx/Shared/Projects/EventideV1/frontend/src/app/dashboard/pages/settings/components/privacy-settings/privacy-settings.component.ts
+
+=== Unused Services ===
+No unused services found.
+
+=== Settings-Specific Issues ===
+No settings-specific issues found.
+✅ End-to-End Analysis Complete.

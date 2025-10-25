@@ -12,6 +12,9 @@ export class PendingChangesSignalService {
   // Core state signals
   private readonly originalState = signal<Availability[]>([]);
   private readonly changes = signal<Change[]>([]);
+  // Commit/suspension controls to avoid overwriting UI state while saving
+  private readonly commitInProgress = signal<boolean>(false);
+  private readonly suspendStoreSyncUntil = signal<number>(0);
   
   // Computed signals (auto-update when dependencies change)
   readonly currentState = computed(() => 
@@ -44,6 +47,7 @@ export class PendingChangesSignalService {
    * @param originalState The original availability state
    */
   initialize(originalState: Availability[]): void {
+    console.debug('[PendingChangesSignalService] initialize', { count: originalState.length });
     this.originalState.set([...originalState]);
     this.changes.set([]);
   }
@@ -53,6 +57,7 @@ export class PendingChangesSignalService {
    * @param change The change to add
    */
   addChange(change: Change): void {
+    console.debug('[PendingChangesSignalService] addChange', { type: change.type, entityId: change.entityId, hasEntity: !!change.entity });
     this.changes.update(currentChanges => [...currentChanges, change]);
   }
 
@@ -61,6 +66,7 @@ export class PendingChangesSignalService {
    * @param change The change to update or add
    */
   updateChange(change: Change): void {
+    console.debug('[PendingChangesSignalService] updateChange', { id: change.id, type: change.type });
     this.changes.update(currentChanges => {
       const index = currentChanges.findIndex(c => c.id === change.id);
       if (index !== -1) {
@@ -80,6 +86,7 @@ export class PendingChangesSignalService {
    * @param changeId The ID of the change to remove
    */
   removeChange(changeId: string): void {
+    console.debug('[PendingChangesSignalService] removeChange', { changeId });
     this.changes.update(currentChanges => 
       currentChanges.filter(c => c.id !== changeId)
     );
@@ -114,6 +121,7 @@ export class PendingChangesSignalService {
    * @param newState The new availability state
    */
   updateCurrentState(newState: Availability[]): void {
+    console.debug('[PendingChangesSignalService] updateCurrentState', { count: newState.length });
     // When updating current state, we assume this is a new original state
     // and clear any pending changes
     this.originalState.set([...newState]);
@@ -124,6 +132,7 @@ export class PendingChangesSignalService {
    * Save the pending changes (clears the pending changes list)
    */
   saveChanges(): void {
+    console.debug('[PendingChangesSignalService] saveChanges move current->original');
     // Move current state to original state and clear changes
     this.originalState.set([...this.currentState()]);
     this.changes.set([]);
@@ -134,6 +143,7 @@ export class PendingChangesSignalService {
    * @returns The original availability state
    */
   discardChanges(): Availability[] {
+    console.debug('[PendingChangesSignalService] discardChanges');
     this.changes.set([]);
     return [...this.originalState()];
   }
@@ -144,6 +154,32 @@ export class PendingChangesSignalService {
    */
   getOriginalState(): Availability[] {
     return [...this.originalState()];
+  }
+ 
+  // === Commit/suspension helpers ===
+  startCommit(): void {
+    console.debug('[PendingChangesSignalService] startCommit');
+    this.commitInProgress.set(true);
+  }
+ 
+  endCommit(): void {
+    console.debug('[PendingChangesSignalService] endCommit');
+    this.commitInProgress.set(false);
+  }
+ 
+  suspendStoreSyncFor(ms: number): void {
+    const until = Date.now() + ms;
+    this.suspendStoreSyncUntil.set(until);
+    console.debug('[PendingChangesSignalService] suspendStoreSyncFor', { ms, until });
+  }
+ 
+  isCommitInProgress(): boolean {
+    return this.commitInProgress();
+  }
+ 
+  isStoreSyncSuspended(): boolean {
+    const suspended = Date.now() < this.suspendStoreSyncUntil();
+    return this.commitInProgress() || suspended;
   }
   
   /**

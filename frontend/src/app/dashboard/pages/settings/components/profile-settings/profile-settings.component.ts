@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject, DestroyRef } from '@angular/core';
+import { Component, OnInit, OnChanges, SimpleChanges, signal, inject, DestroyRef, Input, EventEmitter, Output, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -12,10 +12,12 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import * as AuthActions from '../../../../../auth/store/auth/actions/auth.actions';
 import { AuthService, User as AuthUser } from '../../../../../services/auth.service';
 import { selectUserEmail } from '../../../../../auth/store/auth/selectors/auth.selectors';
+import { SettingsProfileService } from '../../services/settings-profile.service';
 
 @Component({
   selector: 'app-profile-settings',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -28,64 +30,71 @@ import { selectUserEmail } from '../../../../../auth/store/auth/selectors/auth.s
   templateUrl: './profile-settings.component.html',
   styleUrl: './profile-settings.component.scss',
 })
-export class ProfileSettingsComponent implements OnInit {
+export class ProfileSettingsComponent implements OnInit, OnChanges {
   private authService = inject(AuthService);
   private snackBar = inject(MatSnackBar);
   private store = inject(Store);
   private destroyRef = inject(DestroyRef);
+  private profileService = inject(SettingsProfileService);
+  private cdr = inject(ChangeDetectorRef);
 
-  // Local editable fields for profile
-  firstName = signal<string>('');
-  lastName = signal<string>('');
-  savingProfile = signal(false);
+  // Inputs from parent
+  @Input() firstName: any;
+  @Input() lastName: any;
+  @Input() savingProfile: any;
+  @Input() userEmail: any;
+
+  // Outputs to parent
+  @Output() saveProfileEvent = new EventEmitter<void>();
 
   // Bridge properties for [(ngModel)] - ngModel needs property accessors
   get firstNameModel(): string {
-    return this.firstName();
+    return this.firstName?.() || '';
   }
   set firstNameModel(v: string) {
-    this.firstName.set(v);
+    this.profileService.firstName.set(v);
   }
 
   get lastNameModel(): string {
-    return this.lastName();
+    return this.lastName?.() || '';
   }
   set lastNameModel(v: string) {
-    this.lastName.set(v);
+    this.profileService.lastName.set(v);
   }
 
-  userEmail$!: Observable<string>;
-
-  constructor() {
-    // Subscribe to current user to populate editable fields
-    this.authService.currentUser$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((u) => {
-      const user = u as AuthUser | null;
-      this.firstName.set(user?.firstName ?? '');
-      this.lastName.set(user?.lastName ?? '');
-    });
+  ngOnChanges(changes: SimpleChanges): void {
+    // Trigger change detection when inputs change
+    if (changes['firstName'] || changes['lastName']) {
+      console.debug('[ProfileSettingsComponent] inputs changed', {
+        firstName: this.firstName,
+        lastName: this.lastName
+      });
+      // Update profile service signals when inputs change
+      if (this.firstName?.()) {
+        this.profileService.firstName.set(this.firstName());
+      }
+      if (this.lastName?.()) {
+        this.profileService.lastName.set(this.lastName());
+      }
+      this.cdr.markForCheck();
+    }
   }
 
   ngOnInit(): void {
-    this.userEmail$ = this.store.select(selectUserEmail);
-    // Refresh user data from the API to ensure we have the latest data
-    this.store.dispatch(AuthActions.refreshUser());
+    console.debug('[ProfileSettingsComponent] initialized with', {
+      firstName: this.firstName,
+      lastName: this.lastName
+    });
+    // Initialize profile service with input values
+    if (this.firstName?.()) {
+      this.profileService.firstName.set(this.firstName());
+    }
+    if (this.lastName?.()) {
+      this.profileService.lastName.set(this.lastName());
+    }
   }
 
   public saveProfile(): void {
-    const f = this.firstName();
-    const l = this.lastName();
-    const updates: Partial<AuthUser> = { firstName: f, lastName: l };
-    this.savingProfile.set(true);
-    this.authService.updateCurrentUser(updates).subscribe({
-      next: (user) => {
-        this.snackBar.open('Profile updated', 'Close', { duration: 2000 });
-        this.savingProfile.set(false);
-      },
-      error: (err) => {
-        console.error('Failed to update profile', err);
-        this.snackBar.open('Failed to update profile', 'Close', { duration: 3000 });
-        this.savingProfile.set(false);
-      },
-    });
+    this.saveProfileEvent.emit();
   }
 }

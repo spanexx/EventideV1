@@ -3,6 +3,7 @@ import { Store } from '@ngrx/store';
 import { Observable } from 'rxjs';
 import { selectAuthLoading } from '../../../../auth/store/auth/selectors/auth.selectors';
 import * as AuthActions from '../../../../auth/store/auth/actions/auth.actions';
+import { User as AuthUser } from '../../../../services/auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -28,8 +29,9 @@ export class SettingsBusinessService {
     this.savingBusinessSettings = this.store.select(selectAuthLoading);
   }
 
-  updateFromUser(user: any) {
+  updateFromUser(user: AuthUser | null) {
     if (user) {
+      console.debug('[SettingsBusinessService] updating from user', user.email);
       this.businessName.set(user.businessName || '');
       this.bio.set(user.bio || '');
       this.contactPhone.set(user.contactPhone || '');
@@ -37,11 +39,37 @@ export class SettingsBusinessService {
       this.categories.set(user.categories || []);
       this.customCategories.set(user.customCategories || []);
       this.availableDurations.set(user.availableDurations || []);
-      this.locationDetails.set(user.locationDetails || '');
-      this.locationCountryModel.set(user.locationCountry || '');
-      this.locationCityModel.set(user.locationCity || '');
-      this.locationAddressModel.set(user.locationAddress || '');
+
+      // Handle location details properly
+      if (user.locationDetails) {
+        this.locationDetails.set(JSON.stringify(user.locationDetails));
+        this.locationCountryModel.set(user.locationDetails.country || '');
+        this.locationCityModel.set(user.locationDetails.city || '');
+        this.locationAddressModel.set(user.locationDetails.address || '');
+      } else {
+        this.locationDetails.set('');
+        this.locationCountryModel.set('');
+        this.locationCityModel.set('');
+        this.locationAddressModel.set('');
+      }
+    } else {
+      console.debug('[SettingsBusinessService] clearing business data');
+      this.clearBusinessData();
     }
+  }
+
+  private clearBusinessData() {
+    this.businessName.set('');
+    this.bio.set('');
+    this.contactPhone.set('');
+    this.services.set([]);
+    this.categories.set([]);
+    this.customCategories.set([]);
+    this.availableDurations.set([]);
+    this.locationDetails.set('');
+    this.locationCountryModel.set('');
+    this.locationCityModel.set('');
+    this.locationAddressModel.set('');
   }
 
   updateField(updates: any) {
@@ -76,9 +104,11 @@ export class SettingsBusinessService {
       categories: this.categories(),
       customCategories: this.customCategories(),
       availableDurations: this.availableDurations(),
-      locationCountry: this.locationCountryModel(),
-      locationCity: this.locationCityModel(),
-      locationAddress: this.locationAddressModel(),
+      locationDetails: {
+        country: this.locationCountryModel(),
+        city: this.locationCityModel(),
+        address: this.locationAddressModel(),
+      },
     };
 
     // Dispatch update via auth store

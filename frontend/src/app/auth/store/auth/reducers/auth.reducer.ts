@@ -92,9 +92,11 @@ export const authReducer = createReducer(
     error: null,
   })),
 
-  on(AuthActions.verifyTokenSuccess, (state, { user }) => ({
+  on(AuthActions.verifyTokenSuccess, (state, { user, token, refreshToken }) => ({
     ...state,
     user,
+    token,
+    refreshToken: refreshToken || null,
     isAuthenticated: true,
     loading: false,
   })),
@@ -261,6 +263,32 @@ export const authReducer = createReducer(
     loading: false,
     isLoading: false,
     verificationSuccess: false,
+    error,
+  })),
+
+  // Clear Error (does not change user/auth flags)
+  on(AuthActions.clearError, (state) => ({
+    ...state,
+    error: null,
+  })),
+
+  // Update User (for business and profile fields)
+  on(AuthActions.updateUser, (state) => ({
+    ...state,
+    loading: true,
+    error: null,
+  })),
+
+  on(AuthActions.updateUserSuccess, (state, { user }) => ({
+    ...state,
+    user,
+    loading: false,
+    error: null,
+  })),
+
+  on(AuthActions.updateUserFailure, (state, { error }) => ({
+    ...state,
+    loading: false,
     error,
   })),
 );

@@ -1,8 +1,9 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
 import { AuthState } from '../store/auth/reducers/auth.reducer';
 import { AuthService } from '../../services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
@@ -12,6 +13,7 @@ import * as AuthActions from '../store/auth/actions/auth.actions';
   selector: 'app-verify-email',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="verify-email-container">
       <div class="verify-email-card">
@@ -229,32 +231,54 @@ import * as AuthActions from '../store/auth/actions/auth.actions';
     }
   `]
 })
-export class VerifyEmailComponent implements OnInit {
+export class VerifyEmailComponent implements OnInit, OnDestroy {
   token: string | null = null;
   isVerifying = false;
   verificationSuccess = false;
   verificationError = false;
   errorMessage = '';
+  
+  private destroy$ = new Subject<void>();
 
   constructor(
     private route: ActivatedRoute,
     private router: Router,
     private store: Store<{ auth: AuthState }>,
     private authService: AuthService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
+    console.log('[VerifyEmailComponent] Component initialized');
+    
     // Get token from query parameters
-    this.route.queryParams.subscribe(params => {
+    this.route.queryParams.pipe(takeUntil(this.destroy$)).subscribe((params: any) => {
+      console.log('[VerifyEmailComponent] Query params received:', params);
       this.token = params['token'];
+      console.log('[VerifyEmailComponent] Token extracted:', { 
+        hasToken: !!this.token, 
+        tokenLength: this.token?.length,
+        tokenPreview: this.token?.substring(0, 20) + '...'
+      });
+      
       if (this.token) {
+        console.log('[VerifyEmailComponent] Token found, calling verifyEmail()');
         this.verifyEmail();
+      } else {
+        console.warn('[VerifyEmailComponent] No token found in query params');
       }
     });
 
     // Subscribe to auth state to handle verification results
-    this.store.select(state => state.auth).subscribe(authState => {
+    this.store.select(state => state.auth).pipe(takeUntil(this.destroy$)).subscribe((authState: AuthState) => {
+      console.log('[VerifyEmailComponent] Auth state updated:', {
+        isLoading: authState.isLoading,
+        verificationSuccess: authState.verificationSuccess,
+        hasError: !!authState.error,
+        error: authState.error
+      });
+      
       if (authState.isLoading) {
         this.isVerifying = true;
         this.verificationSuccess = false;
@@ -265,18 +289,36 @@ export class VerifyEmailComponent implements OnInit {
         if (authState.verificationSuccess) {
           this.verificationSuccess = true;
           this.verificationError = false;
+          console.log('[VerifyEmailComponent] Setting verificationSuccess = true, triggering change detection');
         } else if (authState.error) {
           this.verificationError = true;
           this.verificationSuccess = false;
           this.errorMessage = authState.error;
+          console.log('[VerifyEmailComponent] Setting verificationError = true, triggering change detection');
         }
       }
+      
+      // Trigger change detection since we're using OnPush strategy
+      this.cdr.markForCheck();
     });
   }
 
+  ngOnDestroy() {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   verifyEmail() {
+    console.log('[VerifyEmailComponent] verifyEmail() called with token:', {
+      hasToken: !!this.token,
+      tokenPreview: this.token?.substring(0, 20) + '...'
+    });
+    
     if (this.token) {
+      console.log('[VerifyEmailComponent] Dispatching verifyEmail action');
       this.store.dispatch(AuthActions.verifyEmail({ token: this.token }));
+    } else {
+      console.error('[VerifyEmailComponent] No token available for verification');
     }
   }
 

@@ -7,6 +7,7 @@ import { AuthService } from './services/auth.service';
 import { CalendarInitializationService } from './dashboard/services/calendar-initialization.service';
 import { AgentChatComponent } from './components/agent-chat/agent-chat.component';
 import { ThemeService } from './core/services/theme.service';
+import { RoutePersistenceService } from './core/services/route-persistence.service';
 
 @Component({
   selector: 'app-root',
@@ -22,9 +23,16 @@ export class App implements OnInit {
     private calendarInitializationService: CalendarInitializationService,
     private store: Store,
     private themeService: ThemeService,
+    private routePersistence: RoutePersistenceService,
   ) {}
 
   ngOnInit(): void {
+    // Start tracking route navigation for persistence
+    console.log('[App] Starting route persistence tracking');
+    this.routePersistence.startTracking();
+    // Persist current URL right away (helps on hard refresh)
+    this.routePersistence.captureCurrentUrl();
+
     // Verify authentication token
     this.authService.verifyToken().subscribe();
 

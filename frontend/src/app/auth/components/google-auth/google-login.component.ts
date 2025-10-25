@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -12,7 +12,8 @@ import { AuthService } from '../../../services/auth.service';
   standalone: true,
   imports: [CommonModule, RouterModule],
   templateUrl: './google-login.component.html',
-  styleUrls: ['./google-login.component.scss']
+  styleUrls: ['./google-login.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GoogleLoginComponent implements OnInit {
   private store = inject(Store);

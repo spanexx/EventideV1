@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit, OnChanges, SimpleChanges, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
@@ -29,7 +29,7 @@ import { COMMA, ENTER } from '@angular/cdk/keycodes';
   templateUrl: './business-settings.component.html',
   styleUrl: './business-settings.component.scss',
 })
-export class BusinessSettingsComponent implements OnInit {
+export class BusinessSettingsComponent implements OnInit, OnChanges {
   @Input() businessName!: string;
   @Input() bio!: string;
   @Input() contactPhone!: string;
@@ -42,6 +42,39 @@ export class BusinessSettingsComponent implements OnInit {
   @Input() savingBusinessSettings!: boolean;
   @Output() businessSettingsChange = new EventEmitter<any>();
   @Output() save = new EventEmitter<void>();
+
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  ngOnChanges(changes: SimpleChanges): void {
+    console.log('[BusinessSettingsComponent] ngOnChanges called', {
+      changes: Object.keys(changes),
+      businessName: { current: changes['businessName']?.currentValue, previous: changes['businessName']?.previousValue },
+      bio: { current: changes['bio']?.currentValue, previous: changes['bio']?.previousValue },
+      contactPhone: { current: changes['contactPhone']?.currentValue, previous: changes['contactPhone']?.previousValue },
+      services: { current: changes['services']?.currentValue, previous: changes['services']?.previousValue },
+      categories: { current: changes['categories']?.currentValue, previous: changes['categories']?.previousValue },
+      locationCountry: { current: changes['locationCountry']?.currentValue, previous: changes['locationCountry']?.previousValue },
+      locationCity: { current: changes['locationCity']?.currentValue, previous: changes['locationCity']?.previousValue },
+      locationAddress: { current: changes['locationAddress']?.currentValue, previous: changes['locationAddress']?.previousValue }
+    });
+    
+    // Always trigger change detection when any input changes
+    this.cdr.markForCheck();
+  }
+
+  ngOnInit(): void {
+    console.log('[BusinessSettingsComponent] ngOnInit called with inputs:', {
+      businessName: this.businessName,
+      bio: this.bio,
+      contactPhone: this.contactPhone,
+      services: this.services,
+      categories: this.categories,
+      availableDurations: this.availableDurations,
+      locationCountry: this.locationCountry,
+      locationCity: this.locationCity,
+      locationAddress: this.locationAddress
+    });
+  }
 
   // Bridge properties for [(ngModel)] - ngModel needs property accessors
   get businessNameModel(): string {
@@ -184,8 +217,6 @@ export class BusinessSettingsComponent implements OnInit {
   // Chip input properties
   readonly separatorKeysCodes = [ENTER, COMMA] as const;
 
-  ngOnInit(): void {}
-
   // Chip input methods
   addService(event: MatChipInputEvent): void {
     const value = (event.value || '').trim();
@@ -196,8 +227,8 @@ export class BusinessSettingsComponent implements OnInit {
   }
 
   removeService(service: string): void {
-    this.businessSettingsChange.emit({ 
-      services: this.services.filter((s) => s !== service) 
+    this.businessSettingsChange.emit({
+      services: this.services.filter((s) => s !== service)
     });
   }
 
@@ -210,8 +241,8 @@ export class BusinessSettingsComponent implements OnInit {
   }
 
   removeCategory(category: string): void {
-    this.businessSettingsChange.emit({ 
-      categories: this.categories.filter((c) => c !== category) 
+    this.businessSettingsChange.emit({
+      categories: this.categories.filter((c) => c !== category)
     });
   }
 
@@ -220,8 +251,8 @@ export class BusinessSettingsComponent implements OnInit {
     if (value) {
       const duration = parseInt(value);
       if (!isNaN(duration) && duration > 0 && !this.availableDurations.includes(duration)) {
-        this.businessSettingsChange.emit({ 
-          availableDurations: [...this.availableDurations, duration] 
+        this.businessSettingsChange.emit({
+          availableDurations: [...this.availableDurations, duration]
         });
       }
     }
@@ -229,8 +260,8 @@ export class BusinessSettingsComponent implements OnInit {
   }
 
   removeDuration(duration: number): void {
-    this.businessSettingsChange.emit({ 
-      availableDurations: this.availableDurations.filter((d) => d !== duration) 
+    this.businessSettingsChange.emit({
+      availableDurations: this.availableDurations.filter((d) => d !== duration)
     });
   }
 
@@ -271,8 +302,8 @@ export class BusinessSettingsComponent implements OnInit {
   onDurationSelected(event: any): void {
     const duration = parseInt(event.option.value);
     if (!isNaN(duration) && duration > 0 && !this.availableDurations.includes(duration)) {
-      this.businessSettingsChange.emit({ 
-        availableDurations: [...this.availableDurations, duration] 
+      this.businessSettingsChange.emit({
+        availableDurations: [...this.availableDurations, duration]
       });
     }
   }

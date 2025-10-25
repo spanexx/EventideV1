@@ -1,6 +1,7 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
+import { Observable, Subject } from 'rxjs';
+import { debounceTime, distinctUntilChanged, filter, takeUntil, tap } from 'rxjs/operators';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatSelectModule } from '@angular/material/select';
 import { MatFormFieldModule } from '@angular/material/form-field';
@@ -14,12 +15,12 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatInputModule } from '@angular/material/input';
 import * as DashboardActions from '../../store-dashboard/actions/dashboard.actions';
 import * as DashboardSelectors from '../../store-dashboard/selectors/dashboard.selectors';
+import { selectProviderId } from '../../../auth/store/auth/selectors/auth.selectors';
 import { Booking, BookingStatus } from '../../models/booking.models';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BookingEditDialogComponent } from '../../components/booking-edit-dialog/booking-edit-dialog.component';
 import { CompleteBookingDialogComponent } from '../../components/complete-booking-dialog/complete-booking-dialog.component';
-import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
 
 @Component({
   selector: 'app-bookings',
@@ -41,7 +42,7 @@ import { debounceTime, distinctUntilChanged, Subject } from 'rxjs';
   templateUrl: './bookings.component.html',
   styleUrl: './bookings.component.scss'
 })
-export class BookingsComponent implements OnInit {
+export class BookingsComponent implements OnInit, OnDestroy {
   bookings$: Observable<Booking[]>;
   loading$: Observable<boolean>;
   selectedStatus: string = '';
@@ -49,6 +50,7 @@ export class BookingsComponent implements OnInit {
   
   // Search functionality
   private searchSubject = new Subject<string>();
+  private destroy$ = new Subject<void>();
   
   // Pagination
   pageSize = 10;
@@ -69,14 +71,17 @@ export class BookingsComponent implements OnInit {
     // Setup search debouncing
     this.searchSubject.pipe(
       debounceTime(800), // Increased from 300ms to 800ms
-      distinctUntilChanged()
+      distinctUntilChanged(),
+      takeUntil(this.destroy$)
     ).subscribe(() => {
       console.log(`[BookingsComponent] 🎯 Search debounce fired - triggering filterBookings`);
       this.filterBookings();
     });
     
     // Subscribe to bookings for stats
-    this.bookings$.subscribe(bookings => {
+    this.bookings$.pipe(
+      takeUntil(this.destroy$)
+    ).subscribe(bookings => {
       const bookingCount = bookings?.length || 0;
       this.allBookings = bookings || [];
       console.log(`[BookingsComponent] 📊 Bookings updated: ${bookingCount} bookings received`);
@@ -85,7 +90,26 @@ export class BookingsComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadBookings();
+    console.log('[BookingsComponent] initializing: waiting for providerId before loading bookings');
+    
+    // Gate bookings load on providerId availability
+    this.store.select(selectProviderId).pipe(
+      filter(providerId => {
+        console.log('[BookingsComponent] providerId check:', { providerId, hasValue: !!providerId });
+        return !!providerId;
+      }),
+      tap(providerId => {
+        console.log('[BookingsComponent] providerId available, loading bookings:', { providerId });
+      }),
+      takeUntil(this.destroy$)
+    ).subscribe(() => {
+      this.loadBookings();
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   loadBookings(): void {

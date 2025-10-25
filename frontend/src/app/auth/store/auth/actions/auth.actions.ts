@@ -34,7 +34,7 @@ export const verifyToken = createAction('[Auth] Verify Token');
 
 export const verifyTokenSuccess = createAction(
   '[Auth] Verify Token Success',
-  props<{ user: User }>(),
+  props<{ user: User; token: string; refreshToken?: string }>(),
 );
 
 export const verifyTokenFailure = createAction(
@@ -144,3 +144,6 @@ export const verifyEmailFailure = createAction(
   '[Auth] Verify Email Failure',
   props<{ error: string }>(),
 );
+
+// Clear Error Action
+export const clearError = createAction('[Auth] Clear Error');

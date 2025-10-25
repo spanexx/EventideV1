@@ -76,7 +76,58 @@ export const selectUserId = createSelector(
   (user) => user?.id || ''
 );
 
+// Business-specific selectors
+export const selectBusinessName = createSelector(
+  selectUser,
+  (user) => user?.businessName || ''
+);
+
+export const selectBusinessBio = createSelector(
+  selectUser,
+  (user) => user?.bio || ''
+);
+
+export const selectBusinessContactPhone = createSelector(
+  selectUser,
+  (user) => user?.contactPhone || ''
+);
+
+export const selectBusinessServices = createSelector(
+  selectUser,
+  (user) => user?.services || []
+);
+
+export const selectBusinessCategories = createSelector(
+  selectUser,
+  (user) => user?.categories || []
+);
+
+export const selectBusinessDurations = createSelector(
+  selectUser,
+  (user) => user?.availableDurations || []
+);
+
+export const selectBusinessLocationDetails = createSelector(
+  selectUser,
+  (user) => user?.locationDetails || {}
+);
+
+export const selectBusinessLocationCountry = createSelector(
+  selectBusinessLocationDetails,
+  (location) => location?.country || ''
+);
+
+export const selectBusinessLocationCity = createSelector(
+  selectBusinessLocationDetails,
+  (location) => location?.city || ''
+);
+
+export const selectBusinessLocationAddress = createSelector(
+  selectBusinessLocationDetails,
+  (location) => location?.address || ''
+);
+
 export const selectProviderId = createSelector(
   selectUser,
-  (user) => user?.id || '' // User ID serves as provider ID
+  (user) => user?.id || ''
 );

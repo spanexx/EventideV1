@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -13,7 +13,8 @@ import * as AuthSelectors from '../../store/auth/selectors/auth.selectors';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss']
+  styleUrls: ['./login.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent implements OnInit {
   private store = inject(Store);
@@ -36,7 +37,8 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {
     // Clear any previous error messages when component initializes
-    this.store.dispatch(AuthActions.loginFailure({ error: '' }));
+    console.debug('[LoginComponent] ngOnInit clearError');
+    this.store.dispatch(AuthActions.clearError());
   }
 
   onSubmit(): void {

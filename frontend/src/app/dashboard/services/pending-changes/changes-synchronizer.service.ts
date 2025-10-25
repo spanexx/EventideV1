@@ -197,10 +197,19 @@ export class ChangesSynchronizerService {
     return forkJoin(allObservables).pipe(
       map(() => {
         const success = failed.length === 0;
+        const total = created.length + updated.length + deleted.length;
         const message = success 
-          ? `Successfully saved ${created.length + updated.length + deleted.length} changes`
-          : `Saved ${created.length + updated.length + deleted.length} changes with ${failed.length} failures`;
-          
+          ? `Successfully saved ${total} changes`
+          : `Saved ${total} changes with ${failed.length} failures`;
+
+        // Invalidate cache so next load pulls fresh state (prevents UI disappearing slot)
+        try {
+          console.debug('[ChangesSynchronizerService] Clearing availability cache after save');
+          this.availabilityService.clearAvailabilityCache();
+        } catch (e) {
+          console.warn('[ChangesSynchronizerService] Failed to clear availability cache', e);
+        }
+
         return {
           success,
           message,

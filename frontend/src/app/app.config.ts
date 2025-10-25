@@ -1,11 +1,11 @@
 import {
   ApplicationConfig,
-  APP_INITIALIZER,
+  provideAppInitializer,
   inject,
   provideBrowserGlobalErrorListeners,
   provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { Router, NavigationEnd, provideRouter } from '@angular/router';
 import { LogService } from './services/log.service';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideStore } from '@ngrx/store';
@@ -13,13 +13,10 @@ import { provideEffects } from '@ngrx/effects';
 import { provideStoreDevtools } from '@ngrx/store-devtools';
 import { provideAnimations } from '@angular/platform-browser/animations';
 import { provideNativeDateAdapter } from '@angular/material/core';
-import { MatIconModule } from '@angular/material/icon';
-import { MatButtonModule } from '@angular/material/button';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
-import { MatTooltipModule } from '@angular/material/tooltip';
+
 
 import { routes } from './app.routes';
+import { RoutePersistenceService } from './core/services/route-persistence.service';
 
 import { responseInterceptor } from './core/interceptors/response.interceptor';
 import { authInterceptor } from './core/interceptors/auth.interceptor';
@@ -28,7 +25,7 @@ import { dashboardReducer } from './dashboard/store-dashboard/reducers/dashboard
 import { AuthService } from './services/auth.service';
 import { Store } from '@ngrx/store';
 import * as AuthActions from './auth/store/auth';
-import { AuthEffects, authReducer } from './auth/store/auth';
+import { AUTH_EFFECTS, authReducer } from './auth/store/auth';
 import { availabilityReducer } from './dashboard/store-availability';
 import { AvailabilityEffects } from './dashboard/store-availability';
 import { calendarReducer } from './dashboard/store-calendar';
@@ -42,24 +39,45 @@ import { appearanceReducer } from './store/appearance/appearance.reducer';
 import { AppearanceEffects } from './store/appearance/appearance.effects';
 import { analyticsReducer } from './dashboard/pages/analytics/store/reducers/analytics.reducer';
 
-// Function to initialize the app with existing auth state
-function initializeAppFactory(logService: LogService, authService: AuthService, store: Store) {
-  return () =>
-    logService.init().then(() => {
-      console.log('APP_INITIALIZER: LogService initialized');
+// App initializer using DI (Angular 19+)
+function appInit() {
+  return () => {
+    const logService = inject(LogService);
+    const authService = inject(AuthService);
+    const store = inject(Store);
+    const routePersistence = inject(RoutePersistenceService);
+    const router = inject(Router);
 
-      // Check if there's a valid token in localStorage
-      console.log('APP_INITIALIZER: Checking if user is authenticated');
+    return logService.init().then(() => {
+      console.log('APP INIT: LogService initialized');
+      console.log('APP INIT: Checking if user is authenticated');
       if (authService.isAuthenticated()) {
-        console.log('APP_INITIALIZER: User is authenticated, dispatching verifyToken');
-        // Dispatch an action to verify the token and load user data
+        console.log('APP INIT: User is authenticated, dispatching verifyToken');
         store.dispatch(AuthActions.verifyToken());
-      } else {
-        console.log('APP_INITIALIZER: No valid token found');
-      }
+        routePersistence.startTracking();
 
-      console.log('APP_INITIALIZER: App initialization complete');
+        return new Promise<void>((resolve) => {
+          const subscription = router.events.subscribe((event: any) => {
+            if (event instanceof NavigationEnd) {
+              console.log('APP INIT: Router ready, capturing current URL');
+              routePersistence.captureCurrentUrl();
+              subscription.unsubscribe();
+              resolve();
+            }
+          });
+          setTimeout(() => {
+            console.log('APP INIT: Router timeout, capturing current URL anyway');
+            routePersistence.captureCurrentUrl();
+            subscription.unsubscribe();
+            resolve();
+          }, 1000);
+        });
+      } else {
+        console.log('APP INIT: No valid token found');
+        return Promise.resolve();
+      }
     });
+  };
 }
 
 export const appConfig: ApplicationConfig = {
@@ -82,7 +100,7 @@ export const appConfig: ApplicationConfig = {
       appearance: appearanceReducer,
     }),
     provideEffects([
-      AuthEffects,
+      ...AUTH_EFFECTS,
       DashboardEffects,
       AvailabilityEffects,
       CalendarEffects,
@@ -92,12 +110,6 @@ export const appConfig: ApplicationConfig = {
     ]),
     provideStoreDevtools({ maxAge: 25, logOnly: false }),
     LogService,
-    {
-      provide: APP_INITIALIZER,
-      useFactory: (logService: LogService, authService: AuthService, store: Store) =>
-        initializeAppFactory(logService, authService, store),
-      deps: [LogService, AuthService, Store],
-      multi: true,
-    },
+    provideAppInitializer(appInit()),
   ],
 };

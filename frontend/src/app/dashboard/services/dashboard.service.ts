@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Store } from '@ngrx/store';
-import { first, switchMap } from 'rxjs/operators';
+import { take, switchMap, filter, map } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { DashboardStats, Activity } from '../models/dashboard.models';
 import { Booking } from '../models/booking.models';
@@ -19,8 +19,9 @@ export class DashboardService {
 
   getStats(): Observable<DashboardStats> {
     return this.store.select(selectProviderId).pipe(
-      first(),
-      switchMap(providerId => {
+      filter((providerId: string) => !!providerId),
+      take(1),
+      switchMap((providerId: string) => {
         console.log('📊 [DashboardService] getStats()', { providerId });
         return this.http.get<DashboardStats>(`${this.API_URL}/stats`, {
           params: { providerId }
@@ -31,8 +32,9 @@ export class DashboardService {
 
   getRecentActivity(): Observable<Activity[]> {
     return this.store.select(selectProviderId).pipe(
-      first(),
-      switchMap(providerId => {
+      filter((providerId: string) => !!providerId),
+      take(1),
+      switchMap((providerId: string) => {
         console.log('📰 [DashboardService] getRecentActivity()', { providerId });
         return this.http.get<Activity[]>(`${this.API_URL}/activity`, {
           params: { providerId }

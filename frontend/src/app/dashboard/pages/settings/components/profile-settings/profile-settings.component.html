@@ -24,7 +24,7 @@
 
         <mat-form-field appearance="outline">
           <mat-label>Email</mat-label>
-          <input matInput [value]="(userEmail$ | async) || ''" readonly />
+          <input matInput [value]="userEmail || ''" readonly />
         </mat-form-field>
       </div>
       <div class="profile-actions">
@@ -32,9 +32,9 @@
           mat-flat-button
           color="primary"
           (click)="saveProfile()"
-          [disabled]="savingProfile()"
+          [disabled]="savingProfile"
         >
-          {{ savingProfile() ? 'Saving...' : 'Save Profile' }}
+          {{ savingProfile ? 'Saving...' : 'Save Profile' }}
         </button>
       </div>
     </form>

@@ -156,7 +156,7 @@ export class AvailabilityService {
     return this.http.post<any>(`${this.API_URL}`, availability).pipe(
       map(slot => ({
         ...slot,
-        // id: slot._id || slot.id, // Use _id if available, otherwise use id
+        id: slot._id || slot.id, // Use _id if available, otherwise use id
         date: slot.date ? new Date(slot.date) : undefined,
         startTime: new Date(slot.startTime),
         endTime: new Date(slot.endTime)

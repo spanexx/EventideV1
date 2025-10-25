@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, inject } from '@angular/core';
 import { Store } from '@ngrx/store';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -12,7 +12,8 @@ import * as AuthSelectors from '../../store/auth';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './signup.component.html',
-  styleUrls: ['./signup.component.scss']
+  styleUrls: ['./signup.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SignupComponent implements OnInit {
   private store = inject(Store);
@@ -38,7 +39,8 @@ export class SignupComponent implements OnInit {
 
   ngOnInit(): void {
     // Clear any previous error messages when component initializes
-    this.store.dispatch(AuthActions.signupFailure({ error: '' }));
+    console.debug('[SignupComponent] ngOnInit clearError');
+    this.store.dispatch(AuthActions.clearError());
   }
 
   passwordMatchValidator(form: FormGroup) {

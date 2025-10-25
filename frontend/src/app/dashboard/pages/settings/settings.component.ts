@@ -1,4 +1,4 @@
-import { Component, OnInit, effect, inject, DestroyRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { MatCardModule } from '@angular/material/card';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
@@ -20,6 +20,16 @@ import {
   selectUser,
   selectUserEmail,
   selectUserFullName,
+  selectBusinessName,
+  selectBusinessBio,
+  selectBusinessContactPhone,
+  selectBusinessServices,
+  selectBusinessCategories,
+  selectBusinessDurations,
+  selectBusinessLocationCountry,
+  selectBusinessLocationCity,
+  selectBusinessLocationAddress,
+  selectAuthLoading,
 } from '../../../auth/store/auth/selectors/auth.selectors';
 import { Observable, Subject } from 'rxjs';
 import {
@@ -84,9 +94,21 @@ import { SettingsPreferencesHandlerService } from './services/settings-preferenc
   styleUrl: './settings.component.scss',
 })
 export class SettingsComponent implements OnInit {
-  user$!: Observable<any>;
+  user$!: Observable<AuthUser | null>;
   userEmail$!: Observable<string>;
   userFullName$!: Observable<string>;
+
+  // Business observables from auth store
+  businessName$!: Observable<string>;
+  businessBio$!: Observable<string>;
+  businessContactPhone$!: Observable<string>;
+  businessServices$!: Observable<string[]>;
+  businessCategories$!: Observable<string[]>;
+  businessDurations$!: Observable<number[]>;
+  businessLocationCountry$!: Observable<string>;
+  businessLocationCity$!: Observable<string>;
+  businessLocationAddress$!: Observable<string>;
+  loading$!: Observable<boolean>;
 
   // Destroy subject for memory leak prevention
   private destroy$ = new Subject<void>();
@@ -101,70 +123,91 @@ export class SettingsComponent implements OnInit {
     public profileService: SettingsProfileService,
     public businessService: SettingsBusinessService,
     public preferencesHandler: SettingsPreferencesHandlerService,
-  ) {
-    // Effect to sync service updates with local signal
-    effect(() => {
-      this.settingsService.preferences$
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((prefs) => {
-          this.preferencesHandler.setPreferences(prefs);
-          // Ensure OnPush components update when preferences change (e.g., preserved payment)
-          this.cdr.markForCheck();
-        });
-    });
-
-    // Effect to sync appearance preferences from NgRx store with local signal
-    effect(() => {
-      this.store
-        .select(selectTheme)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((theme) => {
-          this.preferencesHandler.updatePreference('theme', theme as 'light' | 'dark' | 'system');
-        });
-    });
-
-    effect(() => {
-      this.store
-        .select(selectLanguage)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((language) => {
-          this.preferencesHandler.updatePreference('language', language as string);
-        });
-    });
-
-    effect(() => {
-      this.store
-        .select(selectTimezone)
-        .pipe(takeUntilDestroyed(this.destroyRef))
-        .subscribe((timezone) => {
-          this.preferencesHandler.updatePreference('timezone', timezone as string);
-        });
-    });
-  }
+  ) {}
 
   ngOnInit(): void {
     // Load appearance preferences from NgRx store first
     this.store.dispatch(loadAppearancePreferences());
 
-    // Refresh user data from the API to ensure we have the latest business data
+    // Fetch full user from API (single source of truth)
     this.store.dispatch(AuthActions.refreshUser());
 
     this.preferencesHandler.loadPreferences();
 
-    // Initialize user data from store
+    // Initialize user data from auth store (single source of truth)
     this.user$ = this.store.select(selectUser);
     this.userEmail$ = this.store.select(selectUserEmail);
     this.userFullName$ = this.store.select(selectUserFullName);
-    this.user$ = this.authService.currentUser$;
+    this.loading$ = this.store.select(selectAuthLoading);
 
-    // Initialize business settings from current user
-    this.authService.currentUser$
+    // Business data from auth store
+    this.businessName$ = this.store.select(selectBusinessName);
+    this.businessBio$ = this.store.select(selectBusinessBio);
+    this.businessContactPhone$ = this.store.select(selectBusinessContactPhone);
+    this.businessServices$ = this.store.select(selectBusinessServices);
+    this.businessCategories$ = this.store.select(selectBusinessCategories);
+    this.businessDurations$ = this.store.select(selectBusinessDurations);
+    this.businessLocationCountry$ = this.store.select(selectBusinessLocationCountry);
+    this.businessLocationCity$ = this.store.select(selectBusinessLocationCity);
+    this.businessLocationAddress$ = this.store.select(selectBusinessLocationAddress);
+
+    // Debug: Log business data from store
+    this.businessName$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(name => 
+      console.log('[SettingsComponent] businessName$ emitted:', name)
+    );
+    this.businessBio$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(bio => 
+      console.log('[SettingsComponent] businessBio$ emitted:', bio)
+    );
+    this.businessContactPhone$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(phone => 
+      console.log('[SettingsComponent] businessContactPhone$ emitted:', phone)
+    );
+
+    // Subscribe to store changes for preferences sync
+    this.settingsService.preferences$
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((user) => {
-        if (user) {
-          this.businessService.updateFromUser(user);
-        }
+      .subscribe((prefs) => {
+        this.preferencesHandler.setPreferences(prefs);
+        this.cdr.markForCheck();
       });
+
+    this.store
+      .select(selectTheme)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((theme) => {
+        this.preferencesHandler.updatePreference('theme', theme as 'light' | 'dark' | 'system');
+      });
+
+    this.store
+      .select(selectLanguage)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((language) => {
+        this.preferencesHandler.updatePreference('language', language as string);
+      });
+
+    this.store
+      .select(selectTimezone)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((timezone) => {
+        this.preferencesHandler.updatePreference('timezone', timezone as string);
+      });
+
+    // Update services from store user data
+    this.user$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((user) => {
+      if (user) {
+        console.log('[SettingsComponent] Full user object from store:', JSON.stringify(user, null, 2));
+        console.log('[SettingsComponent] Business fields:', {
+          businessName: user.businessName,
+          bio: user.bio,
+          contactPhone: user.contactPhone,
+          services: user.services,
+          categories: user.categories,
+          locationDetails: user.locationDetails
+        });
+        this.profileService.updateFromUser(user);
+        this.businessService.updateFromUser(user);
+        this.cdr.markForCheck(); // Trigger change detection for OnPush
+      }
+    });
   }
 
   public updateNestedPreference(key: string, nestedKey: string, value: any): void {
@@ -213,8 +256,16 @@ export class SettingsComponent implements OnInit {
     this.profileService.saveProfile();
   }
 
-  public saveBusinessSettings(): void {
-    this.businessService.saveBusinessSettings();
+  public handleBusinessSettingsChange(updates: any): void {
+    console.debug('[SettingsComponent] business settings changed', updates);
+    // Dispatch update to auth store
+    this.store.dispatch(AuthActions.updateUser({ updates }));
+  }
+
+  public handleBusinessSave(): void {
+    // Business settings are saved immediately via handleBusinessSettingsChange
+    // This method is just for consistency with the component interface
+    console.debug('[SettingsComponent] business settings saved');
   }
 
   public saveNotificationSettings(): void {

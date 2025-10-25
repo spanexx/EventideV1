@@ -331,20 +331,29 @@ export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
       .subscribe(availability => {
       console.log(`[AvailabilityComponent] Availability updated - ${availability.length} slots`);
       
-      // MIGRATION: Initialize the signal-based pending changes service with the original state
+      // Initialize once from store
       if (!isInitialized && availability.length >= 0) {
         this.pendingChangesSignalService.initialize(availability);
         isInitialized = true;
-        // Initialize the previous availability with the store data
         previousAvailability = [...availability];
         console.log('[AvailabilityComponent] Initialized signal-based pending changes with', availability.length, 'slots');
-      } else if (isInitialized) {
-        // If already initialized, update the original state when store changes
-        // This happens when data is refreshed from server
-        this.pendingChangesSignalService.initialize(availability);
-        previousAvailability = [...availability];
-        console.log('[AvailabilityComponent] Updated signal-based original state with', availability.length, 'slots from store');
+        return;
       }
+
+      // After first init: avoid overwriting local pending state while user has unsaved changes
+      const hasPending = this.pendingChangesSignalService.hasPendingChanges();
+      const commitInProgress = this.pendingChangesSignalService.isCommitInProgress();
+      const storeSyncSuspended = this.pendingChangesSignalService.isStoreSyncSuspended();
+      console.log('[AvailabilityComponent] Store emission guard', { hasPending, commitInProgress, storeSyncSuspended });
+      if (hasPending || commitInProgress || storeSyncSuspended) {
+        console.log('[AvailabilityComponent] Store emission ignored (pending/commit/suspended)');
+        return;
+      }
+
+      // No pending changes and not in a commit window: adopt store as the new original state
+      this.pendingChangesSignalService.updateCurrentState(availability);
+      previousAvailability = [...availability];
+      console.log('[AvailabilityComponent] Adopted store state as current/original with', availability.length, 'slots');
     });
     
     // MIGRATION: Subscribe to signal-based pending changes current state for calendar updates
@@ -775,15 +784,21 @@ export class AvailabilityComponent implements OnInit, AfterViewInit, OnDestroy {
    * Load AI-enhanced availability data
    */
   loadAIEnhancedAvailability(): void {
-    this.store.select(AuthSelectors.selectUserId).pipe(take(1)).subscribe(userId => {
-      if (userId) {
-        const today = new Date();
-        this.store.dispatch(AvailabilityActions.loadAIEnhancedAvailability({ 
-          providerId: userId, 
-          date: today,
-          includeAnalysis: true
-        }));
-      }
+    this.store.select(AuthSelectors.selectUserId).pipe(
+      filter(userId => {
+        console.log('[AvailabilityComponent] loadAIEnhancedAvailability - userId check:', { userId, hasValue: !!userId });
+        return !!userId && userId !== '';
+      }),
+      take(1),
+      takeUntil(this.destroy$)
+    ).subscribe(userId => {
+      console.log('[AvailabilityComponent] Loading AI-enhanced availability for user:', { userId });
+      const today = new Date();
+      this.store.dispatch(AvailabilityActions.loadAIEnhancedAvailability({ 
+        providerId: userId, 
+        date: today,
+        includeAnalysis: true
+      }));
     });
   }
 

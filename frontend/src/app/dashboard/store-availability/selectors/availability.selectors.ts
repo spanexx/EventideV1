@@ -6,13 +6,7 @@ export const selectAvailabilityState = createFeatureSelector<AvailabilityState>(
 // Availability selectors
 export const selectAvailability = createSelector(
   selectAvailabilityState,
-  (state: AvailabilityState) => {
-    // Clean up the availability data to ensure it only has 'id' and not '_id'
-    return state.availability.map(slot => {
-      const { _id, ...rest } = slot as any;
-      return rest;
-    });
-  }
+  (state: AvailabilityState) => state.availability
 );
 
 // Loading and error selectors

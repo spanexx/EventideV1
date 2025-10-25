@@ -311,22 +311,44 @@ export class AuthService {
   }
 
   async verifyEmail(token: string): Promise<{ message: string }> {
+    this.logger.log(`[AuthService] Starting email verification with token: ${token.substring(0, 20)}...`);
+    
     try {
-      const decoded = this.jwtService.verify(token) as { email: string };
+      this.logger.log(`[AuthService] Attempting to verify JWT token`);
+      const decoded = this.jwtService.verify(token) as { sub: string; email: string };
+      this.logger.log(`[AuthService] JWT decoded successfully:`, { 
+        sub: decoded.sub, 
+        email: decoded.email 
+      });
+      
       const user = await this.usersService.findByEmail(decoded.email);
+      this.logger.log(`[AuthService] User lookup result:`, { 
+        found: !!user, 
+        userId: user?.id, 
+        isEmailVerified: user?.isEmailVerified 
+      });
       
       if (!user) {
+        this.logger.error(`[AuthService] User not found for email: ${decoded.email}`);
         throw new UnauthorizedException('Invalid verification token');
       }
 
       if (user.isEmailVerified) {
+        this.logger.log(`[AuthService] Email already verified for user: ${user.id}`);
         return { message: 'Email already verified' };
       }
 
+      this.logger.log(`[AuthService] Marking email as verified for user: ${user.id}`);
       await this.usersService.markEmailAsVerified(user.id);
+      this.logger.log(`[AuthService] Email verification completed successfully for user: ${user.id}`);
+      
       return { message: 'Email verified successfully' };
     } catch (error) {
-      this.logger.error(`Email verification failed: ${error.message}`);
+      this.logger.error(`[AuthService] Email verification failed:`, {
+        error: error.message,
+        stack: error.stack,
+        tokenPreview: token.substring(0, 20) + '...'
+      });
       throw new UnauthorizedException('Invalid or expired verification token');
     }
   }
